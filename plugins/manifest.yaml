@@ -4,7 +4,7 @@ schema_version: 1
 stack: max25
 name: MainAX25-Stack
 alias: MAX25-Stack
-version: 1.0.0-rc1
+version: 1.0.0
 default_betriebsform: standalone
 description: MainAX25-Stack (MAX25-Stack) — Main AX.25 Packet Radio standalone stack (HyBBX-compatible)
 

@@ -1,6 +1,6 @@
 # Development
 
-[AGENTS.md](../AGENTS.md) · [CONTRIBUTING.md](../CONTRIBUTING.md) · Doc index: [README.md](README.md) · **v1.0.0-rc1**
+[AGENTS.md](../AGENTS.md) · [CONTRIBUTING.md](../CONTRIBUTING.md) · Doc index: [README.md](README.md) · **v1.0.0**
 
 ## Toolchain
 

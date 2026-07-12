@@ -2,7 +2,7 @@
 
 **Main AX.25 Stack** — standalone Packet Radio / AX.25 hardware lifecycle. HyBBX attaches as an external consumer (`packet_radio`, `baycom`, `crdop`). MAX25 owns modem/TNC prep, KISS bridge, and M25/1 operator IPC.
 
-**Version:** `1.0.0-rc1` (see `VERSION`) · Full doc map: [docs/README.md](docs/README.md)
+**Version:** `1.0.0` (see `VERSION`) · Full doc map: [docs/README.md](docs/README.md)
 
 ## Architecture
 

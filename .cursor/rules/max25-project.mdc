@@ -9,7 +9,7 @@ Read [AGENTS.md](../../AGENTS.md) and [docs/DEVELOPMENT.md](../../docs/DEVELOPME
 
 ## Product
 
-**Main AX.25 Stack** — standalone Packet Radio / AX.25 hardware lifecycle. HyBBX attaches as external consumer (`packet_radio`, `baycom`, `crdop`). **v1.0.0-rc1**.
+**Main AX.25 Stack** — standalone Packet Radio / AX.25 hardware lifecycle. HyBBX attaches as external consumer (`packet_radio`, `baycom`, `crdop`). **v1.0.0**.
 
 Plugin hierarchy: operating mode (`betriebsform/`) → Hardware → Device. Registry: `plugins/manifest.yaml`.
 
