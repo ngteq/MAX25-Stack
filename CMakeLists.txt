@@ -46,25 +46,28 @@ if(MAX25_BUILD_DAEMON)
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/paths.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
-    set(_MAX25_STACK_SCRIPTS
+    set(_MAX25_STACK_PROGRAMS
         stacks/tncs/load-serial-env.sh
         stacks/tncs/tnc2c-boot-wait.sh
-        stacks/tncs/tnc2c-boot-wait.py
         stacks/tncs/pktnc2-boot-wait.sh
-        stacks/tncs/tnc2c-serial.env
-        stacks/tncs/pktnc2-serial.env
         stacks/crdop/scripts/crdopc
     )
-    foreach(_script IN LISTS _MAX25_STACK_SCRIPTS)
+    set(_MAX25_STACK_DATA
+        stacks/tncs/tnc2c-boot-wait.py
+        stacks/tncs/tnc2c-serial.env
+        stacks/tncs/pktnc2-serial.env
+    )
+    foreach(_script IN LISTS _MAX25_STACK_PROGRAMS)
         get_filename_component(_dir "${_script}" DIRECTORY)
         string(REPLACE "stacks/" "" _rel "${_dir}")
-        if(_script MATCHES "\\.sh$")
-            install(PROGRAMS "${CMAKE_SOURCE_DIR}/${_script}"
-                    DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/stacks/${_rel}")
-        else
-            install(FILES "${CMAKE_SOURCE_DIR}/${_script}"
-                    DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/stacks/${_rel}")
-        endif()
+        install(PROGRAMS "${CMAKE_SOURCE_DIR}/${_script}"
+                DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/stacks/${_rel}")
+    endforeach()
+    foreach(_script IN LISTS _MAX25_STACK_DATA)
+        get_filename_component(_dir "${_script}" DIRECTORY)
+        string(REPLACE "stacks/" "" _rel "${_dir}")
+        install(FILES "${CMAKE_SOURCE_DIR}/${_script}"
+                DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/stacks/${_rel}")
     endforeach()
 endif()
 
