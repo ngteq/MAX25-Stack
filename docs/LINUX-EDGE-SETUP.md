@@ -74,7 +74,7 @@ cmake --build build -j$(nproc)
 cmake --install build --prefix /usr/local
 ```
 
-If the tree was moved (e.g. copied to `/tmp/max25-stack`), remove stale caches first:
+If the tree was moved to another checkout path, remove stale caches first:
 
 ```bash
 rm -rf build stacks/crdop/build
@@ -107,15 +107,17 @@ Installs:
 | `/usr/local/bin/max25-ctl` | Stack control (legacy entry) |
 | `/usr/local/share/max25/` | `max25d.ini` examples, systemd unit example |
 
-### BayCom only (kernel modem)
+### BayCom only (kernel modem, single PC-COM)
 
 ```bash
 ./scripts/build.sh
-sudo make -C stacks/baycom-pr install
-sudo bash stacks/baycom-pr/scripts/install-root.sh   # full root setup + preflight
+sudo ./scripts/install-max25.sh          # installs baycom-pr-ctl + /etc/baycom/baycom-pr.ini.example
+sudo cp share/baycom/baycom-pr.pccom-ttyS0-only.ini.example /etc/baycom/baycom-pr.ini
+sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
+./scripts/max25-ctl start --hardware modems --device baycom-ser12
 ```
 
-See `stacks/baycom-pr/docs/GETTING-STARTED.md`.
+Full operator guide: [BAYCOM.md](BAYCOM.md). Stack internals: `stacks/baycom-pr/docs/GETTING-STARTED.md`.
 
 ---
 
@@ -166,7 +168,7 @@ max25d --no-stack -c /etc/max25/max25d.ini
 sudo max25d -c /etc/max25/max25d.ini
 ```
 
-`sudo` may be required when `auto_start=yes` launches BayCom kernel paths or binds `/run/max25/modem.sock`. Without root, Unix socket falls back to `/tmp/max25/modem.sock`; TCP **7325** still works.
+`sudo` may be required when `auto_start=yes` launches BayCom kernel paths or binds `/run/max25/modem.sock`. Without root, set `MAX25_UNIX` to a writable path or use TCP **7325** (see `max25d` startup log for the active socket).
 
 ### systemd (24/7)
 
@@ -215,14 +217,16 @@ max25-terminal -U /run/max25/modem.sock
 
 HyBBX later: `share/hybbx/tnc2c-edge.ini.example`.
 
-### BayCom on UART or USB
+### BayCom on UART (ttyS0)
 
 ```bash
-sudo baycom-pr-ctl probe
-sudo baycom-pr-ctl setup
-# /etc/max25/max25d.ini → hardware=modems device=baycom-ser12
+sudo cp share/baycom/baycom-pr.pccom-ttyS0-only.ini.example /etc/baycom/baycom-pr.ini
+sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
+# max25d.ini: hardware=modems device=baycom-ser12 + [device.baycom-ser12] baycom_ini=
 sudo max25d -c /etc/max25/max25d.ini
 ```
+
+See [BAYCOM.md](BAYCOM.md).
 
 ### CRDOP + USB sound
 

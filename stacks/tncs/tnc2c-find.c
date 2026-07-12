@@ -297,7 +297,7 @@ int main(int argc, char **argv)
     }
 
     if (best_score >= 30) {
-        printf("\nPartial link — check TERM jumper; try: minicom -D %s\n", device);
+        printf("\nPartial link — check TERM jumper; try: tnc2c-host-reset %s\n", device);
         return 3;
     }
 

@@ -118,11 +118,11 @@ Same as ser12: `baycom_kissbridge` connects `bcp*` → `kiss_link` PTY when `kis
 Attach clients:
 
 ```bash
-sudo baycom-pr-ctl minicom a --kiss
-picocom -b 9600 -r -l /var/run/baycom-pr/kiss
+socat -x /var/run/baycom-pr/kiss,raw,echo=0 -
+baycom-pr-ctl listen radio
 ```
 
-There is **no serial minicom** path for par96 (`--serial` is rejected).
+There is **no raw UART serial path** for par96.
 
 ## Troubleshooting
 

@@ -1,0 +1,47 @@
+; Dual kernel BayCom — two SER12 modems (service mode, worldwide)
+; NOT for AX25SRV (ttyS4/ttyS5 are TNCs there). See docs/BAYCOM.md § Dual modem.
+;
+; Prerequisite INI (root, once):
+;   sudo cp stacks/baycom-pr/config/examples/baycom-pr.dual.ini /etc/baycom/baycom-pr.ini
+;   sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
+;   sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini preflight
+;
+; Start stack (explicit dual INI — max25-ctl skips dual /etc unless --baycom-ini):
+;   ./scripts/max25-ctl start --hardware modems --device baycom-ser12 \
+;     --baycom-ini /etc/baycom/baycom-pr.ini
+;
+; Or max25d auto_start below (one baycom-pr-ctl for both modems).
+
+[daemon]
+mode = service
+hardware = modems
+device = baycom-a
+
+[devices]
+default = baycom-a
+baycom-a = baycom:a
+baycom-b = baycom:b
+
+[network]
+tcp_host = 0.0.0.0
+tcp_port = 7325
+unix_socket = /run/max25/modem.sock
+tcp_password =
+
+[modem]
+callerid = N0CALL-0
+callid = QST
+ax25_ui = yes
+
+[stack]
+auto_start = yes
+
+[device.baycom-a]
+kiss_link = /var/run/baycom-pr/kiss-a
+modem = a
+baycom_ini = /etc/baycom/baycom-pr.ini
+
+[device.baycom-b]
+kiss_link = /var/run/baycom-pr/kiss-b
+modem = b
+baycom_ini = /etc/baycom/baycom-pr.ini

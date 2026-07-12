@@ -16,7 +16,7 @@ First public release. Standalone Linux stack for **BayCom ser12** (kernel UART) 
 
 ## Features
 
-- **Control:** multi-modem `start` / `stop` / `status` / `test` / `check` / `selftest` / `minicom`
+- **Control:** multi-modem `start` / `stop` / `status` / `test` / `check` / `selftest` / `listen` / `call`
 - **Backends:** `kernel-ser12` + `kiss-serial` in one profile
 - **HDLC:** `baycom_sethdlc` replaces broken `sethdlc` on kernel 6.x
 - **KISS:** one PTY symlink per modem (`kiss_link`)

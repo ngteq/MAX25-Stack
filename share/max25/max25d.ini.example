@@ -35,6 +35,8 @@ callerid = CB-0
 callid = QST
 ; Send lines as AX.25 UI when yes (CRDOP uses ARDOP FEC display when ax25_ui=yes)
 ax25_ui = yes
+; Banned AX.25 source callsigns — silent RX drop (one per line in file)
+; bans_file = /etc/max25/bans.txt
 
 [stack]
 ; Auto-start hardware on daemon start (boot-wait / baycom-pr-ctl / crdopc per device)
@@ -63,6 +65,8 @@ auto_start = yes
 ; kiss_entry = auto
 
 ; --- BayCom kernel modem (SER12 / PAR96) ---
+; Uncomment for PC-COM on ttyS0 (single modem — v1 default):
+; baycom-ser12 = baycom:a
 ; [device.baycom-ser12]
 ; kiss_link = /var/run/baycom-pr/kiss
 ; modem = a

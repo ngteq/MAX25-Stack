@@ -18,11 +18,9 @@ echo "=== 2. Install ==="
 make -C "${ROOT}" install
 install -m 755 "${ROOT}/scripts/baycom-pr-ctl" /usr/local/sbin/baycom-pr-ctl
 install -m 755 "${ROOT}/scripts/pccom-ctl" /usr/local/sbin/pccom-ctl
-install -d /etc/baycom/minicom /etc/baycom/axports /etc/baycom/rc.d
+install -d /etc/baycom/axports /etc/baycom/rc.d
 install -m 644 "${ROOT}/config/baycom-pr.ini" /etc/baycom/baycom-pr.ini
 install -m 644 "${ROOT}/config/modems.ini" /etc/baycom/modems.ini
-install -m 644 "${ROOT}/config/minicom/minirc.baycom-serial" /etc/baycom/minicom/minirc.baycom-serial
-install -m 644 "${ROOT}/config/minicom/minirc.baycom-kiss" /etc/baycom/minicom/minirc.baycom-kiss
 install -m 644 "${ROOT}/config/axports/single.snippet" /etc/baycom/axports/single.snippet
 install -m 644 "${ROOT}/config/axports/dual.snippet" /etc/baycom/axports/dual.snippet
 install -m 755 "${ROOT}/scripts/rc.baycom-pr" /etc/baycom/rc.d/rc.baycom-pr

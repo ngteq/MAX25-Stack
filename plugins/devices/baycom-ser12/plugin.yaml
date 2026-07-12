@@ -21,10 +21,15 @@ runtime:
   ctl: stacks/baycom-pr/scripts/baycom-pr-ctl
 
 ini:
+  - share/baycom/baycom-pr.pccom-ttyS0-only.ini.example
   - stacks/baycom-pr/config/baycom-pr.ini
-  - stacks/baycom-pr/config/examples/baycom-pr.cb.ini
+  - stacks/baycom-pr/config/examples/baycom-pr.dual.ini
   - share/hybbx/baycom-ser12-edge.ini.example
 
 docs:
+  - docs/BAYCOM.md
   - stacks/baycom-pr/docs/GETTING-STARTED.md
   - stacks/baycom-pr/docs/PLUGIN.md
+
+client: share/clients/baycom-ser12.yaml
+notes: Kernel ser12 — hardware via baycom-pr.ini catalog=; client YAML is operator reference

@@ -35,6 +35,20 @@ def free_port() -> int:
     return port
 
 
+def wait_for_port(port: int, proc: subprocess.Popen[str], timeout: float = 8.0) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            return False
+        try:
+            probe = socket.create_connection(("127.0.0.1", port), timeout=0.25)
+            probe.close()
+            return True
+        except OSError:
+            time.sleep(0.1)
+    return False
+
+
 def main() -> int:
     port = free_port()
     proc = subprocess.Popen(
@@ -43,7 +57,12 @@ def main() -> int:
         stderr=subprocess.PIPE,
         text=True,
     )
-    time.sleep(0.6)
+    if not wait_for_port(port, proc):
+        err = proc.stderr.read() if proc.stderr else ""
+        proc.terminate()
+        proc.wait(timeout=3)
+        print(f"FAIL: max25d not listening on {port}: {err.strip()}", file=sys.stderr)
+        return 1
     try:
         sock = socket.create_connection(("127.0.0.1", port), timeout=3)
     except OSError as exc:

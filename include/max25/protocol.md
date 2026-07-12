@@ -13,7 +13,7 @@ Developer guide: [docs/MAX25-CLIENT.md](../../docs/MAX25-CLIENT.md)
 | Method | Default | Override |
 |--------|---------|----------|
 | TCP | `0.0.0.0:7325` | `max25d.ini` `[network]`, env `MAX25_HOST` / `MAX25_PORT` |
-| Unix stream | `/run/max25/modem.sock` | `max25d.ini`, env `MAX25_UNIX`; fallback `/tmp/max25/modem.sock` without root |
+| Unix stream | `/run/max25/modem.sock` | `max25d.ini`, env `MAX25_UNIX`; without root use a writable path or TCP |
 
 The official client tries Unix first (if configured), then TCP.
 
@@ -70,6 +70,9 @@ Implementations **must buffer** incomplete lines across `read()` calls.
 | `DISCONNECT` | Detach session (daemon keeps running) |
 | `SEND <text>` | Transmit line on session-selected device — payload is remainder of line after `SEND ` (may be empty) |
 | `MONITOR on\|off` | RX-only mode (`SEND` → `ERR monitor-only`) |
+| `BAN <callsign>` | Block AX.25 source — incoming UI frames dropped silently |
+| `UNBAN <callsign>` | Remove source from ban list |
+| `BANS` | List banned callsigns → one `BAN …` line each, then `OK` |
 
 Command keywords are case-sensitive except `SET AX25_UI` flags (`on`/`off` case-insensitive).
 

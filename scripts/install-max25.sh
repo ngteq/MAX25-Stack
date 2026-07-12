@@ -88,11 +88,38 @@ fi
 echo ""
 echo "== MAX25 installed to ${PREFIX} =="
 echo "  max25d, kiss_bridge.py, max25-terminal, max25-ctl -> ${PREFIX}/bin"
+echo "  baycom-pr-ctl + Python helpers -> ${PREFIX}/sbin"
 echo "  examples -> ${PREFIX}/share/max25/"
+echo "  BayCom INI example -> /etc/baycom/baycom-pr.ini.example"
 echo ""
-echo "Next steps:"
+
+BAYCOM_SINGLE="${ROOT}/share/baycom/baycom-pr.pccom-ttyS0-only.ini.example"
+if [[ -f "${BAYCOM_SINGLE}" ]]; then
+  if [[ ! -f /etc/baycom/baycom-pr.ini ]]; then
+    if [[ "$(id -u)" -eq 0 ]]; then
+      install -d /etc/baycom
+      cp "${BAYCOM_SINGLE}" /etc/baycom/baycom-pr.ini
+      echo "  Installed /etc/baycom/baycom-pr.ini (single PC-COM on ttyS0)"
+    else
+      echo "  Tip: sudo cp ${BAYCOM_SINGLE} /etc/baycom/baycom-pr.ini"
+    fi
+  else
+    echo "  /etc/baycom/baycom-pr.ini exists — not overwritten"
+    echo "  Single (default): ${BAYCOM_SINGLE}"
+    echo "  Dual (opt-in): stacks/baycom-pr/config/examples/baycom-pr.dual.ini"
+    echo "    max25-ctl start --hardware modems --device baycom-ser12 --baycom-profile dual"
+  fi
+fi
+
+echo ""
+echo "Next steps (TNC edge):"
 echo "  sudo usermod -aG dialout \$USER   # serial access"
 echo "  sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini"
 echo "  sudo max25d -c /etc/max25/max25d.ini"
 echo "  max25-terminal -U /run/max25/modem.sock"
-echo "  docs/LINUX-EDGE-SETUP.md"
+echo ""
+echo "Next steps (BayCom PC-COM, single modem on ttyS0):"
+echo "  sudo cp share/baycom/baycom-pr.pccom-ttyS0-only.ini.example /etc/baycom/baycom-pr.ini"
+echo "  sudo ${PREFIX}/sbin/baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup"
+echo "  ./scripts/max25-ctl start --hardware modems --device baycom-ser12"
+echo "  docs/BAYCOM.md · docs/LINUX-EDGE-SETUP.md"

@@ -1,15 +1,21 @@
 ; MainAX25-Stack — max25d edge node (example setup)
 ; Copy: sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
+; Unified workflow: docs/PLUGINS-DEVICE-MODEL.md
+;
+; AX25SRV UART map (single BayCom — no dual on this host):
+;   /dev/ttyS0  BayCom PC-COM (kernel-ser12) — Path B below
+;   /dev/ttyS4  TNC2C (packet_radio)         — Path A (default)
+;   /dev/ttyS5  PK-TNC2 (packet_radio)       — NOT BayCom
+;
+; Enable exactly ONE hardware path: comment out Path A [devices] when switching to B or C.
 
 [daemon]
 mode = standalone
-; --- pick ONE hardware path ---
+; Path A (default): TNC2C on ttyS4
 hardware = tncs
 device = tnc2c
-; hardware = modems
-; device = baycom-ser12
-; hardware = soft-modems
-; device = soft-crdop
+; Path B BayCom: hardware = modems · device = baycom-ser12
+; Path C CRDOP:  hardware = soft-modems · device = soft-crdop
 
 [network]
 ; Listen on all interfaces — remote max25-terminal over LAN
@@ -24,17 +30,55 @@ tcp_password = changeme
 callerid = CB-0
 callid = QST
 ax25_ui = yes
+; Banned AX.25 source callsigns — silent RX drop (one per line in file)
+; bans_file = /etc/max25/bans.txt
 
 [stack]
 ; Starts max25-ctl stack on daemon boot (TNC boot-wait, BayCom, crdopc)
 auto_start = yes
 
-; Optional multi-device (uncomment to enable — one KissBridge per id):
-; [devices]
-; default = tnc2c
-; tnc2c = /dev/ttyUSB0
-; pktnc2 = /dev/ttyUSB1
+; --- Path A: TNC2C (AX25SRV / default edge) ---
+[devices]
+default = tnc2c
+tnc2c = /dev/ttyS4
 
-; Serial (TNC / KISS) is owned by max25d — typical USB paths:
-;   /dev/ttyUSB0  /dev/ttyACM0  /dev/serial/by-id/...
-; Per-device serial: [serial.<id>] in max25d.ini.example
+[serial.tnc2c]
+baud = 19200
+line = 8n1
+dtr_rts = yes
+kiss_entry = kiss_on
+
+; Optional second TNC on AX25SRV (uncomment — do not share ttyS0 with BayCom):
+; pktnc2 = /dev/ttyS5
+; [serial.pktnc2]
+; baud = 9600
+; line = 8n1
+; dtr_rts = no
+; kiss_entry = auto
+
+; --- Path B: BayCom PC-COM (single modem on ttyS0) ---
+; Comment Path A [devices] + [serial.tnc2c] above, then uncomment:
+; [devices]
+; default = baycom-ser12
+; baycom-ser12 = baycom:a
+; [device.baycom-ser12]
+; kiss_link = /var/run/baycom-pr/kiss
+; modem = a
+; baycom_ini = /etc/baycom/baycom-pr.ini
+; Prep: sudo cp share/baycom/baycom-pr.pccom-ttyS0-only.ini.example /etc/baycom/baycom-pr.ini
+;       sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
+
+; --- Path C: CRDOP sound-card modem (CB profile) ---
+; Comment Path A [devices] above, set [daemon] soft-modems/soft-crdop, then uncomment:
+; [devices]
+; default = soft-crdop
+; soft-crdop = crdop:default
+; [device.soft-crdop]
+; host = 127.0.0.1
+; port = 8515
+; fecmode = 4FSK.500.100S
+; listen = yes
+; Prep: cp stacks/crdop/share/crdop.ini.example ~/.config/crdop/crdop.ini (CB / 500MAX)
+
+; Serial env search: /etc/max25/ → local/ → share/max25/serial/ → stacks/tncs/
+; USB TNC example: tnc2c = /dev/ttyUSB0  (edit [serial.tnc2c] or tnc2c-serial.env)

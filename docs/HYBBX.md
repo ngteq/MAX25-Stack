@@ -14,7 +14,7 @@ AX.25 / KISS / TNC technical facts: [PACKET-RADIO.md](PACKET-RADIO.md). HyBBX op
 
 ## Order rule
 
-**MAX25 stack before HyBBX transport plugin.** One process per serial port — never minicom + HyBBX + boot-wait concurrently.
+**MAX25 stack before HyBBX transport plugin.** One process per serial port — never userspace serial owner + HyBBX + boot-wait concurrently.
 
 ## TNC (`packet_radio`)
 
@@ -29,16 +29,18 @@ AX.25 / KISS / TNC technical facts: [PACKET-RADIO.md](PACKET-RADIO.md). HyBBX op
 
 ## BayCom (`baycom`)
 
-**MAX25 prep:**
+**MAX25 prep (single PC-COM on ttyS0 — canonical v1 path):**
 
 ```bash
-sudo stacks/baycom-pr/scripts/baycom-pr-ctl preflight
-sudo stacks/baycom-pr/scripts/baycom-pr-ctl start
+sudo cp share/baycom/baycom-pr.pccom-ttyS0-only.ini.example /etc/baycom/baycom-pr.ini
+sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
+./scripts/max25-ctl start --hardware modems --device baycom-ser12
+# or: max25d with auto_start=yes and [device.baycom-ser12] baycom_ini=
 ```
 
 **HyBBX INI:** merge `share/hybbx/baycom-ser12-edge.ini.example` — `backend=kernel`, `mode=ser12*`, `interface=bcsf0`. Or KISS PTY at `/var/run/baycom-pr/kiss`.
 
-Full BayCom contract: `stacks/baycom-pr/docs/PLUGIN.md`.
+Full BayCom contract: [BAYCOM.md](BAYCOM.md) · `stacks/baycom-pr/docs/PLUGIN.md`.
 
 ## CRDOP (`crdop`)
 
@@ -49,7 +51,7 @@ Full BayCom contract: `stacks/baycom-pr/docs/PLUGIN.md`.
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 
-`crdopc` listens on TCP **8515** (control) / **8516** (data). ARDOP — not AX.25.
+`crdopc` listens on TCP **8515** (control) / **8516** (data). ARDOP — not AX.25. MAX25 starts and bridges to upstream `crdopc`; it does not fork ARDOP — same host interface as standalone ARDOP.
 
 **HyBBX INI:** merge `share/hybbx/crdop-edge.ini.example` — `modem_host`, `modem_port=8515`.
 
@@ -65,7 +67,9 @@ Operating mode plugin: `plugins/betriebsform/hybbx-edge/`.
 ## Dual radio (service)
 
 - BayCom: `stacks/baycom-pr/config/examples/baycom-pr.dual.ini`
-- HyBBX: `share/hybbx/service-dual.ini.example`
+- max25d: `share/max25/max25d.dual-baycom.ini.example` (`baycom-a` + `baycom-b`)
+- HyBBX: `share/hybbx/service-dual.ini.example` — `[transport.baycom1]` + `[transport.baycom2]`
+- Start: `max25-ctl start --hardware modems --device baycom-ser12 --baycom-profile dual`
 - Unique `link_id` per transport on Main
 
 ## What HyBBX does not provide

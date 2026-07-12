@@ -1,21 +1,37 @@
-; MainAX25-Stack (MAX25-Stack) — service mode dual-radio (HyBBX)
-; See plugins/betriebsform/service/ and stacks/baycom-pr/config/examples/baycom-pr.dual.ini
+; MainAX25-Stack (MAX25-Stack) — service mode dual BayCom (HyBBX)
+; Prerequisite: dual baycom-pr.ini running (see stacks/baycom-pr/config/examples/baycom-pr.dual.ini)
+; Merge into Secondary hybbx.ini — unique link_id per transport on Main.
 
 [networks]
-ax25 = yes
+ax25 = no
 baycom = yes
 
-; TNC edge A
-[transport.packet_radio1]
-tnc = tnc2c
-device = /dev/ttyUSB0
-link_id = max25-edge-a
-link_password = changeme
-
-; BayCom edge B (or second packet_radio)
+; BayCom radio A — modem.a / bcsf0 / kiss-a
 [transport.baycom1]
 backend = kernel
 mode = ser12*
-interface = bcsf1
-link_id = max25-edge-b
+interface = bcsf0
+iobase = 0x3f8
+irq = 4
+radio_baud = 1200
+txdelay = 35
+circuit_host = main.example.com
+circuit_port = 7323
+link_id = max25-baycom-a
 link_password = changeme
+frequency_mhz = 27.205
+
+; BayCom radio B — modem.b / bcsf1 / kiss-b
+[transport.baycom2]
+backend = kernel
+mode = ser12*
+interface = bcsf1
+iobase = 0xe080
+irq = 30
+radio_baud = 1200
+txdelay = 35
+circuit_host = main.example.com
+circuit_port = 7323
+link_id = max25-baycom-b
+link_password = changeme
+frequency_mhz = 27.205

@@ -43,6 +43,7 @@ kiss_entry = auto
 [device.baycom-ser12]
 kiss_link = /var/run/baycom-pr/kiss
 modem = a
+baycom_ini = /etc/baycom/baycom-pr.ini
 
 [device.soft-crdop]
 host = 127.0.0.1

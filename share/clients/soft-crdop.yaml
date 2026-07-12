@@ -1,0 +1,53 @@
+schema_version: 1
+id: soft-crdop
+label: CRDOP Sound-Card Modem
+type: client-profile
+status: active
+
+connection:
+  host: 127.0.0.1
+  port: 7325
+  unix_socket: /run/max25/modem.sock
+  tcp_only: false
+
+device:
+  id: soft-crdop
+  hardware: soft-modems
+
+session:
+  callerid: CB-0
+  callid: QST
+  ax25_ui: true
+
+terminal:
+  pacing_baud: 2400
+  line_width: 80
+  payload_max: 256
+
+max25d:
+  ini_example: share/max25/max25d.ini.example
+  device_section: device.soft-crdop
+  ctl_start: stacks/crdop/scripts/crdopc
+  default_ini: stacks/crdop/share/crdop.ini.example
+
+crdop:
+  host: 127.0.0.1
+  control_port: 8515
+  data_port: 8516
+  protocol: ardop
+  duplex: half
+  default_bandwidth: 500MAX
+  audio: alsa
+  listen: true
+
+hybbx:
+  ini_example: share/hybbx/crdop-edge.ini.example
+  plugin: crdop
+
+docs:
+  - stacks/crdop/README.md
+  - plugins/devices/soft-crdop/plugin.yaml
+
+notes: |
+  Not AX.25 on-air — ARDOP over sound card. Terminal still uses M25/1 to max25d;
+  max25d bridges to crdopc TCP. No serial or kernel BayCom involved.

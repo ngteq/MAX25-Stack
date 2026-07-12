@@ -44,6 +44,8 @@ if(MAX25_BUILD_DAEMON)
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/device_backends.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/banlist.py"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/paths.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     set(_MAX25_STACK_PROGRAMS
@@ -77,8 +79,38 @@ install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25-ctl"
 install(FILES
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.edge.example"
+    "${CMAKE_SOURCE_DIR}/share/max25/max25d.full-station.ini.example"
+    "${CMAKE_SOURCE_DIR}/share/max25/max25d.dual-baycom.ini.example"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/max25"
 )
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/share/baycom/"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/baycom"
+        FILES_MATCHING PATTERN "*.example" PATTERN "README.md")
+
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/baycom-pr/scripts/baycom-pr-ctl"
+        DESTINATION "${CMAKE_INSTALL_SBINDIR}")
+
+set(_BAYCOM_PY_TOOLS
+    baycom_ini_load.py
+    baycom_validate_config.py
+    baycom_preflight.py
+    baycom_probe.py
+    baycom_doctor.py
+    baycom_axports.py
+    baycom_serial_status.py
+)
+foreach(_py IN LISTS _BAYCOM_PY_TOOLS)
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/baycom-pr/tools/${_py}"
+            DESTINATION "${CMAKE_INSTALL_SBINDIR}")
+endforeach()
+
+install(FILES "${CMAKE_SOURCE_DIR}/stacks/baycom-pr/config/modems.ini"
+        DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/baycom")
+
+install(FILES "${CMAKE_SOURCE_DIR}/share/baycom/baycom-pr.pccom-ttyS0-only.ini.example"
+        DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/baycom"
+        RENAME "baycom-pr.ini.example")
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/share/max25/max25d.service.example")
     install(FILES "${CMAKE_SOURCE_DIR}/share/max25/max25d.service.example"
@@ -118,7 +150,13 @@ add_custom_target(max25_daemon_smoke
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_kiss_bridge.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_baycom_backend.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_crdop_backend.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_multi_device.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_bans.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "max25d M25/1 smoke tests"
 )

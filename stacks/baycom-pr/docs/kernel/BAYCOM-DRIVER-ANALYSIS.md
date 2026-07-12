@@ -82,7 +82,7 @@ There is **no** `baycom_usb.c` or similar in the kernel tree. USB BayCom/TNC dev
 | No kernel BayCom USB driver | Info | By design; KISS is the protocol boundary |
 | `baycom_kiss_serial` no reconnect | Low | Operational; document restart after replug |
 | Baud mismatch | Medium | Must match TNC (`kiss_baud` in INI) |
-| Concurrent open of ttyUSB | Medium | Preflight checks kernel-ser12 only; USB users should avoid minicom on same device |
+| Concurrent open of ttyUSB | Medium | Preflight checks kernel-ser12 only; USB users should avoid other userspace serial owners on same device |
 
 ---
 
@@ -184,7 +184,7 @@ Typical reference station / Albrecht PC-COM layout:
 1. **INI irq=3 or irq=4 for ttyS5** — IRQ storm (most common)
 2. **Duplicate IRQ** in modprobe arrays — both devices share one interrupt line incorrectly
 3. **8250 driver still owns port** — `setserial uart none` not run
-4. **minicom/picocom** holding `/dev/ttySx` while driver loaded
+4. **Userspace serial owner** holding `/dev/ttySx` while driver loaded
 5. **Wrong iobase** for non-standard UART (PCI/ISA multiport)
 
 PR-Stack mitigations align with these root causes (`docs/STABILITY.md`, `baycom_preflight.py`).
@@ -358,7 +358,7 @@ flowchart TD
 | Wrong IRQ (ttyS5 uses 3 instead of 30) | High | None | preflight + IRQ watch |
 | Duplicate IRQ dual modem | Medium | None | preflight + validator |
 | 8250 conflict | Medium | None (`request_region` may fail) | `setserial uart none` |
-| minicom on raw UART | Medium | None | preflight lsof |
+| Userspace serial on raw UART | Medium | None | preflight lsof |
 | Divisor change during TX storm | Low | Comment only | N/A |
 | Dual modem correct config | — | ~200 IRQ/s total | Staged probe |
 

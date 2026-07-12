@@ -42,7 +42,6 @@ Installs:
 | `/usr/local/sbin/pccom_*` | Legacy symlinks → `baycom_*` |
 | `/etc/baycom/baycom-pr.ini` | Site profile |
 | `/etc/baycom/modems.ini` | Catalog |
-| `/etc/baycom/minicom/minirc.baycom-*` | Minicom profiles |
 | `/etc/baycom/axports/*.snippet` | AX.25 examples |
 | `/etc/baycom/legacy/pccom.env*` | Legacy env (deprecated) |
 

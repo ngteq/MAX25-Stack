@@ -28,6 +28,9 @@ scripts:
 ini:
   - share/hybbx/pktnc2-edge.ini.example
 
+client:
+  - share/clients/pktnc2.yaml
+
 docs:
   - stacks/tncs/docs/TNC2C-REFERENCE.md
 

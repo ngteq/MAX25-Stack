@@ -18,15 +18,14 @@ BayCom_PR-Stack/
 │   ├── examples/baycom-pr.dual.ini   optional dual-modem profile
 │   ├── modems.ini        → /etc/baycom/modems.ini
 │   ├── axports/          example axports snippets
-│   ├── minicom/          minicom profiles
-│   ├── examples/terminals/  picocom, socat, minicom examples
+│   ├── examples/terminals/  socat KISS debug examples
 │   └── legacy/           deprecated pccom.env*
 ├── docs/
 │   ├── INDEX.md          documentation map
 │   ├── DEVELOPMENT.md    local dev loop
 │   ├── CONFIGURATION.md  canonical paths and env vars
 │   ├── QUICKSTART.md … RELEASE-NOTES-0.5.0.txt
-│   └── TERMINALS.md      minicom, picocom, socat
+│   └── TERMINALS.md      max25-terminal, socat, listen/call
 ├── scripts/
 │   ├── README.md
 │   ├── baycom-pr-ctl     main control
@@ -54,7 +53,6 @@ Build artifacts (`tools/baycom_*` binaries) are gitignored.
 | `/usr/local/sbin/baycom_*` | Tools and control |
 | `/etc/baycom/baycom-pr.ini` | Site config |
 | `/etc/baycom/modems.ini` | Catalog |
-| `/etc/baycom/minicom/` | Minicom profiles |
 | `/etc/baycom/axports/` | AX.25 snippet examples |
 | `/var/run/baycom-pr/` | State, KISS symlinks, PID files |
 

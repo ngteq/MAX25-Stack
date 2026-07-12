@@ -72,7 +72,7 @@ preventing host freezes during bring-up.
 
 | Area | Location | Notes |
 |------|----------|-------|
-| Control script | `scripts/baycom-pr-ctl` | Start/stop, tests, minicom helper |
+| Control script | `scripts/baycom-pr-ctl` | Start/stop, tests, listen/call helpers |
 | C tools | `tools/baycom_*.c` | Build via `tools/Makefile` |
 | INI tools | `tools/baycom_*.py` | Stdlib only |
 | Site config | `config/baycom-pr.ini` | Default single modem |

@@ -36,10 +36,10 @@ RxFn = Callable[[str], None]
 DEVICE_REGISTRY: dict[str, dict[str, str | bool]] = {
     "tnc2c": {"hardware": "tncs", "backend": "kiss-serial", "tested": True},
     "pktnc2": {"hardware": "tncs", "backend": "kiss-serial", "tested": False},
-    "baycom-ser12": {"hardware": "modems", "backend": "baycom-kiss", "tested": False},
+    "baycom-ser12": {"hardware": "modems", "backend": "baycom-kiss", "tested": True},
     "baycom-par96": {"hardware": "modems", "backend": "baycom-kiss", "tested": False},
     "baycom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
-    "soft-crdop": {"hardware": "soft-modems", "backend": "crdop-tcp", "tested": False},
+    "soft-crdop": {"hardware": "soft-modems", "backend": "crdop-tcp", "tested": True},
 }
 
 
@@ -56,6 +56,14 @@ def registry_backend(device_id: str) -> str:
 def registry_tested(device_id: str) -> bool:
     entry = DEVICE_REGISTRY.get(device_id, {})
     return bool(entry.get("tested", False))
+
+
+def baycom_ctl_device_id(dev_cfg: DeviceBackendConfig) -> str:
+    """Plugin id for max25-ctl / baycom-pr-ctl when starting kernel BayCom."""
+    entry = DEVICE_REGISTRY.get(dev_cfg.device_id, {})
+    if entry.get("backend") == "baycom-kiss":
+        return dev_cfg.device_id
+    return "baycom-ser12"
 
 
 @dataclass
@@ -409,7 +417,7 @@ class CrdopTcpBackend(DeviceBackend):
         self._data: Optional[socket.socket] = None
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._mycall = ""
         self._connected = False
         self.status = "closed"

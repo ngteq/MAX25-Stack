@@ -87,7 +87,7 @@ kiss_link = /var/run/baycom-pr/kiss
 
 **Dual:** two independent chains (`bcsf0`+`bcsf1`, separate IRQ/KISS/ax25_port). One `modprobe baycom_ser_fdx` with comma-separated params.
 
-**Rule:** never open `/dev/ttyS*` with minicom while `baycom_ser_fdx` is loaded — use `kiss_link` or `baycom-pr-ctl minicom`.
+**Rule:** never open `/dev/ttyS*` with a userspace serial client while `baycom_ser_fdx` is loaded — use `kiss_link`, `max25-terminal`, or `listen`/`call`.
 
 ---
 
@@ -109,7 +109,6 @@ baycom-pr-ctl [-c /etc/baycom/baycom-pr.ini] COMMAND
 | `check` | Quick test (~3 s, no PTT) |
 | `test` | Full offline suite per modem |
 | `selftest` | Host checklist |
-| `minicom [id] [--kiss\|--serial]` | Terminal attach |
 | `axports apply\|show\|check` | Sync `/etc/baycom/axports/axports` from INI |
 | `listen [port\|modem]` | Wrapper: `listen -a -c <port>` |
 | `call <port> <dest>` | Wrapper: `call <port> <dest>` |
@@ -166,12 +165,12 @@ On-air RX/TX is operator responsibility — not covered by offline tests.
 
 | Tool | When | Example |
 |------|------|---------|
-| `baycom-pr-ctl minicom a` | Stack up (KISS) | default |
-| `baycom-pr-ctl minicom a --serial` | Stack stopped | raw UART |
-| picocom | KISS or serial | `picocom -b 9600 /var/run/baycom-pr/kiss` |
-| socat | Bridge to TCP | see `config/examples/terminals/` |
+| `max25-terminal` | Official M25/1 client | connect to `max25d` TCP port |
+| `baycom-pr-ctl listen` | AX.25 monitor | `baycom-pr-ctl listen radio` |
+| `baycom-pr-ctl call` | AX.25 connect | `baycom-pr-ctl call radio DEST` |
+| socat | KISS debug / bridge | see `config/examples/terminals/` |
 
-Minicom profiles: `/etc/baycom/minicom/minirc.baycom-kiss`, `minirc.baycom-serial`.
+Do not open raw `/dev/ttyS*` while the kernel driver is loaded — attach via KISS PTY or AX.25 port names only.
 
 ---
 
@@ -232,7 +231,7 @@ Typical PC-COM pair: `ttyS0` IRQ 4 · `ttyS5` IRQ 30 — not IRQ 3 on the second
 
 | Symptom | Fix |
 |---------|-----|
-| `I/O busy` on modprobe | `baycom-pr-ctl stop`; close minicom on UART |
+| `I/O busy` on modprobe | `baycom-pr-ctl stop`; release userspace serial owner (`fuser` on UART) |
 | Preflight IRQ mismatch | `setserial -g` → fix INI or `setup` |
 | Host freeze | `recover`; verify IRQ; start single first |
 | KISS link missing | `baycom-pr-ctl start`; check bridge PID in status |

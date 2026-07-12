@@ -1,0 +1,57 @@
+schema_version: 1
+id: baycom-ser12
+label: BayCom SER12 (PC-COM kernel)
+type: client-profile
+status: active
+
+connection:
+  host: 127.0.0.1
+  port: 7325
+  unix_socket: /run/max25/modem.sock
+  tcp_only: false
+
+device:
+  id: baycom-ser12
+  hardware: modems
+
+session:
+  callerid: CB-0
+  callid: QST
+  ax25_ui: true
+
+terminal:
+  pacing_baud: 2400
+  line_width: 80
+  payload_max: 256
+
+max25d:
+  ini_example: share/max25/max25d.ini.example
+  device_section: device.baycom-ser12
+  ctl_start: stacks/baycom-pr/scripts/baycom-pr-ctl
+  baycom_ini: share/baycom/baycom-pr.pccom-ttyS0-only.ini.example
+
+baycom:
+  catalog: albrecht-pc-com
+  serial: /dev/ttyS0
+  kiss_link: /var/run/baycom-pr/kiss
+  netdev: bcsf0
+  kernel_module: baycom_ser_fdx
+  radio_baud: 1200
+  root_required: true
+
+hybbx:
+  ini_example: share/hybbx/baycom-ser12-edge.ini.example
+  plugin: baycom
+  backend: kernel
+  mode: ser12*
+  interface: bcsf0
+
+docs:
+  - docs/BAYCOM.md
+  - docs/PLUGINS-DEVICE-MODEL.md
+  - plugins/devices/baycom-ser12/plugin.yaml
+
+notes: |
+  Kernel BayCom — configure hardware via baycom-pr.ini (catalog=), not serial env.
+  Terminal attaches to max25d KISS PTY; never open raw /dev/ttyS0 while driver loaded.
+  AX25SRV: single PC-COM on ttyS0 only; ttyS4/ttyS5 are TNCs. Dual BayCom is global opt-in.

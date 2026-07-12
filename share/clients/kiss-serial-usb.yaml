@@ -1,0 +1,57 @@
+schema_version: 1
+id: kiss-serial-usb
+label: KISS modem on USB (ttyUSB / ttyACM)
+type: client-profile
+catalog: kiss-serial-usb
+status: active
+
+connection:
+  host: 127.0.0.1
+  port: 7325
+  unix_socket: /run/max25/modem.sock
+  tcp_only: false
+
+device:
+  id: baycom-kiss
+  hardware: modems
+
+session:
+  callerid: CB-0
+  callid: QST
+  ax25_ui: true
+
+terminal:
+  pacing_baud: 2400
+  line_width: 80
+  payload_max: 256
+
+max25d:
+  ini_example: share/max25/max25d.ini.example
+  device_section: serial.baycom-kiss
+  backend: kiss-raw-serial
+  baycom_pr:
+    catalog: kiss-serial-usb
+    kiss_link: /var/run/baycom-pr/kiss
+
+serial:
+  default_device: /dev/ttyUSB0
+  baud: 9600
+  line: 8n1
+  dtr_rts: false
+  kiss_entry: none
+
+rf:
+  radio_baud: 1200
+
+hybbx:
+  plugin: baycom
+  backend: kiss
+
+docs:
+  - stacks/baycom-pr/config/modems.ini
+  - stacks/baycom-pr/docs/GETTING-STARTED.md
+
+notes: |
+  No kernel baycom_ser_fdx — async USB serial KISS.
+  max25d or baycom-pr kiss bridge owns the USB device; terminal uses M25/1 only.
+  Adapter must supply stable USB power (see stacks/baycom-pr/docs/archive/HARDWARE.md).

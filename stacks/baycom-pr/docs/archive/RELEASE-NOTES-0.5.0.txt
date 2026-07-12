@@ -8,7 +8,7 @@ License: GPL-3.0-or-later (see LICENSE, COPYRIGHT, NOTICE)
 
 What's included
 ---------------
-  baycom-pr-ctl          INI-based control (start/stop/status/test/minicom)
+  baycom-pr-ctl          INI-based control (start/stop/status/test/listen/call)
   baycom_sethdlc         HDLC ioctls (replaces broken sethdlc on kernel 6.x)
   baycom_kissbridge      kernel-ser12: bcsf* <-> KISS PTY
   baycom_kiss_serial     kiss-serial: USB/async KISS <-> PTY

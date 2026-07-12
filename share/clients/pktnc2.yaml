@@ -1,0 +1,54 @@
+schema_version: 1
+id: pktnc2
+label: PK-TNC2 / TNC-2 (TheFirmware)
+type: client-profile
+status: planned
+
+connection:
+  host: 127.0.0.1
+  port: 7325
+  unix_socket: /run/max25/modem.sock
+  tcp_only: false
+
+device:
+  id: pktnc2
+  hardware: tncs
+
+session:
+  callerid: CB-0
+  callid: QST
+  ax25_ui: true
+
+terminal:
+  pacing_baud: 2400
+  line_width: 80
+  payload_max: 256
+
+max25d:
+  ini_example: share/max25/max25d.ini.example
+  device_section: serial.pktnc2
+  env_file: stacks/tncs/pktnc2-serial.env
+  boot_wait: stacks/tncs/pktnc2-boot-wait.sh
+
+serial:
+  default_device: /dev/ttyS5
+  baud: 9600
+  line: 8n1
+  dtr_rts: false
+  kiss_entry: auto
+
+rf:
+  radio_baud: 1200
+  band: cb
+
+hybbx:
+  ini_example: share/hybbx/pktnc2-edge.ini.example
+  plugin: packet_radio
+  profile: tnc2
+  aliases: [pktnc2, pk-tnc2, tapr, thefirmware]
+
+docs:
+  - stacks/tncs/docs/TNC2C-REFERENCE.md
+  - plugins/devices/pktnc2/plugin.yaml
+
+notes: Probe serial port after hardware inventory — adjust default_device in local env.

@@ -9,7 +9,7 @@ upstream:
   project: CRDOP
   repo: https://github.com/ngteq/CRDOP
   binary: crdopc
-  note: Plugin id soft-crdop wraps upstream CRDOP stack
+  note: Plugin id soft-crdop wraps upstream CRDOP/crdopc — wire-compatible with original ARDOP (no fork)
 
 hybbx:
   plugin: crdop
@@ -35,6 +35,9 @@ ini:
   - stacks/crdop/share/crdop-dual.ini.example
   - stacks/crdop/share/crdop-amateur.ini.example
   - share/hybbx/crdop-edge.ini.example
+
+client:
+  - share/clients/soft-crdop.yaml
 
 docs:
   - stacks/crdop/README.md

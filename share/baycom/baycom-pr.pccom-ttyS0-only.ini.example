@@ -1,0 +1,38 @@
+; MAX25 — BayCom single modem on ttyS0 (PC-COM) — canonical v1 / AX25SRV default
+; ttyS4/ttyS5 stay with TNCs (TNC2C, PK-TNC2). Never run dual baycom-pr.ini in production.
+;
+; Install (root, once per site):
+;   sudo cp share/baycom/baycom-pr.pccom-ttyS0-only.ini.example /etc/baycom/baycom-pr.ini
+;   sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
+;   sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini preflight
+;
+; Start via MAX25:
+;   ./scripts/max25-ctl start --hardware modems --device baycom-ser12
+;   # or max25d auto_start with [device.baycom-ser12] baycom_ini below
+;
+; KISS PTY: /var/run/baycom-pr/kiss  ·  max25d: baycom-ser12 = baycom:a
+
+[stack]
+state_dir = /var/run/baycom-pr
+kiss_bridge = yes
+catalog = /etc/baycom/modems.ini
+bindir = /usr/local/sbin
+
+[profile]
+name = pccom-ttyS0-only
+modems = a
+
+[modem.a]
+catalog = albrecht-pc-com
+label = PC-COM Radio A
+serial = /dev/ttyS0
+iface = bcsf0
+kiss_link = /var/run/baycom-pr/kiss
+ax25_port = cb0
+callsign = N0CALL-0
+txdelay = 35
+iobase = 0x3f8
+irq = 4
+
+; Verify: setserial -g /dev/ttyS0  → must match iobase/irq above
+; Do NOT start dual profile while pktnc2 uses /dev/ttyS5

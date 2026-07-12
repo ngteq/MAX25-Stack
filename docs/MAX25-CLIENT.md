@@ -61,7 +61,7 @@ The client **never** opens `/dev/tty*` or sound cards directly. All modem-relate
 | **TCP** | `Host:7325` | Remote (Windows, macOS, *BSD, Linux, AmigaOS) |
 | **Unix** | `/run/max25/modem.sock` | Local Linux terminal (preferred when available) |
 
-Without root, `max25d` falls back to `/tmp/max25/modem.sock`.
+Without root, `/run/max25/modem.sock` may be unavailable — set `MAX25_UNIX` to a writable path or connect via TCP **7325**.
 
 ### Environment variables
 
@@ -334,7 +334,7 @@ Before merge / release of the terminal:
 
 | Not wanted | Instead |
 |------------|---------|
-| Second client (GUI, web, minicom fork) | extend `max25-terminal` |
+| Second client (GUI, web, alternate serial terminal) | extend `max25-terminal` |
 | Own serial/KISS in client | `max25d` + M25/1 |
 | Parallel protocol | M25/1 only — document extensions with version |
 | Function-key menu (F1–F9) | digit keys in F10 menu |

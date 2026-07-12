@@ -80,7 +80,7 @@ def check_serial_idle(dev: str, label: str) -> None:
         return
     users = lsof_serial(dev)
     if users:
-        err(f"{label}: {dev} open by another process — stop minicom/picocom first")
+        err(f"{label}: {dev} open by another process — stop userspace serial owner (fuser {dev})")
         for u in users:
             print(f"       {u}", file=sys.stderr)
         return
@@ -105,16 +105,21 @@ def check_setserial_match(dev: str, label: str, expect_io: int, expect_irq: int)
         ok(f"{label}: IRQ {expect_irq} matches setserial")
 
 
-def check_irq_notes(dev: str, label: str, irq: int) -> None:
+def check_irq_notes(dev: str, label: str, irq: int, *, multi_modem: bool) -> None:
     if irq >= 16:
         warn(
             f"{label}: IRQ {irq} on {dev} uses APIC routing — must match "
             f"'setserial -g' exactly (wrong IRQ freezes the host)"
         )
-    if re.search(r"ttyS[5-9]$", dev) or dev.endswith("ttyS5"):
+    if multi_modem and (re.search(r"ttyS[5-9]$", dev) or dev.endswith("ttyS5")):
         warn(
             f"{label}: {dev} is often the second PC-COM port (typ. IRQ 30, not COM2/IRQ3) — "
             f"verify: setserial -g {dev}"
+        )
+    elif not multi_modem and re.search(r"ttyS[4-5]$", dev):
+        warn(
+            f"{label}: {dev} is reserved for TNCs on AX25SRV (PK-TNC2/HyBBX) — "
+            f"use single-modem INI with PC-COM on /dev/ttyS0 only"
         )
 
 
@@ -260,16 +265,17 @@ def main() -> int:
     modems = load_modems(ini_path)
     kernel_ser = [m for m in modems if m["backend"] == "kernel-ser12"]
     kernel_par = [m for m in modems if m["backend"] == "kernel-par96"]
+    multi_modem = len(modems) > 1
 
-    if len(kernel_ser) > 1:
+    if multi_modem and len(kernel_ser) > 1:
         warn(
             f"dual kernel-ser12 profile ({len(kernel_ser)} ports) — "
-            f"verify IRQ/IO on each UART; start one modem first if unstable"
+            f"service mode only; verify IRQ/IO on each UART"
         )
-    if len(kernel_par) > 1:
+    if multi_modem and len(kernel_par) > 1:
         warn(
             f"dual kernel-par96 profile ({len(kernel_par)} LPT ports) — "
-            f"verify distinct iobase; staged probe runs by default"
+            f"service mode only; verify distinct iobase"
         )
     if kernel_ser and kernel_par:
         ok("mixed ser12 + par96 profile — loads baycom_ser_fdx and baycom_par separately")
@@ -283,7 +289,7 @@ def main() -> int:
             continue
         check_serial_idle(m["serial"], m["label"])
         check_setserial_match(m["serial"], m["label"], m["iobase"], m["irq"])
-        check_irq_notes(m["serial"], m["label"], m["irq"])
+        check_irq_notes(m["serial"], m["label"], m["irq"], multi_modem=multi_modem)
 
     for m in kernel_par:
         check_parport_stack(m["label"], m["iobase"], m.get("mode", "par96"))

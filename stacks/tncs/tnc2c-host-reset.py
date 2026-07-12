@@ -3,7 +3,7 @@
 tnc2c-host-reset - recover Landolt TNC2C terminal/host mode over serial.
 
 Unlike raw shell redirects (printf > /dev/ttyS4), this keeps DTR+RTS asserted
-so the TNC sees an attached terminal - same as minicom.
+so the TNC sees an attached terminal - DTR+RTS stay asserted.
 
 Usage:
   ./tnc2c-host-reset.sh
@@ -134,10 +134,6 @@ def main() -> int:
 
     if args.power_hint:
         print(POWER_HINT)
-
-    if os.system("pgrep minicom >/dev/null 2>&1") == 0:
-        print("FAIL: minicom is running - exit it first (pkill minicom)", file=sys.stderr)
-        return 2
 
     if not os.path.exists(dev):
         print(f"FAIL: {dev} does not exist", file=sys.stderr)

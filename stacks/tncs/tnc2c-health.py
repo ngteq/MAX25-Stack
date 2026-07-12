@@ -420,7 +420,7 @@ def main() -> int:
     print_header("7) Software / next steps")
     if mostly_echo and not any_cmd:
         print("  1. TNC may be stuck in KISS/transparent - power-cycle TNC briefly")
-        print("  2. minicom -D {} -b {} (test {})".format(
+        print("  2. tnc2c-host-reset @ {} -b {} (test {})".format(
             dev, work_baud, "7E1" if work_7e1 else "8N1"))
         print("  3. After reset: 'kiss off' + Enter, then 'INFO' - expect cmd:")
         print("  4. Only when cmd: appears -> ./tnc2c-health.sh --tx")

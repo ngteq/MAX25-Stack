@@ -32,6 +32,9 @@ ini:
   - stacks/tncs/hybbx-tnc2c.ini
   - share/hybbx/tnc2c-edge.ini.example
 
+client:
+  - share/clients/tnc2c.yaml
+
 docs:
   - stacks/tncs/docs/TNC2C-OPERATIONS.md
   - stacks/tncs/docs/HYBBX-TNC2C.md

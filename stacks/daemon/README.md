@@ -11,6 +11,7 @@ Linux only. Config: `share/max25/max25d.ini.example`.
 | `max25d` | Python 3 daemon — M25/1 server, stack lifecycle |
 | `device_backends.py` | Backend abstraction (TNC, BayCom, CRDOP) |
 | `kiss_bridge.py` | Serial KISS for command-mode TNCs (TNC2C/PK-TNC2) |
+| `banlist.py` | AX.25 source ban list (silent RX drop) |
 | `test_multi_device.py` | Multi-device routing smoke |
 
 ## Backends
@@ -18,9 +19,9 @@ Linux only. Config: `share/max25/max25d.ini.example`.
 | Device id | Backend | Notes |
 |-----------|---------|-------|
 | `tnc2c`, `pktnc2` | `KissSerialBackend` | CI-tested |
-| `baycom-ser12`, `baycom-par96` | `BayComKissBackend` | KISS PTY after `baycom-pr-ctl start` |
+| `baycom-ser12`, `baycom-par96` | `BayComKissBackend` | KISS PTY after `max25-ctl` / `baycom-pr-ctl -c` — [docs/BAYCOM.md](../../docs/BAYCOM.md) |
 | `baycom-kiss` | `KissRawSerialBackend` | USB/async KISS |
-| `soft-crdop` | `CrdopTcpBackend` | ARDOP TCP host interface |
+| `soft-crdop` | `CrdopTcpBackend` | CI-tested (offline TCP stub); live ARDOP via `crdopc` |
 
 Untested backends log a startup warning; SEND/RX return `ERR link not ready` when the stack path is unavailable.
 
@@ -48,6 +49,19 @@ soft-crdop = crdop:default
 Full heterogeneous example: `share/max25/max25d.full-station.ini.example`.
 
 M25/1: `devices=` in `STATUS`, `SET DEVICE <id>`, `GET DEVICES`, `RX device=<id> …`.
+
+## Source ban list
+
+Block unwanted AX.25 callers (source address on incoming UI frames). Banned traffic is dropped silently — no terminal display, no daemon log line.
+
+```ini
+[modem]
+bans_file = /etc/max25/bans.txt
+```
+
+File format: one callsign per line (`#` comments allowed). Ban without SSID blocks all SSIDs of that call (`DG1ABC` blocks `DG1ABC-7`). Ban with SSID (`DK0WC-7`) matches only that SSID.
+
+M25/1: `BAN <callsign>`, `UNBAN <callsign>`, `BANS`. Changes persist to `bans_file` immediately.
 
 ## Install
 

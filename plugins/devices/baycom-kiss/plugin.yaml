@@ -19,6 +19,11 @@ runtime:
 ini:
   - stacks/baycom-pr/config/examples/baycom-pr.ham.ini
 
+client:
+  - share/clients/baycom-kiss.yaml
+  - share/clients/kiss-serial-usb.yaml
+  - share/clients/kiss-serial-rs232.yaml
+
 docs:
   - stacks/baycom-pr/docs/GETTING-STARTED.md
 

@@ -8,7 +8,6 @@ Templates install to **`/etc/baycom/`**.
 | `modems.ini` | `/etc/baycom/modems.ini` |
 | `examples/*.ini` | `/etc/baycom/examples/` |
 | `axports/*.snippet` | `/etc/baycom/axports/` |
-| `minicom/*` | `/etc/baycom/minicom/` |
 
 ## Examples
 
@@ -22,5 +21,7 @@ Templates install to **`/etc/baycom/`**.
 | `examples/baycom-pr.picpar.ini` | LPT picpar |
 
 Site INI references catalog IDs from `modems.ini` via `catalog = <id>`.
+
+MAX25 umbrella single-modem default: [share/baycom/](../../../share/baycom/README.md) · operator guide [docs/BAYCOM.md](../../../docs/BAYCOM.md).
 
 Docs: [docs/GETTING-STARTED.md](../docs/GETTING-STARTED.md) · [docs/REFERENCE.md](../docs/REFERENCE.md)

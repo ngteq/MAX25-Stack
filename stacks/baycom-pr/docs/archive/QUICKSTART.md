@@ -8,7 +8,7 @@ Default layout: **one modem**. Dual-modem is optional — [Dual modem](#dual-mod
 
 - Linux with `CONFIG_AX25`; `CONFIG_BAYCOM_SER_FDX` for **kernel-ser12**; `CONFIG_BAYCOM_PAR` + `CONFIG_PARPORT` for **kernel-par96**
 - `gcc`, `make`, `python3`, `setserial`, `ip`
-- **minicom** (recommended) · **picocom** · **socat** — see [TERMINALS.md](TERMINALS.md)
+- **max25-terminal** (official) · **socat** (KISS debug) · **listen** / **call** (AX.25) — see [TERMINALS.md](TERMINALS.md)
 - Hardware: hardware UART (`/dev/ttyS*`) and/or KISS USB modem (`/dev/ttyUSB*`, `/dev/ttyACM*`)
 
 ## 1. Build and install
@@ -21,7 +21,7 @@ sudo make install
 # or: sudo bash scripts/install-root.sh
 ```
 
-Installs **single-modem** config under `/etc/baycom/` (`baycom-pr.ini`, `modems.ini`, minicom profiles).
+Installs **single-modem** config under `/etc/baycom/` (`baycom-pr.ini`, `modems.ini`).
 
 ## 2. Configure (single modem)
 
@@ -61,8 +61,8 @@ Expected without RF: `bcsf0: UP`, IRQ activity, `dcd=0` / `rx=0`, KISS at `/var/
 
 | Goal | Command |
 |------|---------|
-| KISS / minicom | `sudo baycom-pr-ctl minicom a` |
-| KISS / picocom | `picocom -b 9600 -r -l /var/run/baycom-pr/kiss` |
+| Operator UI | `max25-terminal` (M25/1 to `max25d`) |
+| KISS debug | `socat -x /var/run/baycom-pr/kiss,raw,echo=0 -` |
 | AX.25 monitor | Merge [single axports snippet](../config/axports/single.snippet), then `listen -a -c radio` |
 | Connect | `call radio DEST` |
 

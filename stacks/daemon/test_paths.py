@@ -10,8 +10,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from paths import (  # noqa: E402
+    baycom_ini_candidates,
+    canonical_dual_baycom_example,
+    canonical_single_baycom_example,
     ctl_path,
     default_ini_candidates,
+    is_dual_baycom_ini,
+    resolve_baycom_ini,
+    resolve_baycom_profile,
     resolve_layout,
     serial_env_candidates,
     share_max25_dir,
@@ -94,12 +100,55 @@ def test_serial_env_order() -> None:
         assert prefix / "share/max25/serial/tnc2c-serial.env" in cands
 
 
+def test_baycom_ini_resolution() -> None:
+    example = REPO / "share/baycom/baycom-pr.pccom-ttyS0-only.ini.example"
+    dual = REPO / "stacks/baycom-pr/config/examples/baycom-pr.dual.ini"
+    assert example.is_file()
+    assert is_dual_baycom_ini(dual)
+    assert not is_dual_baycom_ini(example)
+    assert canonical_single_baycom_example("baycom-ser12", REPO, None) == example
+    cands = baycom_ini_candidates("baycom-ser12", REPO, None)
+    assert example in cands
+    site = Path("/etc/baycom/baycom-pr.ini")
+    assert site in cands
+    assert cands.index(site) < cands.index(example)
+    with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as tmp:
+        tmp.write("[stack]\n")
+        explicit = Path(tmp.name)
+    try:
+        assert resolve_baycom_ini("baycom-ser12", REPO, None, str(explicit)) == explicit
+        assert resolve_baycom_ini("baycom-ser12", REPO, None, str(dual)) == dual
+        # Without /etc override, shipped example is found in dev tree
+        if not Path("/etc/baycom/baycom-pr.ini").is_file():
+            assert resolve_baycom_ini("baycom-ser12", REPO, None) == example
+        elif is_dual_baycom_ini(Path("/etc/baycom/baycom-pr.ini")):
+            assert resolve_baycom_ini("baycom-ser12", REPO, None) == example
+        assert canonical_dual_baycom_example("baycom-ser12", REPO, None) == dual
+        assert resolve_baycom_profile("dual", "baycom-ser12", REPO, None) == dual
+        assert resolve_baycom_profile("single", "baycom-ser12", REPO, None) == resolve_baycom_ini(
+            "baycom-ser12", REPO, None
+        )
+    finally:
+        explicit.unlink(missing_ok=True)
+
+
+def test_baycom_profile_dual() -> None:
+    dual = REPO / "stacks/baycom-pr/config/examples/baycom-pr.dual.ini"
+    assert canonical_dual_baycom_example("baycom-ser12", REPO, None) == dual
+    assert resolve_baycom_profile("dual", "baycom-ser12", REPO, None) == dual
+    assert resolve_baycom_profile("single", "baycom-ser12", REPO, None) == resolve_baycom_ini(
+        "baycom-ser12", REPO, None
+    )
+
+
 def main() -> int:
     tests = [
         test_dev_layout,
         test_installed_layout,
         test_max25_root_override,
         test_serial_env_order,
+        test_baycom_ini_resolution,
+        test_baycom_profile_dual,
     ]
     for fn in tests:
         fn()

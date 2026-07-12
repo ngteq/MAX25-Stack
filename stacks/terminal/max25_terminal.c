@@ -21,6 +21,7 @@ typedef struct {
     unsigned port;
     char unix_path[256];
     char tcp_password[128];
+    char default_device[32];
     int tcp_only;
     int ax25_ui;
     int verbose;
@@ -76,6 +77,7 @@ static void usage(const char *prog)
             "      --ax25-ui         AX.25 UI mode (default on)\n"
             "      --no-ax25-ui      Plain SEND lines\n"
             "  -P, --password PASS   TCP auth password (plain-text M25/1 AUTH)\n"
+            "  -d, --device ID       SET DEVICE after connect (multi-device sites)\n"
             "  -v, --verbose         Protocol log on stderr\n"
             "      --probe           Connect, print STATUS, exit (CI)\n"
             "  -h, --help            Show help\n\n"
@@ -203,6 +205,32 @@ static int send_line_async(max25_client_t *client, session_io_t *io,
     return send_cmd_async(client, io, cmd);
 }
 
+static int refresh_status(max25_client_t *client, max25_status_t *status)
+{
+    char reply[MAX25_LINE_MAX];
+
+    if (max25_client_command(client, "GET STATUS", reply, sizeof(reply)) != 0) {
+        return -1;
+    }
+    return max25_client_parse_status(reply, status);
+}
+
+static int set_device_sync(max25_client_t *client, max25_status_t *status,
+                           const char *device_id)
+{
+    char cmd[MAX25_LINE_MAX + 16];
+    char reply[MAX25_LINE_MAX];
+
+    if (device_id == NULL || device_id[0] == '\0') {
+        return -1;
+    }
+    snprintf(cmd, sizeof(cmd), "SET DEVICE %s", device_id);
+    if (max25_client_command(client, cmd, reply, sizeof(reply)) != 0) {
+        return -1;
+    }
+    return refresh_status(client, status);
+}
+
 static int handle_menu_action(max25_menu_action_t action, max25_client_t *client,
                               session_io_t *io, max25_ui_t *ui,
                               max25_status_t *status)
@@ -238,6 +266,13 @@ static int handle_menu_action(max25_menu_action_t action, max25_client_t *client
     case MAX25_MENU_CONNECT:
         send_cmd_async(client, io,
                        status->connected ? "DISCONNECT" : "CONNECT");
+        break;
+    case MAX25_MENU_DEVICE:
+        if (max25_ui_prompt(ui, "DEVICE id", buf, sizeof(buf)) > 0) {
+            if (set_device_sync(client, status, buf) != 0) {
+                max25_ui_append_rx(ui, "ERR SET DEVICE failed");
+            }
+        }
         break;
     case MAX25_MENU_QUIT:
         return 1;
@@ -296,7 +331,9 @@ static int run_session(max25_client_t *client, max25_ui_t *ui,
     memset(&io, 0, sizeof(io));
     input[0] = '\0';
 
-    max25_ui_apply_palette();
+    if (!use_ncurses) {
+        max25_ui_apply_palette();
+    }
     max25_ui_reset_rx(ui);
     max25_ui_draw_screen(ui, status, input);
 
@@ -476,6 +513,7 @@ int main(int argc, char *argv[])
         {"ax25-ui", no_argument, NULL, 1000},
         {"no-ax25-ui", no_argument, NULL, 1001},
         {"password", required_argument, NULL, 'P'},
+        {"device", required_argument, NULL, 'd'},
         {"verbose", no_argument, NULL, 'v'},
         {"probe", no_argument, NULL, 1002},
         {"help", no_argument, NULL, 'h'},
@@ -484,7 +522,7 @@ int main(int argc, char *argv[])
 
     config_defaults(&cfg);
 
-    while ((opt = getopt_long(argc, argv, "H:p:TU:P:v:h", long_opts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "H:p:TU:P:d:v:h", long_opts, NULL)) != -1) {
         switch (opt) {
         case 'H':
             strncpy(cfg.host, optarg, sizeof(cfg.host) - 1);
@@ -500,6 +538,9 @@ int main(int argc, char *argv[])
             break;
         case 'P':
             strncpy(cfg.tcp_password, optarg, sizeof(cfg.tcp_password) - 1);
+            break;
+        case 'd':
+            strncpy(cfg.default_device, optarg, sizeof(cfg.default_device) - 1);
             break;
         case 'v':
             cfg.verbose = 1;
@@ -562,6 +603,15 @@ int main(int argc, char *argv[])
     if (max25_ui_init(&ui) != 0) {
         max25_client_free(client);
         return EXIT_FAILURE;
+    }
+
+    if (cfg.default_device[0] != '\0') {
+        if (set_device_sync(client, &status, cfg.default_device) != 0) {
+            fprintf(stderr, "max25-terminal: SET DEVICE %s failed\n",
+                    cfg.default_device);
+            max25_client_free(client);
+            return EXIT_FAILURE;
+        }
     }
 
     if (cfg.ax25_ui) {

@@ -12,7 +12,6 @@ All BayCom PR-Stack configuration lives under **`/etc/baycom/`**:
 |------|-----------------|---------|
 | `/etc/baycom/baycom-pr.ini` | `config/baycom-pr.ini` | Site profile (modems, KISS links, AX.25 ports) |
 | `/etc/baycom/modems.ini` | `config/modems.ini` | Hardware catalog (`catalog = <id>` in site INI) |
-| `/etc/baycom/minicom/minirc.baycom-*` | `config/minicom/` | Minicom profiles |
 | `/etc/baycom/axports/*.snippet` | `config/axports/` | AX.25 port examples (merge into `/etc/baycom/axports/axports`) |
 | `/etc/baycom/rc.d/rc.baycom-pr` | `scripts/rc.baycom-pr` | Optional rc-style init wrapper |
 | `/etc/baycom/legacy/pccom.env*` | `config/legacy/pccom.env*` | Deprecated env profiles |
@@ -34,7 +33,6 @@ If upgrading from an older install, move files into `/etc/baycom/`:
 | `/etc/baycom-pr.ini` | `/etc/baycom/baycom-pr.ini` |
 | `/etc/baycom-modems.ini` | `/etc/baycom/modems.ini` |
 | `/etc/pccom.env*` | `/etc/baycom/legacy/pccom.env*` |
-| `/etc/minicom/minirc.baycom-*` | `/etc/baycom/minicom/minirc.baycom-*` |
 | `/etc/ax25/axports` (merged snippets) | `/etc/baycom/axports/axports` |
 | `/etc/rc.d/rc.baycom-pr` | `/etc/baycom/rc.d/rc.baycom-pr` |
 

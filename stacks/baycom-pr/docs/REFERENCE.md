@@ -20,7 +20,6 @@ Mixed profiles load ser12 and par96 as **separate** kernel modules. Max four por
 |------|---------|
 | `/etc/baycom/baycom-pr.ini` | Site profile |
 | `/etc/baycom/modems.ini` | Hardware catalog |
-| `/etc/baycom/minicom/` | Minicom profiles |
 | `/etc/baycom/axports/` | AX.25 snippets + local `axports` |
 | `/etc/baycom/examples/` | Profile templates |
 | `/etc/baycom/legacy/` | Deprecated `pccom.env*` |

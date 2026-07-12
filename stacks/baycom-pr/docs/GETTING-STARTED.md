@@ -177,7 +177,7 @@ sudo baycom-pr-ctl recover         # after crash / wrong IRQ
 
 ## Do not
 
-- Open `/dev/ttyS0` with minicom while `baycom_ser_fdx` is loaded — use KISS or `baycom-pr-ctl minicom a` (KISS mode).
+- Open `/dev/ttyS0` with a userspace serial client while `baycom_ser_fdx` is loaded — use KISS PTY, `max25-terminal`, or `listen`/`call`.
 - Run two modems on one UART IRQ — preflight blocks duplicate IRQ.
 - Use dual-modem profile for everyday single-radio use — use [service mode](GUIDE.md#11-service-mode-dual-modem) only when external software needs two ports.
 

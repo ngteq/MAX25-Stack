@@ -20,7 +20,7 @@ Operator                    Linux host (max25d)
 | Layer | Location | Role |
 |-------|----------|------|
 | Operator client | `stacks/terminal/` | Text + F10 menu — **only** official client |
-| Daemon | `stacks/daemon/` | Linux-only supervisor, M25/1, multi-device KISS |
+| Daemon | `stacks/daemon/` | Linux-only supervisor, M25/1, multi-device KISS, AX.25 source ban list |
 | Merged stacks | `stacks/tncs/`, `baycom-pr/`, `crdop/` | Device-specific tools and lifecycle |
 | Plugins | `plugins/` | Operating mode → hardware → device registry |
 | HyBBX attach | `share/hybbx/` | INI examples — HyBBX repo is external |
@@ -51,10 +51,10 @@ Guide: [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md).
 | Device | Standalone | HyBBX plugin |
 |--------|------------|--------------|
 | **TNC2C** (`tnc2c`) | `max25-ctl start --hardware tncs --device tnc2c` | `packet_radio` |
-| **BayCom SER12** (`baycom-ser12`) | `baycom-pr-ctl start` | `baycom` |
-| **CRDOP** (`soft-crdop`) | `max25-ctl start --hardware soft-modems` | `crdop` |
+| **BayCom SER12** (`baycom-ser12`) | `max25-ctl start --hardware modems --device baycom-ser12` | `baycom` |
+| **CRDOP** (`soft-crdop`) | `max25-ctl start --hardware soft-modems --device soft-crdop` | `crdop` |
 
-Default operating mode: `standalone`. Deferred: `pktnc2`, `baycom-par96`, `baycom-kiss`.
+Default operating mode: `standalone`. BayCom: **single PC-COM default**; dual modem opt-in ([BAYCOM.md](docs/BAYCOM.md)). Deferred: `pktnc2`, `baycom-par96`, `baycom-kiss`, CRDOP amateur/dual profiles.
 
 ## Platform
 
@@ -74,6 +74,7 @@ Details: [docs/PLATFORMS.md](docs/PLATFORMS.md).
 | Terminal operator | [MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) |
 | Client / M25/1 | [MAX25-CLIENT.md](docs/MAX25-CLIENT.md) |
 | Packet radio facts | [PACKET-RADIO.md](docs/PACKET-RADIO.md) |
+| BayCom / PC-COM | [BAYCOM.md](docs/BAYCOM.md) |
 | HyBBX attach | [HYBBX.md](docs/HYBBX.md) |
 | Architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Development | [DEVELOPMENT.md](docs/DEVELOPMENT.md) |

@@ -19,6 +19,24 @@ struct max25_ui {
 #endif
 };
 
+#ifdef MAX25_HAVE_NCURSES
+static int term_ok_for_ncurses(void)
+{
+    const char *term = getenv("TERM");
+
+    if (term == NULL || term[0] == '\0') {
+        return 0;
+    }
+    if (strcmp(term, "dumb") == 0) {
+        return 0;
+    }
+    if (strncmp(term, "unknown", 7) == 0) {
+        return 0;
+    }
+    return 1;
+}
+#endif
+
 int max25_ui_init(max25_ui_t **ui)
 {
     max25_ui_t *u;
@@ -33,7 +51,8 @@ int max25_ui_init(max25_ui_t **ui)
     }
 
 #ifdef MAX25_HAVE_NCURSES
-    if (isatty(STDOUT_FILENO) && isatty(STDIN_FILENO) && initscr() != NULL) {
+    if (isatty(STDOUT_FILENO) && isatty(STDIN_FILENO) && term_ok_for_ncurses()
+        && initscr() != NULL) {
         cbreak();
         noecho();
         keypad(stdscr, TRUE);
@@ -119,8 +138,9 @@ void max25_ui_append_rx(max25_ui_t *ui, const char *text)
 
 static void draw_header_plain(const max25_status_t *status)
 {
-    printf("%sMAX25 Terminal  CALLERID: %-9s CALLID: %-9s  ax25-ui: %s  connected: %s  F10=Menu\n",
+    printf("%sMAX25 Terminal  DEVICE: %-12s CALLERID: %-9s CALLID: %-9s  ax25-ui: %s  connected: %s  F10=Menu\n",
            MAX25_TERM_SGR,
+           status->device[0] != '\0' ? status->device : "-",
            status->callerid, status->callid,
            status->ax25_ui ? "on" : "off",
            status->connected ? "yes" : "no");
@@ -168,7 +188,8 @@ void max25_ui_draw_screen(max25_ui_t *ui, const max25_status_t *status,
 
         attron(COLOR_PAIR(1));
         mvprintw(0, 0,
-                 "MAX25 Terminal  CALLERID: %-9s CALLID: %-9s ax25-ui: %s connected: %s  F10=Menu",
+                 "MAX25 Terminal  DEVICE: %-12s CALLERID: %-9s CALLID: %-9s ax25-ui: %s connected: %s  F10=Menu",
+                 status->device[0] != '\0' ? status->device : "-",
                  status->callerid, status->callid,
                  status->ax25_ui ? "on" : "off",
                  status->connected ? "yes" : "no");
@@ -204,21 +225,48 @@ void max25_ui_draw_screen(max25_ui_t *ui, const max25_status_t *status,
 static void draw_menu_plain(const max25_status_t *status)
 {
     puts("");
-    puts("┌─ MAX25 Terminal ────────────────────┐");
-    printf("│ CALLERID: %-9s CALLID: %-9s │\n",
+    puts("+- MAX25 Terminal ---------------------+");
+    printf("| DEVICE: %-12s                     |\n",
+           status->device[0] != '\0' ? status->device : "-");
+    printf("| CALLERID: %-9s CALLID: %-9s |\n",
            status->callerid, status->callid);
-    puts("├─────────────────────────────────────┤");
-    puts("│ 1  Change CALLERID (live)           │");
-    puts("│ 2  Change CALLID (live)             │");
-    puts("│ 3  Status                           │");
-    puts("│ 4  Send line                        │");
-    puts("│ 5  RX only (Monitor)                │");
-    puts("│ 6  Connection on/off                │");
-    puts("│ 0  Quit client                      │");
-    puts("└─────────────────────────────────────┘");
-    puts("Pick a number · F10 closes");
+    puts("+---------------------------------------+");
+    puts("| 1  Change CALLERID (live)             |");
+    puts("| 2  Change CALLID (live)               |");
+    puts("| 3  Status                             |");
+    puts("| 4  Send line                          |");
+    puts("| 5  RX only (Monitor)                  |");
+    puts("| 6  Connection on/off                  |");
+    puts("| 7  Change DEVICE (TX target)          |");
+    puts("| 0  Quit client                        |");
+    puts("+---------------------------------------+");
+    puts("Pick a number - F10 closes");
     fflush(stdout);
 }
+
+#ifdef MAX25_HAVE_NCURSES
+static void draw_menu_ncurses(const max25_status_t *status, int y0)
+{
+    attron(COLOR_PAIR(1));
+    mvprintw(y0, 0, "+- MAX25 Terminal ---------------------+");
+    mvprintw(y0 + 1, 0, "| DEVICE: %-12s                     |",
+             status->device[0] != '\0' ? status->device : "-");
+    mvprintw(y0 + 2, 0, "| CALLERID: %-9s CALLID: %-9s |",
+             status->callerid, status->callid);
+    mvprintw(y0 + 3, 0, "+---------------------------------------+");
+    mvprintw(y0 + 4, 0, "| 1  Change CALLERID (live)             |");
+    mvprintw(y0 + 5, 0, "| 2  Change CALLID (live)               |");
+    mvprintw(y0 + 6, 0, "| 3  Status                             |");
+    mvprintw(y0 + 7, 0, "| 4  Send line                          |");
+    mvprintw(y0 + 8, 0, "| 5  RX only (Monitor)                  |");
+    mvprintw(y0 + 9, 0, "| 6  Connection on/off                  |");
+    mvprintw(y0 + 10, 0, "| 7  Change DEVICE (TX target)          |");
+    mvprintw(y0 + 11, 0, "| 0  Quit client                        |");
+    mvprintw(y0 + 12, 0, "+---------------------------------------+");
+    mvprintw(y0 + 13, 0, "Pick a number - F10 closes");
+    attroff(COLOR_PAIR(1));
+}
+#endif
 
 void max25_ui_show_menu(max25_ui_t *ui, const max25_status_t *status)
 {
@@ -229,27 +277,15 @@ void max25_ui_show_menu(max25_ui_t *ui, const max25_status_t *status)
 
 #ifdef MAX25_HAVE_NCURSES
     if (ui->ncurses_on) {
-        int y0 = 2;
-
-        attron(COLOR_PAIR(1));
-        mvprintw(y0, 0, "┌─ MAX25 Terminal ────────────────────┐");
-        mvprintw(y0 + 1, 0, "│ CALLERID: %-9s CALLID: %-9s │",
-                 status->callerid, status->callid);
-        mvprintw(y0 + 2, 0, "├─────────────────────────────────────┤");
-        mvprintw(y0 + 3, 0, "│ 1  Change CALLERID (live)           │");
-        mvprintw(y0 + 4, 0, "│ 2  Change CALLID (live)             │");
-        mvprintw(y0 + 5, 0, "│ 3  Status                           │");
-        mvprintw(y0 + 6, 0, "│ 4  Send line                        │");
-        mvprintw(y0 + 7, 0, "│ 5  RX only (Monitor)                │");
-        mvprintw(y0 + 8, 0, "│ 6  Connection on/off                │");
-        mvprintw(y0 + 9, 0, "│ 0  Quit client                      │");
-        mvprintw(y0 + 10, 0, "└─────────────────────────────────────┘");
-        mvprintw(y0 + 11, 0, "Pick a number · F10 closes");
-        attroff(COLOR_PAIR(1));
+        clear();
+        bkgd(COLOR_PAIR(1));
+        draw_menu_ncurses(status, 2);
         refresh();
         return;
     }
 #endif
+    fputs(MAX25_TERM_CLEAR, stdout);
+    fputs(MAX25_TERM_SGR, stdout);
     draw_menu_plain(status);
 }
 
@@ -259,6 +295,13 @@ void max25_ui_hide_menu(max25_ui_t *ui)
         return;
     }
     ui->menu_open = 0;
+#ifdef MAX25_HAVE_NCURSES
+    if (ui->ncurses_on) {
+        clear();
+        bkgd(COLOR_PAIR(1));
+        refresh();
+    }
+#endif
 }
 
 int max25_ui_menu_visible(const max25_ui_t *ui)
@@ -282,6 +325,8 @@ max25_menu_action_t max25_ui_menu_pick(max25_ui_t *ui, int ch)
         return MAX25_MENU_MONITOR;
     case '6':
         return MAX25_MENU_CONNECT;
+    case '7':
+        return MAX25_MENU_DEVICE;
     case '0':
         return MAX25_MENU_QUIT;
     default:

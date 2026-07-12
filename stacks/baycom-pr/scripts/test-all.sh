@@ -114,7 +114,6 @@ for p in \
 	config/examples/baycom-pr.ham.ini \
 	config/examples/baycom-pr.par96.ini \
 	config/examples/baycom-pr.picpar.ini \
-	config/minicom/minirc.baycom-kiss \
 	docs/INDEX.md \
 	docs/GUIDE.md \
 	docs/REFERENCE.md \

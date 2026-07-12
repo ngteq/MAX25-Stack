@@ -54,7 +54,7 @@ sudo baycom-pr-ctl listen [port] | call <port> <dest>
 
 - Wrong IRQ → host freeze; always preflight
 - Dual: service mode only — staged start, unique IRQ per UART
-- Never minicom on raw UART while driver loaded
+- Never userspace serial client on raw UART while driver loaded
 - Do not commit `research/`
 - Generic Linux only in docs
 

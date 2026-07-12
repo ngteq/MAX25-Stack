@@ -119,7 +119,7 @@ check_dep setserial
 check_dep ip
 check_dep python3
 check_dep gcc
-command -v minicom >/dev/null && pass "minicom found (optional)" || warn "minicom not installed (optional — see docs/TESTING.md)"
+command -v socat >/dev/null && pass "socat found (optional KISS debug)" || warn "socat not installed (optional — see docs/TESTING.md)"
 check_module ax25
 
 section "3. Build tools"

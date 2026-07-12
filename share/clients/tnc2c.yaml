@@ -1,0 +1,53 @@
+schema_version: 1
+id: tnc2c
+label: Landolt TNC2C
+type: client-profile
+status: active
+
+connection:
+  host: 127.0.0.1
+  port: 7325
+  unix_socket: /run/max25/modem.sock
+  tcp_only: false
+
+device:
+  id: tnc2c
+  hardware: tncs
+
+session:
+  callerid: CB-0
+  callid: QST
+  ax25_ui: true
+
+terminal:
+  pacing_baud: 2400
+  line_width: 80
+  payload_max: 256
+
+max25d:
+  ini_example: share/max25/max25d.ini.example
+  device_section: serial.tnc2c
+  env_file: stacks/tncs/tnc2c-serial.env
+  boot_wait: stacks/tncs/tnc2c-boot-wait.sh
+  health: stacks/tncs/tnc2c-health.sh
+
+serial:
+  default_device: /dev/ttyS4
+  baud: 19200
+  line: 8n1
+  dtr_rts: true
+  kiss_entry: kiss_on
+
+rf:
+  modem: tcm3105
+  radio_baud: 2400
+  band: cb
+
+hybbx:
+  ini_example: share/hybbx/tnc2c-edge.ini.example
+  plugin: packet_radio
+  profile: tnc2c
+
+docs:
+  - stacks/tncs/docs/TNC2C-OPERATIONS.md
+  - plugins/devices/tnc2c/plugin.yaml

@@ -41,7 +41,7 @@ One `modprobe baycom_ser_fdx` with comma-separated `mode`, `iobase`, `irq`, `bau
 
 **Recommendation:** validate single-modem operation first, then enable dual profile.
 
-**Rule:** Do not use async tools on `/dev/ttySx` while kernel-ser12 owns the UART. Use `kiss_link`, `baycom-pr-ctl minicom`, or AX.25 `axports` names.
+**Rule:** Do not use userspace serial clients on `/dev/ttySx` while kernel-ser12 owns the UART. Use `kiss_link`, `max25-terminal`, or AX.25 `axports` names.
 
 ## Connection backends
 
@@ -59,8 +59,7 @@ USB adapter requirements: [HARDWARE.md](HARDWARE.md).
 ## baycom-pr-ctl
 
 ```bash
-baycom-pr-ctl [-c /etc/baycom/baycom-pr.ini] {start|stop|restart|status|test|check|selftest}
-baycom-pr-ctl minicom [id] [--kiss|--serial]
+baycom-pr-ctl [-c /etc/baycom/baycom-pr.ini] {start|stop|restart|status|test|check|selftest|listen|call}
 ```
 
 | Command | Description |
@@ -71,20 +70,15 @@ baycom-pr-ctl minicom [id] [--kiss|--serial]
 | `test` | Full `baycom_test all` per modem |
 | `check` | INI + quick test (~3 s, no PTT) |
 | `selftest` | Full host checklist — [TESTING.md](TESTING.md) |
-| `minicom` | KISS PTY (stack up) or raw UART (stack stopped) |
+| `listen` / `call` | AX.25 monitor and connect wrappers |
 
 State: `/var/run/baycom-pr/active.env`.
 
-## minicom
+## Terminals
 
-Profiles installed to `/etc/baycom/minicom/minirc.baycom-kiss` and `minirc.baycom-serial`.
+Official client: **max25-terminal** (M25/1). KISS debug: **socat**. AX.25: **listen** / **call**.
 
-| Mode | When | Command |
-|------|------|---------|
-| KISS | Stack running | `baycom-pr-ctl minicom a` |
-| Serial | Stack stopped | `baycom-pr-ctl stop` then `baycom-pr-ctl minicom a --serial` |
-
-**picocom** and **socat:** [TERMINALS.md](TERMINALS.md) · examples in [config/examples/terminals/](../config/examples/terminals/).
+See [TERMINALS.md](TERMINALS.md) · examples in [config/examples/terminals/](../config/examples/terminals/).
 
 ## INI: baycom-pr.ini
 
@@ -184,7 +178,7 @@ Stable attachment points for downstream software (no application layer in this r
 |--------|------------|
 | KISS programs | `kiss_link` path |
 | `listen`, `call` | `ax25_port` in `axports` |
-| minicom, picocom, socat | [TERMINALS.md](TERMINALS.md) |
+| max25-terminal, socat, listen/call | [TERMINALS.md](TERMINALS.md) |
 
 ## Boot-time start (optional)
 

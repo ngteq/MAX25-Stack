@@ -518,8 +518,6 @@ def preflight(dev: str) -> list[str]:
     issues: list[str] = []
     if os.system("pgrep -x hybbx >/dev/null 2>&1") == 0:
         issues.append("hybbx is running - stop it first")
-    if os.system("pgrep minicom >/dev/null 2>&1") == 0:
-        issues.append("minicom is running - exit it first (pkill minicom)")
     if not os.path.exists(dev):
         issues.append(f"{dev} does not exist")
     elif not os.access(dev, os.R_OK | os.W_OK):
@@ -682,7 +680,7 @@ def print_result_summary(
         print(f"  GARBAGE profiles: {', '.join(r.name for r in top_g)} (wrong baud/parity)")
 
     print("\n  Recommended settings:")
-    print(f"    minicom -D {dev} -b {best.baud}   (# {best.line})")
+    print(f"    max25-terminal or tnc2c-host-reset @ {dev} -b {best.baud}   (# {best.line})")
     for k in ("TNC2C_BAUD", "TNC2C_LINE", "HYBBX_SERIAL_LINE"):
         print(f"    {k}={suggested[k]}")
 
@@ -759,7 +757,7 @@ def run_host_check(
             print(f"  FAIL: {i}")
         print("\nAbort - clear port/background services and retry.")
         return 2
-    print("  OK: port free, hybbx/minicom inactive, access OK")
+    print("  OK: port free, hybbx inactive, access OK")
 
     kiss_step = "kiss off -> INFO" if args.no_kiss else "KISS-reset -> kiss off -> INFO"
     print_header(f"2) Host-Check 19200-8N1 (passive -> {kiss_step})")
@@ -841,7 +839,7 @@ def main() -> int:
             print(f"  FAIL: {i}")
         print("\nAbort - clear port/background services and retry.")
         return 2
-    print("  OK: port free, hybbx/minicom inactive, access OK")
+    print("  OK: port free, hybbx inactive, access OK")
 
     print_header("2) Host precheck 19200-8N1")
     precheck = test_host_check(dev, 19200, "8N1", dtr_cycle=args.dtr_cycle)

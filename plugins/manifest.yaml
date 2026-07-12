@@ -76,6 +76,7 @@ devices:
     hardware: soft-modems
     hybbx_plugin: crdop
     status: active
+    note: v1 active profile CB (crdop.ini.example); amateur/dual INI templates deferred to v1.1+
   - id: max25-terminal
     path: devices/max25-terminal
     hardware: terminal

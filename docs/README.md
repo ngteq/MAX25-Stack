@@ -9,9 +9,12 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | Role | Document |
 |------|----------|
 | Edge deploy | [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md) |
+| **Unified device workflow** | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) — TNC reference, all backends |
 | Terminal operator | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) |
 | Client developer | [MAX25-CLIENT.md](MAX25-CLIENT.md) · [include/max25/protocol.md](../include/max25/protocol.md) |
+| Terminal profiles | [share/clients/README.md](../share/clients/README.md) · [share/clients/index.yaml](../share/clients/index.yaml) |
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
+| BayCom / PC-COM operator | [BAYCOM.md](BAYCOM.md) · `share/baycom/` examples |
 | Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | v1 release | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) |
 
@@ -19,8 +22,9 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 
 | Topic | Document |
 |-------|----------|
-| Architecture & plugins | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| AX.25 / KISS / TNC / BayCom | [PACKET-RADIO.md](PACKET-RADIO.md) · [include/max25/packet-radio.md](../include/max25/packet-radio.md) |
+| Architecture & plugins | [ARCHITECTURE.md](ARCHITECTURE.md) · [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |
+| AX.25 / KISS / TNC | [PACKET-RADIO.md](PACKET-RADIO.md) · [include/max25/packet-radio.md](../include/max25/packet-radio.md) |
+| BayCom kernel modems | [BAYCOM.md](BAYCOM.md) |
 | Platforms | [PLATFORMS.md](PLATFORMS.md) |
 | *BSD deferred | [FREEBSD-AX25.md](FREEBSD-AX25.md) |
 | Merge archive | [MERGE-REPORT.md](MERGE-REPORT.md) |

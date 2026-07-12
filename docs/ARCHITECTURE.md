@@ -72,7 +72,7 @@ Config: `share/max25/max25d.ini.example`. Daemon README: [stacks/daemon/README.m
 |-------|------|--------------|
 | `stacks/tncs` | TNC2C boot-wait, probe, health | HyBBX sessions |
 | `stacks/baycom-pr` | Kernel module, KISS PTY, AX.25 port sync | HyBBX HBX |
-| `stacks/crdop` | `crdopc` TCP modem | AX.25 / KISS |
+| `stacks/crdop` | `crdopc` TCP modem (original ARDOP-compatible; MAX25 orchestrates, no fork) | AX.25 / KISS |
 
 Link stack READMEs — do not duplicate operator detail here.
 

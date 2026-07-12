@@ -10,7 +10,7 @@ The stack was developed **primarily for HyBBX** (attach via plugin). It fully su
 
 | Attachment | Path / name | Used by |
 |------------|-------------|---------|
-| KISS (single modem) | `/var/run/baycom-pr/kiss` | HyBBX plugin, picocom, custom clients |
+| KISS (single modem) | `/var/run/baycom-pr/kiss` | HyBBX plugin, max25-terminal, custom clients |
 | KISS (service dual) | `/var/run/baycom-pr/kiss-a`, `kiss-b` | HyBBX multi-port, automation |
 | Kernel interface | `bcsf0` … `bcsf3` (ser12), `bcp0` … (par96) | Internal; apps use AX.25 port names |
 | AX.25 port name | `ax25_port` in INI → `axports` | `listen`, `call`, HyBBX |
@@ -81,11 +81,10 @@ baycom-pr-ctl listen radio
 baycom-pr-ctl call radio DEST
 ```
 
-Optional raw inspection:
+Optional KISS debug (hex tap):
 
 ```bash
-baycom-pr-ctl minicom a              # KISS, stack must be up
-picocom -b 9600 /var/run/baycom-pr/kiss
+socat -x /var/run/baycom-pr/kiss,raw,echo=0 -
 ```
 
 Full examples: [CONNECTS.md](CONNECTS.md).

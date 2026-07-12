@@ -1,5 +1,6 @@
 ; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary edge (BayCom SER12)
-; Prerequisite: sudo stacks/baycom-pr/scripts/baycom-pr-ctl start
+; Prerequisite: ./scripts/max25-ctl start --hardware modems --device baycom-ser12
+;   (or max25d auto_start with [device.baycom-ser12] baycom_ini=)
 ; HyBBX build: -DHYBBX_PLUGIN_BAYCOM=ON
 
 [networks]

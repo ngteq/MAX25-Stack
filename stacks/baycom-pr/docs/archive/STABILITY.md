@@ -51,7 +51,7 @@ sudo baycom-pr-ctl start
 
 ## Rules (do not skip)
 
-1. **Never** open `/dev/ttyS*` with minicom/picocom while `baycom_ser_fdx` owns the UART — use `kiss_link` only.
+1. **Never** open `/dev/ttyS*` with a userspace serial client while `baycom_ser_fdx` owns the UART — use `kiss_link` only.
 2. **Always** run `setserial … uart none` before start (done by `baycom-pr-ctl start`).
 3. **Always** run `baycom-pr-ctl stop` before shutdown/reboot when possible.
 4. **Verify IRQ** in INI matches `setserial -g` — mismatch is the #1 freeze cause.
@@ -84,7 +84,7 @@ baycom-pr-ctl test         # full suite — use BAYCOM_TEST_FULL=1 only when sta
 |-------|------------|
 | Wrong IRQ in INI | `preflight` + `setserial -g` |
 | Duplicate IRQ (dual) | `preflight` / validator |
-| minicom on raw UART while driver loaded | Use KISS PTY only |
+| Userspace serial on raw UART while driver loaded | Use KISS PTY only |
 | IRQ storm (bad hardware/address) | Auto rollback on `start` |
 | Skipping `stop` before reboot | `recover` after boot |
 | Full PTT test on unstable dual setup | Default quick selftest |

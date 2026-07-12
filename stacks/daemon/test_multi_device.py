@@ -139,6 +139,8 @@ baycom-kiss = /dev/ttyUSB0
 soft-crdop = crdop:default
 [device.baycom-ser12]
 kiss_link = /var/run/baycom-pr/kiss
+modem = a
+baycom_ini = /etc/baycom/baycom-pr.ini
 [device.soft-crdop]
 port = 8515
 """
@@ -149,6 +151,7 @@ port = 8515
     assert by_id["tnc2c"].backend_type == "kiss-serial"
     assert by_id["baycom-ser12"].backend_type == "baycom-kiss"
     assert by_id["baycom-ser12"].kiss_link == "/var/run/baycom-pr/kiss"
+    assert by_id["baycom-ser12"].baycom_ini == "/etc/baycom/baycom-pr.ini"
     assert by_id["baycom-kiss"].backend_type == "kiss-raw-serial"
     assert by_id["soft-crdop"].backend_type == "crdop-tcp"
     assert by_id["soft-crdop"].crdop_port == 8515
@@ -172,6 +175,44 @@ extra = /dev/ttyUSB9
     disabled = {d.device_id for d in devices if not d.enabled}
     assert enabled == {"tnc2c", "pktnc2"}
     assert disabled == {"extra"}
+
+
+def test_backend_open_retry_on_error() -> None:
+    """CONNECT retries KISS open after a transient error-no-device."""
+    mod = load_max25d_module()
+    cfg = mod.DaemonConfig(hardware="modems", serial_enabled=True)
+    cfg.devices = [
+        mod.DeviceBackendConfig(
+            device_id="baycom-ser12",
+            backend_type="baycom-kiss",
+            kiss_link="/nonexistent/kiss",
+            enabled=True,
+        )
+    ]
+    cfg.default_device = "baycom-ser12"
+    state = mod.DaemonState(cfg=cfg)
+    mod.init_device_runtimes(state)
+
+    class ErrorThenReady(FakeBackend):
+        attempts = 0
+
+        def open(self):
+            ErrorThenReady.attempts += 1
+            if ErrorThenReady.attempts == 1:
+                self.status = "error-no-device"
+                return False
+            self.status = "ready"
+            return True
+
+    ErrorThenReady.attempts = 0
+    with patch.object(
+        mod,
+        "create_backend",
+        side_effect=lambda c, r, rx, log, prefix=None: ErrorThenReady(c, r, rx, log),
+    ):
+        assert not mod.attach_backend_session(state, "baycom-ser12")
+        assert mod.attach_backend_session(state, "baycom-ser12")
+        assert ErrorThenReady.attempts == 2
 
 
 def test_five_mock_backends() -> None:
@@ -252,6 +293,92 @@ def run_daemon_test(ini_text: str, fn: Callable[[LineReader, socket.socket], Non
         proc.terminate()
         proc.wait(timeout=5)
         ini_path.unlink(missing_ok=True)
+
+
+def test_parse_dual_baycom_devices() -> None:
+    mod = load_max25d_module()
+    cp = configparser.ConfigParser()
+    cp.read_string(
+        """
+[devices]
+default = baycom-a
+baycom-a = baycom:a
+baycom-b = baycom:b
+[device.baycom-a]
+kiss_link = /var/run/baycom-pr/kiss-a
+modem = a
+baycom_ini = /etc/baycom/baycom-pr.ini
+[device.baycom-b]
+kiss_link = /var/run/baycom-pr/kiss-b
+modem = b
+baycom_ini = /etc/baycom/baycom-pr.ini
+"""
+    )
+    cfg = mod.DaemonConfig()
+    devices = mod.parse_devices(cp, cfg)
+    by_id = {d.device_id: d for d in devices}
+    assert set(by_id) == {"baycom-a", "baycom-b"}
+    assert by_id["baycom-a"].backend_type == "baycom-kiss"
+    assert by_id["baycom-b"].backend_type == "baycom-kiss"
+    assert by_id["baycom-a"].baycom_modem == "a"
+    assert by_id["baycom-b"].baycom_modem == "b"
+    assert by_id["baycom-a"].kiss_link == "/var/run/baycom-pr/kiss-a"
+    assert by_id["baycom-b"].kiss_link == "/var/run/baycom-pr/kiss-b"
+    assert cfg.default_device == "baycom-a"
+
+
+def test_protocol_dual_baycom() -> None:
+    ini = """
+[daemon]
+mode = service
+hardware = modems
+device = baycom-a
+[devices]
+default = baycom-a
+baycom-a = baycom:a
+baycom-b = baycom:b
+[network]
+tcp_host = 127.0.0.1
+tcp_port = 7325
+[modem]
+callerid = N0CALL-0
+callid = QST
+[stack]
+auto_start = no
+[device.baycom-a]
+kiss_link = /var/run/baycom-pr/kiss-a
+modem = a
+[device.baycom-b]
+kiss_link = /var/run/baycom-pr/kiss-b
+modem = b
+"""
+
+    def exercise(reader: LineReader, sock: socket.socket) -> None:
+        status = reader.read()
+        assert "devices=baycom-a,baycom-b" in status
+        assert "device=baycom-a" in status
+
+        sock.sendall(b"GET DEVICES\n")
+        lines = []
+        while True:
+            line = reader.read()
+            lines.append(line)
+            if line == "OK":
+                break
+        device_lines = [l for l in lines if l.startswith("DEVICE ")]
+        assert len(device_lines) == 2
+        assert any("id=baycom-a" in l and "backend=baycom-kiss" in l for l in device_lines)
+        assert any("id=baycom-b" in l and "backend=baycom-kiss" in l for l in device_lines)
+
+        sock.sendall(b"SET DEVICE baycom-b\n")
+        assert reader.read() == "OK"
+
+        sock.sendall(b"GET STATUS\n")
+        st = reader.read()
+        assert "device=baycom-b" in st
+        assert reader.read() == "OK"
+
+    run_daemon_test(ini, exercise)
 
 
 def test_protocol_multi_device() -> None:
@@ -335,9 +462,12 @@ def main() -> int:
         test_parse_legacy_single_device,
         test_parse_multi_devices,
         test_parse_heterogeneous_devices,
+        test_parse_dual_baycom_devices,
         test_parse_enabled_filter,
+        test_backend_open_retry_on_error,
         test_five_mock_backends,
         test_protocol_multi_device,
+        test_protocol_dual_baycom,
         test_protocol_legacy_single,
     ]
     for fn in tests:

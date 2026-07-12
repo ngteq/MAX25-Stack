@@ -1,7 +1,8 @@
 """
 KISS serial bridge for max25d — AX.25 UI over TNC2C / PK-TNC2.
 
-PTT is handled by TNC firmware when KISS DATA frames are accepted (requires MYCALL).
+PTT: TNC firmware keys on KISS DATA (requires MYCALL); kernel BayCom (baycom_ser_fdx)
+keys RTS in the driver when the KISS bridge accepts a DATA frame — no max25d PTT command.
 """
 from __future__ import annotations
 
@@ -86,25 +87,27 @@ def ax25_decode_address(raw: bytes) -> tuple[str, int]:
 def ax25_parse_ui(frame: bytes) -> Optional[tuple[str, str, bytes]]:
     if len(frame) < 16:
         return None
+    body = frame
+    if len(frame) >= 18:
+        crc_rx = frame[-2] | (frame[-1] << 8)
+        if ax25_crc(frame[:-2]) == crc_rx:
+            body = frame[:-2]
     pos = 0
     addresses: list[tuple[str, int, bool]] = []
-    while pos + 7 <= len(frame):
-        last = bool(frame[pos + 6] & 0x01)
-        addresses.append((*ax25_decode_address(frame[pos : pos + 7]), last))
+    while pos + 7 <= len(body):
+        last = bool(body[pos + 6] & 0x01)
+        addresses.append((*ax25_decode_address(body[pos : pos + 7]), last))
         pos += 7
         if last:
             break
     if len(addresses) < 2:
         return None
-    if pos + 4 > len(frame):
+    if pos + 2 > len(body):
         return None
-    if frame[pos] != 0x03:
+    if body[pos] != 0x03:
         return None
     pos += 2
-    crc_rx = frame[-2] | (frame[-1] << 8)
-    if ax25_crc(frame[:-2]) != crc_rx:
-        return None
-    payload = frame[pos:-2]
+    payload = body[pos:]
     dst_call, dst_ssid, _ = addresses[0]
     src_call, src_ssid, _ = addresses[-1]
     dst = dst_call if not dst_ssid else f"{dst_call}-{dst_ssid}"

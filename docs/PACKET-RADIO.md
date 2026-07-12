@@ -4,6 +4,8 @@ Technical facts for **MainAX25-Stack (MAX25)** developers and operators. Describ
 
 HyBBX is only mentioned where MAX25 hands off after prep ([HYBBX.md](HYBBX.md)). The rules below are distilled from production AX.25/KISS practice (including the reference implementation in the upstream HyBBX tree).
 
+**Unified device workflow** (TNC reference, all backends): [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md).
+
 ---
 
 ## Layer model in MAX25
@@ -26,7 +28,7 @@ Operator
 | Kernel AX.25 | `stacks/baycom-pr` | `hdlcdrv`, `bcsf0`, `AF_PACKET` |
 | HyBBX attach | external | After stack is up — INI in `share/hybbx/` |
 
-**CRDOP / ARDOP** (`soft-crdop`) is **not AX.25** — TCP sound-card modem parallel to packet radio. See `stacks/crdop/`.
+**CRDOP / ARDOP** (`soft-crdop`) is **not AX.25** — TCP sound-card modem parallel to packet radio. v1 ships the **CB profile** only (`stacks/crdop/share/crdop.ini.example`); amateur and dual profiles are deferred to v1.1+. MAX25 orchestrates upstream **`crdopc`** — no ARDOP fork; host TCP **:8515/:8516** and wire protocol remain **original ARDOP-compatible**. See `stacks/crdop/`.
 
 ---
 
@@ -199,18 +201,9 @@ Set `persist`, `slot`, `txdelay`, `txtail` in HyBBX transport INI or stack confi
 
 ## BayCom kernel path (Linux)
 
-Native SER12/PAR96 — **not** async USB serial.
+Native SER12/PAR96 on real 8250/16550 UART — **not** async USB serial. MAX25 prep: `baycom-pr-ctl` → KISS PTY `/var/run/baycom-pr/kiss` → `max25d` `BayComKissBackend`.
 
-| Fact | Detail |
-|------|--------|
-| Driver | `baycom_ser_fdx`, `baycom_ser_hdx`, `baycom_par`, `baycom_epp` + `hdlcdrv` |
-| SER12 interface | `bcsf0` typical (`ser12*` = software DCD recommended) |
-| UART | Bit-banged via **8250/16450/16550** I/O base + IRQ — COM1 `0x3F8/IRQ4` classic |
-| USB-serial | **Not** supported on native kernel path — use KISS firmware or `hardware/tncs` |
-| Frames | HDLC + AX.25 UI on netdev (`AF_PACKET` / `ETH_P_AX25`) |
-| MAX25 prep | `stacks/baycom-pr/scripts/baycom-pr-ctl` — module load, KISS PTY optional |
-
-HyBBX `baycom` plugin consumes the prepared netdev or KISS PTY — see [HYBBX.md](HYBBX.md).
+**Operator guide:** [BAYCOM.md](BAYCOM.md) (canonical start path, AX25SRV layout, freeze prevention). Kernel internals: `stacks/baycom-pr/docs/`.
 
 ---
 
@@ -236,9 +229,9 @@ For **broadcast** traffic on 1200 baud, keep UI payloads **short** (≤ **48** c
 
 | Rule | Reason |
 |------|--------|
-| Only **one** owner per `/dev/tty*` | boot-wait, KISS, or HyBBX — never minicom + driver + HyBBX concurrently |
+| Only **one** owner per `/dev/tty*` | boot-wait, KISS, or HyBBX — never userspace serial + driver + HyBBX concurrently |
 | One `KissBridge` per device id | `max25d` `[devices]` — each id maps to one serial port |
-| BayCom kernel loaded | **No** minicom on raw UART |
+| BayCom kernel loaded | **No** userspace serial client on raw UART |
 | MAX25 `max25d` owns prep | HyBBX opens serial **after** boot-wait / `baycom-pr-ctl start` |
 
 ### Multi-device (max25d)
@@ -265,7 +258,7 @@ Full station example: `share/max25/max25d.full-station.ini.example`.
 
 M25/1: `devices=` in `STATUS`, `SET DEVICE <id>` for TX routing, `RX device=<id> …` on receive. See [`include/max25/protocol.md`](../include/max25/protocol.md).
 
-**Validation:** TNC2C serial KISS is CI-tested. BayCom and CRDOP backends are wired but may log startup warnings until hardware-validated.
+**Validation:** TNC2C serial KISS is CI-tested. BayCom `BayComKissBackend` and INI resolution are wired; **single-modem default** on AX25SRV (`ttyS0` only). Dual kernel-ser12 (`baycom-a` / `baycom-b`) is supported globally for service mode — see [BAYCOM.md](BAYCOM.md). Live RF acceptance remains manual.
 
 ---
 
@@ -309,7 +302,7 @@ Reference algorithms: HyBBX `plugins/packet_radio/ax25.c`, `kiss.c`, `tnc.c` (up
 | TNC echoes chars, no KISS | Boot-wait / DTR / wrong serial line (7E1 vs 8N1) |
 | KISS OK, no RF | `MYCALL` missing; PTT wiring; persist too low on CB |
 | Garbled RX | Host baud mismatch; wrong `radio_baud` on air |
-| BayCom IRQ errors | Wrong `iobase`/`irq` — can freeze host; run preflight |
+| BayCom IRQ errors | Wrong `iobase`/`irq` — can freeze host; see [BAYCOM.md](BAYCOM.md) |
 | Frame too long | Payload > 256 B or path too many digis |
 
 ---

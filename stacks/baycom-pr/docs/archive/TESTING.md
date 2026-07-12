@@ -28,7 +28,7 @@ Default: **quick tests only**. Full PTT/calibrate: `BAYCOM_SELFTEST_FULL=yes sud
 
 See [STABILITY.md](STABILITY.md) for freeze prevention.
 
-Pass = safe to attach KISS/minicom/AX.25 clients. **Does not** prove on-air decodes.
+Pass = safe to attach KISS/max25-terminal/AX.25 clients. **Does not** prove on-air decodes.
 
 ## baycom-pr-ctl
 

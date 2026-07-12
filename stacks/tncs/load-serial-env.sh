@@ -5,7 +5,7 @@
 # Search order (first match wins):
 #   /etc/max25/<id>-serial.env
 #   $MAX25_ROOT/local/<id>-serial.env
-#   $PWD/local/<id>-serial.env          (start script: cd /tmp/max25)
+#   $PWD/local/<id>-serial.env          (cwd when start script runs)
 #   <checkout>/local/<id>-serial.env    (walk up from script dir)
 #   $PREFIX/share/max25/stacks/tncs/<id>-serial.env
 

@@ -31,7 +31,10 @@ plugins/          operating mode / hardware / device metadata
 stacks/           tncs, baycom-pr, crdop, daemon, terminal
 scripts/          build.sh, max25-ctl, discover-plugins, release-check
 share/max25/      max25d.ini examples
+share/baycom/     BayCom single-modem INI (AX25SRV default)
+share/clients/    max25-terminal client profiles (YAML)
 share/hybbx/      HyBBX INI examples
+local/            site overrides (gitignored except README)
 include/max25/    protocol.md, packet-radio.md
 ```
 
@@ -73,7 +76,7 @@ Hardware tests manual — [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md).
 ## Pitfalls
 
 - TNC2C: DTR during power-on — echo mode otherwise
-- BayCom SER12: no minicom on raw UART while kernel driver loaded
+- BayCom SER12: no userspace serial client on raw UART while kernel driver loaded
 - One process per serial port
 
 ## Git

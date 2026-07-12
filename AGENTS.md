@@ -52,8 +52,10 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 | [docs/README.md](docs/README.md) | **Doc index** |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Code rules, testing |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, plugins |
+| [docs/PLUGINS-DEVICE-MODEL.md](docs/PLUGINS-DEVICE-MODEL.md) | Unified device workflow (TNC reference) |
 | [docs/HYBBX.md](docs/HYBBX.md) | HyBBX contract |
 | [docs/PACKET-RADIO.md](docs/PACKET-RADIO.md) | AX.25, KISS, TNC, BayCom |
+| [docs/BAYCOM.md](docs/BAYCOM.md) | BayCom operator guide (single default, dual opt-in) |
 | [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) | v1 scope |
 | [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md) | Client dev & M25/1 binding |
 | [docs/MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) | Operator UI (F10 menu) |
@@ -67,5 +69,5 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 ## Pitfalls
 
 - TNC2C: DTR during power-on — echo mode otherwise
-- BayCom: no minicom on raw UART while kernel driver loaded
+- BayCom: no userspace serial client on raw UART while kernel driver loaded
 - One process per serial port

@@ -18,6 +18,7 @@ typedef enum {
     MAX25_MENU_SEND,
     MAX25_MENU_MONITOR,
     MAX25_MENU_CONNECT,
+    MAX25_MENU_DEVICE,
     MAX25_MENU_QUIT
 } max25_menu_action_t;
 

@@ -45,6 +45,12 @@ def test_kiss_fcs_strip() -> None:
     assert len(frames) == 1
     _port, payload = frames[0]
     assert len(payload) == len(frame) - 2
+    parsed = ax25_parse_ui(payload)
+    assert parsed is not None
+    src, dst, info = parsed
+    assert src == "CB"
+    assert dst == "QST"
+    assert info == b"hi"
 
 
 def test_kiss_escape_roundtrip() -> None:

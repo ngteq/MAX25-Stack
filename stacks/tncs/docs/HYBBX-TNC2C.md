@@ -18,11 +18,11 @@ KISS on serial → AX.25 sessions
 ./scripts/max25-ctl start --hardware tncs --device tnc2c
 ```
 
-One process per serial port — stop minicom and other TNC tools before HyBBX starts.
+One process per serial port — stop other userspace serial owners before HyBBX starts.
 
 ## HyBBX INI
 
-Merge `share/hybbx/tnc2c-edge.ini.example` into Secondary `hybbx.ini`:
+Merge `share/hybbx/tnc2c-edge.ini.example` or `stacks/tncs/hybbx-tnc2c.ini` (AX25SRV `/dev/ttyS4`) into Secondary `hybbx.ini`:
 
 ```ini
 [transport.packet_radio1]

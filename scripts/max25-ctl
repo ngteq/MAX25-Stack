@@ -61,6 +61,8 @@ resolve_baycom_ctl() {
 MODE="${MAX25_MODE:-standalone}"
 HARDWARE=""
 DEVICE=""
+BAYCOM_INI=""
+BAYCOM_PROFILE=""
 ACTION="${1:-help}"
 shift || true
 
@@ -88,14 +90,23 @@ Options (start/stop/status):
   --mode MODE       standalone | service | hybbx-edge  (default: standalone)
   --hardware HW     tncs | modems | soft-modems
   --device DEV      tnc2c | pktnc2 | baycom-ser12 | baycom-par96 | baycom-kiss | soft-crdop
+  --baycom-ini PATH baycom-pr.ini for kernel modems (default: single-modem example;
+                    skips dual /etc/baycom/baycom-pr.ini unless this flag is set)
+  --baycom-profile NAME  single (default) | dual — resolve shipped profile template
 
 Examples:
   max25-ctl discover
   max25-ctl build
   max25-ctl start --hardware tncs --device tnc2c
   max25-ctl start --hardware modems --device baycom-ser12
+  max25-ctl start --hardware modems --device baycom-ser12 --baycom-ini stacks/baycom-pr/config/examples/baycom-pr.dual.ini
+  max25-ctl start --hardware modems --device baycom-ser12 --baycom-ini /etc/baycom/baycom-pr.ini
+  max25-ctl start --hardware modems --device baycom-ser12 --baycom-profile dual
   max25-ctl start --hardware soft-modems --device soft-crdop
   max25-ctl test
+
+Unified workflow (all devices): docs/PLUGINS-DEVICE-MODEL.md
+  SET DEVICE <id> → CONNECT → SEND via max25-terminal after max25d is up
 EOF
 }
 
@@ -105,9 +116,137 @@ parse_opts() {
       --mode) MODE="$2"; shift 2 ;;
       --hardware) HARDWARE="$2"; shift 2 ;;
       --device) DEVICE="$2"; shift 2 ;;
+      --baycom-ini) BAYCOM_INI="$2"; shift 2 ;;
+      --baycom-profile) BAYCOM_PROFILE="$2"; shift 2 ;;
       *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
     esac
   done
+}
+
+resolve_baycom_ini_path() {
+  local device="${1:-baycom-ser12}"
+  local explicit="${2:-${BAYCOM_INI:-}}"
+  local profile="${3:-${BAYCOM_PROFILE:-}}"
+
+  if [[ -z "${explicit}" && -n "${profile}" ]]; then
+    local paths_py=""
+    if [[ -f "${ROOT}/stacks/daemon/paths.py" ]]; then
+      paths_py="${ROOT}/stacks/daemon/paths.py"
+    elif [[ -n "${PREFIX}" && -f "${PREFIX}/bin/paths.py" ]]; then
+      paths_py="${PREFIX}/bin/paths.py"
+    fi
+    if [[ -n "${paths_py}" ]]; then
+      local prefix_py="None"
+      if [[ -n "${PREFIX}" ]]; then
+        prefix_py="Path('${PREFIX}')"
+      fi
+      explicit="$(python3 -c "
+import sys
+from pathlib import Path
+sys.path.insert(0, '$(dirname "${paths_py}")')
+from paths import resolve_baycom_profile
+p = resolve_baycom_profile('${profile}', '${device}', Path('${ROOT}'), ${prefix_py})
+print(p or '')
+" 2>/dev/null || true)"
+      if [[ -z "${explicit}" ]]; then
+        echo "baycom profile '${profile}' not found (use --baycom-ini PATH)" >&2
+        return 1
+      fi
+    elif [[ "${profile}" == "dual" ]]; then
+      for candidate in \
+        "${ROOT}/stacks/baycom-pr/config/examples/baycom-pr.dual.ini" \
+        "${PREFIX}/share/max25/stacks/baycom-pr/config/examples/baycom-pr.dual.ini"; do
+        if [[ -f "${candidate}" ]]; then
+          explicit="${candidate}"
+          break
+        fi
+      done
+      if [[ -z "${explicit}" ]]; then
+        echo "dual baycom-pr.ini not found — copy stacks/baycom-pr/config/examples/baycom-pr.dual.ini" >&2
+        return 1
+      fi
+    fi
+  fi
+
+  local paths_py=""
+  if [[ -f "${ROOT}/stacks/daemon/paths.py" ]]; then
+    paths_py="${ROOT}/stacks/daemon/paths.py"
+  elif [[ -n "${PREFIX}" && -f "${PREFIX}/bin/paths.py" ]]; then
+    paths_py="${PREFIX}/bin/paths.py"
+  fi
+  if [[ -n "${paths_py}" ]]; then
+    local resolved=""
+    local prefix_py="None"
+    if [[ -n "${PREFIX}" ]]; then
+      prefix_py="Path('${PREFIX}')"
+    fi
+    resolved="$(python3 -c "
+import sys
+from pathlib import Path
+sys.path.insert(0, '$(dirname "${paths_py}")')
+from paths import resolve_baycom_ini
+p = resolve_baycom_ini('${device}', Path('${ROOT}'), ${prefix_py}, '''${explicit}''')
+print(p or '')
+" 2>/dev/null || true)"
+    if [[ -n "${resolved}" && -f "${resolved}" ]]; then
+      echo "${resolved}"
+      return 0
+    fi
+  fi
+
+  if [[ -n "${explicit}" ]]; then
+    return 1
+  fi
+
+  local candidate=""
+  for candidate in \
+    "/etc/baycom/baycom-pr.ini" \
+    "/etc/baycom/baycom-pr-single.ini" \
+    "${ROOT}/local/baycom-pr.ini" \
+    "${ROOT}/share/baycom/baycom-pr.pccom-ttyS0-only.ini.example" \
+    "${PREFIX}/share/max25/baycom/baycom-pr.pccom-ttyS0-only.ini.example" \
+    "${ROOT}/stacks/baycom-pr/config/baycom-pr.ini"; do
+    if [[ -f "${candidate}" ]]; then
+      if [[ "${candidate}" == "/etc/baycom/baycom-pr.ini" ]]; then
+        local dual=""
+        dual="$(python3 -c "
+from pathlib import Path
+import sys
+sys.path.insert(0, '${ROOT}/stacks/daemon')
+try:
+    from paths import is_dual_baycom_ini
+    print('dual' if is_dual_baycom_ini(Path('/etc/baycom/baycom-pr.ini')) else 'single')
+except ImportError:
+    print('single')
+" 2>/dev/null || echo "single")"
+        if [[ "${dual}" == "dual" ]]; then
+          continue
+        fi
+      fi
+      echo "${candidate}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+start_baycom_kernel() {
+  local device="${1:-baycom-ser12}"
+  local baycom_ctl=""
+  baycom_ctl="$(resolve_baycom_ctl)" || {
+    echo "baycom-pr-ctl not found (build/install BayCom PR stack)" >&2
+    exit 1
+  }
+  local ini=""
+  ini="$(resolve_baycom_ini_path "${device}" "${BAYCOM_INI}")" || {
+    echo "baycom-pr.ini not found — copy share/baycom/baycom-pr.pccom-ttyS0-only.ini.example to /etc/baycom/baycom-pr.ini" >&2
+    exit 1
+  }
+  echo "BayCom PR-Stack start (root required) device=${device} ini=${ini}"
+  echo "Next: max25d with [devices] baycom-ser12 = baycom:a · terminal: SET DEVICE baycom-ser12 → CONNECT → SEND"
+  echo "Guide: docs/PLUGINS-DEVICE-MODEL.md · docs/BAYCOM.md"
+  sudo "${baycom_ctl}" -c "${ini}" preflight
+  exec sudo "${baycom_ctl}" -c "${ini}" start
 }
 
 cmd_discover() {
@@ -144,14 +283,23 @@ cmd_start() {
       esac
       ;;
     modems)
-      local baycom_ctl=""
-      baycom_ctl="$(resolve_baycom_ctl)" || {
-        echo "baycom-pr-ctl not found (install BayCom PR stack)" >&2
-        exit 1
-      }
-      echo "BayCom PR-Stack start (root required)"
-      sudo "${baycom_ctl}" preflight
-      exec sudo "${baycom_ctl}" start
+      case "$DEVICE" in
+        baycom-kiss)
+          echo "baycom-kiss: USB/async KISS — no kernel baycom-pr-ctl start"
+          echo "Configure max25d [devices] baycom-kiss and [serial.baycom-kiss]; max25d opens serial directly."
+          exit 0
+          ;;
+        baycom-par96)
+          start_baycom_kernel "baycom-par96"
+          ;;
+        baycom-ser12|baycom-a|baycom-b|"")
+          start_baycom_kernel "${DEVICE:-baycom-ser12}"
+          ;;
+        *)
+          echo "Unknown modem device: $DEVICE (use baycom-ser12, baycom-a, baycom-b, baycom-par96, or baycom-kiss)" >&2
+          exit 1
+          ;;
+      esac
       ;;
     soft-modems)
       case "$DEVICE" in
@@ -197,13 +345,26 @@ cmd_start() {
 cmd_stop() {
   parse_opts "$@"
   if [[ "$HARDWARE" == "modems" || -z "$HARDWARE" ]]; then
-    local baycom_ctl=""
-    baycom_ctl="$(resolve_baycom_ctl 2>/dev/null || true)"
-    if [[ -n "${baycom_ctl}" ]]; then
-      sudo "${baycom_ctl}" stop 2>/dev/null || true
-    fi
+    case "$DEVICE" in
+      baycom-kiss)
+        echo "baycom-kiss: no baycom-pr-ctl stop (USB serial owned by max25d)"
+        ;;
+      *)
+        local baycom_ctl=""
+        baycom_ctl="$(resolve_baycom_ctl 2>/dev/null || true)"
+        if [[ -n "${baycom_ctl}" ]]; then
+          local ini=""
+          ini="$(resolve_baycom_ini_path "${DEVICE:-baycom-ser12}" "${BAYCOM_INI}" 2>/dev/null || true)"
+          if [[ -n "${ini}" ]]; then
+            sudo "${baycom_ctl}" -c "${ini}" stop 2>/dev/null || true
+          else
+            sudo "${baycom_ctl}" stop 2>/dev/null || true
+          fi
+        fi
+        ;;
+    esac
   fi
-  echo "TNC serial: release port (stop HyBBX/minicom on device)"
+  echo "TNC serial: release port (stop HyBBX or other userspace serial owner; fuser on device)"
 }
 
 cmd_status() {
@@ -216,8 +377,14 @@ cmd_status() {
   fi
   local baycom_ctl=""
   baycom_ctl="$(resolve_baycom_ctl 2>/dev/null || true)"
-  if [[ -n "${baycom_ctl}" ]]; then
-    sudo "${baycom_ctl}" status 2>/dev/null || echo "baycom-pr: not running or no root"
+  if [[ -n "${baycom_ctl}" && "${DEVICE:-}" != "baycom-kiss" ]]; then
+    local ini=""
+    ini="$(resolve_baycom_ini_path "${DEVICE:-baycom-ser12}" "${BAYCOM_INI}" 2>/dev/null || true)"
+    if [[ -n "${ini}" ]]; then
+      sudo "${baycom_ctl}" -c "${ini}" status 2>/dev/null || echo "baycom-pr: not running or no root"
+    else
+      sudo "${baycom_ctl}" status 2>/dev/null || echo "baycom-pr: not running or no root"
+    fi
   fi
 }
 

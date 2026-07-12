@@ -26,12 +26,14 @@ from device_backends import (  # noqa: E402
     DeviceBackend,
     DeviceBackendConfig,
     backend_serial_label,
+    baycom_ctl_device_id,
     create_backend,
     parse_device_spec,
     registry_tested,
 )
+from banlist import BanList, DEFAULT_BANS_FILE, extract_ax25_source  # noqa: E402
 from kiss_bridge import KissBridge  # noqa: E402 — tests patch this symbol
-from paths import ctl_path, resolve_layout  # noqa: E402
+from paths import ctl_path, resolve_baycom_ini, resolve_layout  # noqa: E402
 
 _EXE = Path(__file__).resolve()
 TREE, PREFIX = resolve_layout(_EXE)
@@ -59,6 +61,7 @@ class DaemonConfig:
     ax25_ui: bool = True
     auto_start: bool = True
     serial_enabled: bool = True
+    bans_file: str = str(DEFAULT_BANS_FILE)
     # Legacy single-device [serial] overrides (used when [devices] absent).
     serial_device: str = ""
     serial_baud: int = 0
@@ -84,6 +87,7 @@ class DaemonState:
     selected_device: str = ""
     devices: dict[str, DeviceRuntime] = field(default_factory=dict)
     clients: Set[socket.socket] = field(default_factory=set)
+    bans: BanList = field(default_factory=BanList)
     lock: threading.Lock = field(default_factory=threading.Lock)
 
 
@@ -205,6 +209,7 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
         cfg.callerid = cp.get("modem", "callerid", fallback=cfg.callerid).upper()
         cfg.callid = cp.get("modem", "callid", fallback=cfg.callid).upper()
         cfg.ax25_ui = _truthy(cp.get("modem", "ax25_ui", fallback="yes"))
+        cfg.bans_file = cp.get("modem", "bans_file", fallback=cfg.bans_file)
     if cp.has_section("stack"):
         cfg.auto_start = _truthy(cp.get("stack", "auto_start", fallback="yes"))
     if cp.has_section("serial"):
@@ -260,8 +265,28 @@ def device_backend_kind(state: DaemonState, dev_id: str) -> str:
 
 
 def on_backend_rx(state: DaemonState, dev_id: str, line: str) -> None:
+    src = extract_ax25_source(line)
+    if src and state.bans.is_banned(src):
+        return
     log(f"rx {dev_id}: {line}")
     broadcast(state, f"RX device={dev_id} {line}")
+
+
+BACKEND_RETRY_STATUSES = frozenset(
+    {
+        "closed",
+        "error-open",
+        "error-connect",
+        "error-no-device",
+        "error-no-path",
+    }
+)
+
+
+def backend_needs_open(backend: Optional[DeviceBackend]) -> bool:
+    if backend is None:
+        return True
+    return backend.status in BACKEND_RETRY_STATUSES
 
 
 def open_backend(state: DaemonState, dev_id: str) -> bool:
@@ -270,14 +295,11 @@ def open_backend(state: DaemonState, dev_id: str) -> bool:
         if rt is not None:
             rt.link_status = "n/a"
         return False
-    if rt.backend is not None and rt.backend.status not in (
-        "closed",
-        "error-open",
-        "error-connect",
-        "error-no-device",
-        "error-no-path",
-    ):
+    if rt.backend is not None and rt.backend.status not in BACKEND_RETRY_STATUSES:
         return rt.backend.status in ("open", "ready")
+    if rt.backend is not None and rt.backend.status != "closed":
+        rt.backend.close()
+        rt.backend = None
     backend = create_backend(
         rt.cfg,
         str(ROOT),
@@ -307,7 +329,7 @@ def attach_backend_session(state: DaemonState, dev_id: str) -> bool:
     if not backend_enabled(state, dev_id):
         return True
     rt = state.devices[dev_id]
-    if rt.backend is None or rt.backend.status == "closed":
+    if backend_needs_open(rt.backend):
         if not open_backend(state, dev_id):
             return False
     assert rt.backend is not None
@@ -416,6 +438,10 @@ def start_device_stack(state: DaemonState, dev_id: str) -> None:
         rt.stack_status = "error-no-ctl"
         return
     hw = device_hardware(state, dev_id)
+    dev_cfg = rt.cfg
+    ctl_device = dev_id
+    if (dev_cfg.backend_type or "") == "baycom-kiss":
+        ctl_device = baycom_ctl_device_id(dev_cfg)
     args = [
         str(ctl),
         "start",
@@ -424,8 +450,14 @@ def start_device_stack(state: DaemonState, dev_id: str) -> None:
         "--hardware",
         hw,
         "--device",
-        dev_id,
+        ctl_device,
     ]
+    kind = dev_cfg.backend_type or ""
+    if kind == "baycom-kiss":
+        explicit = dev_cfg.baycom_ini or ""
+        resolved = resolve_baycom_ini(dev_id, ROOT, PREFIX, explicit)
+        if resolved:
+            args.extend(["--baycom-ini", str(resolved)])
     env = os.environ.copy()
     env["MAX25_MODE"] = state.cfg.mode
     workdir = str(ROOT if (ROOT / "plugins").is_dir() else (PREFIX or ROOT))
@@ -448,8 +480,28 @@ def start_device_stack(state: DaemonState, dev_id: str) -> None:
 
 
 def start_stacks(state: DaemonState) -> None:
+    """Start per-device stacks; one baycom-pr-ctl per shared baycom_ini."""
+    started_baycom_ini: dict[str, str] = {}
     for dev_id in enabled_device_ids(state):
+        rt = state.devices[dev_id]
+        kind = rt.cfg.backend_type or ""
+        if kind == "baycom-kiss":
+            explicit = rt.cfg.baycom_ini or ""
+            resolved = resolve_baycom_ini(dev_id, ROOT, PREFIX, explicit)
+            ini_key = str(resolved) if resolved else ""
+            if ini_key and ini_key in started_baycom_ini:
+                primary = started_baycom_ini[ini_key]
+                primary_rt = state.devices[primary]
+                rt.stack_proc = primary_rt.stack_proc
+                rt.stack_status = primary_rt.stack_status
+                log(f"stack shared with {primary} ({dev_id}, ini={ini_key})")
+                continue
         start_device_stack(state, dev_id)
+        if kind == "baycom-kiss":
+            explicit = rt.cfg.baycom_ini or ""
+            resolved = resolve_baycom_ini(dev_id, ROOT, PREFIX, explicit)
+            if resolved:
+                started_baycom_ini[str(resolved)] = dev_id
 
 
 def stop_device_stack(state: DaemonState, dev_id: str) -> None:
@@ -469,8 +521,15 @@ def stop_device_stack(state: DaemonState, dev_id: str) -> None:
     ctl = ctl_path(ROOT, PREFIX, _EXE)
     if ctl.is_file():
         workdir = str(ROOT if (ROOT / "plugins").is_dir() else (PREFIX or ROOT))
+        stop_args = [str(ctl), "stop", "--hardware", hw, "--device", dev_id]
+        kind = rt.cfg.backend_type or ""
+        if kind == "baycom-kiss":
+            explicit = rt.cfg.baycom_ini or ""
+            resolved = resolve_baycom_ini(dev_id, ROOT, PREFIX, explicit)
+            if resolved:
+                stop_args.extend(["--baycom-ini", str(resolved)])
         subprocess.run(
-            [str(ctl), "stop", "--hardware", hw],
+            stop_args,
             cwd=workdir,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -505,6 +564,20 @@ def poll_device_stack(state: DaemonState, dev_id: str) -> None:
 def poll_stacks(state: DaemonState) -> None:
     for dev_id in enabled_device_ids(state):
         poll_device_stack(state, dev_id)
+    retry_pending_backends(state)
+
+
+def retry_pending_backends(state: DaemonState) -> None:
+    """Re-attach KISS PTY/serial when stack is up but the link was not ready yet."""
+    for dev_id in enabled_device_ids(state):
+        if not backend_enabled(state, dev_id):
+            continue
+        rt = state.devices[dev_id]
+        if rt.stack_status not in ("ready", "stopped", "running"):
+            continue
+        if not backend_needs_open(rt.backend):
+            continue
+        open_backend(state, dev_id)
 
 
 def format_tx(state: DaemonState, text: str) -> str:
@@ -614,6 +687,40 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
     if upper.startswith("MONITOR "):
         flag = line[8:].strip().lower()
         state.monitor_only = flag in ("on", "yes", "1", "true")
+        send_line(sock, "OK")
+        return
+
+    if upper.startswith("BAN "):
+        value = line[4:].strip().upper()
+        if not valid_callsign(value):
+            send_line(sock, "ERR invalid callsign")
+            return
+        try:
+            state.bans.add(value)
+        except OSError as exc:
+            send_line(sock, f"ERR ban save failed: {exc}")
+            return
+        send_line(sock, "OK")
+        return
+
+    if upper.startswith("UNBAN "):
+        value = line[6:].strip().upper()
+        if not valid_callsign(value):
+            send_line(sock, "ERR invalid callsign")
+            return
+        try:
+            if not state.bans.remove(value):
+                send_line(sock, "ERR not banned")
+                return
+        except OSError as exc:
+            send_line(sock, f"ERR ban save failed: {exc}")
+            return
+        send_line(sock, "OK")
+        return
+
+    if upper == "BANS":
+        for entry in state.bans.list():
+            send_line(sock, f"BAN {entry}")
         send_line(sock, "OK")
         return
 
@@ -858,7 +965,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.no_serial:
         cfg.serial_enabled = False
 
-    state = DaemonState(cfg=cfg)
+    state = DaemonState(cfg=cfg, bans=BanList(cfg.bans_file))
     init_device_runtimes(state)
     listeners = make_listeners(cfg)
     try:

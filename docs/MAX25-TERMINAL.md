@@ -6,6 +6,8 @@ Development and connection to `max25d`: **[MAX25-CLIENT.md](MAX25-CLIENT.md)** �
 
 Standalone client for direct modem interaction. HyBBX-compatible look and behaviour; configuration and hardware lifecycle stay in **`max25d`**.
 
+Per-modem terminal profiles (YAML): [`share/clients/`](../share/clients/README.md) — one file per device that needs settings beyond BayCom `baycom-pr.ini` catalog references.
+
 ## Binaries
 
 | Binary | Symlink | Role |
@@ -69,6 +71,7 @@ Menu items are chosen with **number keys** `0`–`9`, not function keys.
 │ 4  Send line                        │
 │ 5  RX only (Monitor)                │
 │ 6  Connection on/off                │
+│ 7  Change DEVICE (TX target)        │
 │ 0  Quit client                      │
 └─────────────────────────────────────┘
 Pick a number · F10 closes
@@ -90,6 +93,18 @@ Changes apply **immediately** to the next transmit — no `max25d` restart.
 Validation: AX.25 address rules — 1–6 call characters, optional SSID `-0`…`-15` ([PACKET-RADIO.md](PACKET-RADIO.md)). Invalid input keeps the previous value.
 
 Default persistence: **session only**. Optional “save to profile” may write `share/max25/*.ini` later.
+
+### Multi-device (`SET DEVICE`)
+
+When `max25d.ini` lists multiple `[devices]` ids, pick the TX target before `SEND`:
+
+| Method | Example |
+|--------|---------|
+| F10 menu | **`7`** → enter device id (`tnc2c`, `baycom-ser12`, …) |
+| CLI flag | `max25-terminal -d tnc2c -U /run/max25/modem.sock` |
+| M25/1 text | `SET DEVICE tnc2c` (protocol — any M25/1 client) |
+
+The header line shows the active **DEVICE** id. `GET DEVICES` lists enabled ids ([protocol.md](../include/max25/protocol.md)).
 
 ## Architecture
 
@@ -123,7 +138,7 @@ In **hybbx-edge** operating mode: `max25d` prepares hardware; HyBBX attaches via
 ## Out of scope (terminal — long-term)
 
 - Second client binary or alternative UI stack
-- Raw serial/minicom-style setup in the client
+- Raw serial client setup in the client
 - Multi-colour UI / themes / graphical frontends
 - Function-key menu navigation (except F10 to toggle menu)
 

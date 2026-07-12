@@ -5,7 +5,6 @@
 #
 # Usage:
 #   baycom-pr-ctl [-c /etc/baycom/baycom-pr.ini] start|stop|recover|preflight|...
-#   baycom-pr-ctl minicom [modem-id] [--serial|--kiss]
 #   baycom-pr-ctl -f modem-a start          # legacy .env profile (deprecated)
 #
 # Configuration: INI files (config/baycom-pr.ini + config/modems.ini)
@@ -23,8 +22,6 @@ PROFILE=""
 INI_FILE=""
 CMD=""
 CONFIG_SOURCE=""
-MINICOM_MODEM=""
-MINICOM_MODE=""
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -53,39 +50,25 @@ while [[ $# -gt 0 ]]; do
 		PROFILE="$1"
 		shift
 		;;
-	start|stop|restart|status|test|check|selftest|preflight|recover|probe|doctor|setup|minicom|axports|listen|call)
+	start|stop|restart|status|test|check|selftest|preflight|recover|probe|doctor|setup|axports|listen|call)
 		CMD="$1"
 		shift
 		;;
-	--serial)
-		MINICOM_MODE="serial"
-		shift
-		;;
-	--kiss)
-		MINICOM_MODE="kiss"
-		shift
-		;;
 	a|b|c|d|0|1|2|3)
-		if [[ "${CMD}" == "minicom" && -z "${MINICOM_MODEM}" ]]; then
-			MINICOM_MODEM="$1"
-			shift
-		elif [[ "${CMD}" == "axports" || "${CMD}" == "listen" || "${CMD}" == "call" ]]; then
+		if [[ "${CMD}" == "axports" || "${CMD}" == "listen" || "${CMD}" == "call" ]]; then
 			EXTRA_ARGS+=("$1")
 			shift
 		else
-			echo "Usage: $0 [-c baycom-pr.ini] [-f legacy-profile] {start|stop|restart|status|test|minicom|axports|listen|call}" >&2
+			echo "Usage: $0 [-c baycom-pr.ini] [-f legacy-profile] {start|stop|restart|status|test|axports|listen|call}" >&2
 			exit 2
 		fi
 		;;
 	*)
-		if [[ "${CMD}" == "minicom" && -z "${MINICOM_MODEM}" ]]; then
-			MINICOM_MODEM="$1"
-			shift
-		elif [[ "${CMD}" == "axports" || "${CMD}" == "listen" || "${CMD}" == "call" ]]; then
+		if [[ "${CMD}" == "axports" || "${CMD}" == "listen" || "${CMD}" == "call" ]]; then
 			EXTRA_ARGS+=("$1")
 			shift
 		else
-			echo "Usage: $0 [-c baycom-pr.ini] [-f legacy-profile] {start|stop|restart|status|test|minicom|axports|listen|call}" >&2
+			echo "Usage: $0 [-c baycom-pr.ini] [-f legacy-profile] {start|stop|restart|status|test|axports|listen|call}" >&2
 			exit 2
 		fi
 		;;
@@ -1210,22 +1193,6 @@ cmd_test() {
 	done
 }
 
-find_minicom_config() {
-	local name="$1"
-	local f
-
-	for f in \
-		"/etc/baycom/minicom/minirc.${name}" \
-		"${PCCOM_ROOT}/config/minicom/minirc.${name}" \
-		"${SELF_DIR}/../config/minicom/minirc.${name}"; do
-		if [[ -r "${f}" ]]; then
-			echo "${f}"
-			return 0
-		fi
-	done
-	return 1
-}
-
 resolve_modem_index() {
 	local want="$1"
 	local i
@@ -1243,69 +1210,6 @@ resolve_modem_index() {
 	done
 
 	die "modem '${want}' not in profile (have: $(for ((i = 0; i < MODEM_COUNT; i++)); do printf '%s ' "${M_ID[i]}"; done))"
-}
-
-cmd_minicom() {
-	local idx want mode device baud minicom_bin cfg args=()
-
-	init_modem_slots
-	want="${MINICOM_MODEM:-${M_ID[0]:-0}}"
-	idx="$(resolve_modem_index "${want}")"
-
-	if ! command -v minicom >/dev/null 2>&1; then
-		die "minicom not found — install the minicom package"
-	fi
-	minicom_bin="$(command -v minicom)"
-
-	mode="${MINICOM_MODE}"
-	if [[ -z "${mode}" ]]; then
-		if baycom_loaded && iface_up "${M_IFACE[idx]}"; then
-			mode="kiss"
-		else
-			mode="serial"
-		fi
-	fi
-
-	case "${mode}" in
-	serial)
-		if modem_is_kernel_par "${idx}"; then
-			die "kernel-par96 has no serial device — use --kiss after start"
-		fi
-		if baycom_loaded; then
-			die "stack is running — run 'baycom-pr-ctl stop' before --serial minicom on ${M_SERIAL[idx]}"
-		fi
-		device="${M_SERIAL[idx]}"
-		baud="${M_BAUD[idx]}"
-		cfg="$(find_minicom_config baycom-serial || true)"
-		log "minicom serial ${device} (${M_LABEL[idx]}, ${baud} baud) — stack must stay stopped"
-		;;
-	kiss)
-		if ! baycom_loaded || ! iface_up "${M_IFACE[idx]}"; then
-			die "stack not running — run 'baycom-pr-ctl start' or use --serial"
-		fi
-		if [[ "${PCCOM_KISS_BRIDGE}" != "yes" ]]; then
-			die "kiss_bridge disabled in INI"
-		fi
-		if [[ ! -e "${M_KISS[idx]}" ]]; then
-			die "kiss link missing: ${M_KISS[idx]} (start stack first)"
-		fi
-		device="$(readlink -f "${M_KISS[idx]}" 2>/dev/null || echo "${M_KISS[idx]}")"
-		baud="9600"
-		cfg="$(find_minicom_config baycom-kiss || true)"
-		log "minicom KISS ${M_KISS[idx]} -> ${device} (${M_LABEL[idx]})"
-		log "tip: attach KISS clients to ${M_KISS[idx]}; use listen/call on axports for AX.25"
-		;;
-	*)
-		die "unknown minicom mode '${mode}' (use --serial or --kiss)"
-		;;
-	esac
-
-	args=("${minicom_bin}")
-	if [[ -n "${cfg}" ]]; then
-		args+=(-C "${cfg}")
-	fi
-	args+=(-D "${device}" -b "${baud}")
-	exec "${args[@]}"
 }
 
 resolve_axport_name() {
@@ -1409,12 +1313,11 @@ doctor)  cmd_doctor ;;
 setup)   cmd_setup ;;
 recover) cmd_recover ;;
 selftest) cmd_selftest ;;
-minicom) cmd_minicom ;;
 axports) cmd_axports ;;
 listen)  cmd_listen ;;
 call)    cmd_call ;;
 *)
-	echo "Usage: $0 [-c baycom-pr.ini] {start|stop|restart|recover|preflight|probe|doctor|setup|status|test|check|selftest|minicom|axports|listen|call}" >&2
+	echo "Usage: $0 [-c baycom-pr.ini] {start|stop|restart|recover|preflight|probe|doctor|setup|status|test|check|selftest|axports|listen|call}" >&2
 	exit 2
 	;;
 esac

@@ -1,0 +1,55 @@
+schema_version: 1
+id: kiss-serial-rs232
+label: KISS modem on RS-232 serial
+type: client-profile
+catalog: kiss-serial-rs232
+status: active
+
+connection:
+  host: 127.0.0.1
+  port: 7325
+  unix_socket: /run/max25/modem.sock
+  tcp_only: false
+
+device:
+  id: baycom-kiss
+  hardware: modems
+
+session:
+  callerid: CB-0
+  callid: QST
+  ax25_ui: true
+
+terminal:
+  pacing_baud: 2400
+  line_width: 80
+  payload_max: 256
+
+max25d:
+  ini_example: share/max25/max25d.ini.example
+  device_section: serial.baycom-kiss
+  backend: kiss-raw-serial
+  baycom_pr:
+    catalog: kiss-serial-rs232
+    kiss_link: /var/run/baycom-pr/kiss
+
+serial:
+  default_device: /dev/ttyS1
+  baud: 9600
+  line: 8n1
+  dtr_rts: false
+  kiss_entry: none
+
+rf:
+  radio_baud: 1200
+
+hybbx:
+  plugin: baycom
+  backend: kiss
+
+docs:
+  - stacks/baycom-pr/config/modems.ini
+
+notes: |
+  TNC2, OpenTracker, KISS firmware on RS-232 or USB-serial adapter.
+  Self-powered TNC preferred; port-powered units need adequate TXD/DTR current.

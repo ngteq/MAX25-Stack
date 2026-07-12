@@ -31,9 +31,6 @@ def preflight() -> int | None:
     if os.system("pgrep -x hybbx >/dev/null 2>&1") == 0:
         print("FAIL: hybbx is running")
         return 2
-    if os.system("pgrep minicom >/dev/null 2>&1") == 0:
-        print("FAIL: minicom is running")
-        return 2
     return None
 
 

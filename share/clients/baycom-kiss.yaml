@@ -1,0 +1,46 @@
+schema_version: 1
+id: baycom-kiss
+label: BayCom KISS Serial (MAX25 device)
+type: client-profile
+status: scaffold
+
+connection:
+  host: 127.0.0.1
+  port: 7325
+  unix_socket: /run/max25/modem.sock
+  tcp_only: false
+
+device:
+  id: baycom-kiss
+  hardware: modems
+
+session:
+  callerid: CB-0
+  callid: QST
+  ax25_ui: true
+
+terminal:
+  pacing_baud: 2400
+  line_width: 80
+  payload_max: 256
+
+max25d:
+  ini_example: share/max25/max25d.ini.example
+  devices_key: baycom-kiss
+  backend: kiss-raw-serial
+
+serial:
+  default_device: /dev/ttyUSB0
+  baud: 9600
+  line: 8n1
+  dtr_rts: false
+
+catalog_profiles:
+  - share/clients/kiss-serial-usb.yaml
+  - share/clients/kiss-serial-rs232.yaml
+
+docs:
+  - plugins/devices/baycom-kiss/plugin.yaml
+  - stacks/baycom-pr/docs/GETTING-STARTED.md
+
+notes: Device plugin wrapper — pick USB or RS-232 catalog profile above.

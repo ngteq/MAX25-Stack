@@ -265,7 +265,7 @@ def main() -> int:
     if has_banner(buf):
         return finish_host(fd, hybbx_ready, do_tx_rx)
     os.close(fd)
-    print("\nDEGRADED: echo only - try minicom or repeat power reset")
+    print("\nDEGRADED: echo only - try tnc2c-host-reset or repeat power reset")
     return 1
 
 

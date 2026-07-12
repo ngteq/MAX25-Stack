@@ -33,7 +33,7 @@ else
 fi
 
 # --- required docs ---
-for doc in README.md CONTRIBUTING.md docs/README.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/LINUX-EDGE-SETUP.md docs/PACKET-RADIO.md stacks/daemon/README.md; do
+for doc in README.md CONTRIBUTING.md docs/README.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/BAYCOM.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/LINUX-EDGE-SETUP.md docs/PACKET-RADIO.md stacks/daemon/README.md; do
   [[ -f "$doc" ]] && ok "doc $doc" || fail "missing $doc"
 done
 
@@ -68,6 +68,24 @@ if [[ -f share/max25/max25d.ini.edge.example ]]; then
   ok "share/max25/max25d.ini.edge.example"
 else
   fail "missing share/max25/max25d.ini.edge.example"
+fi
+
+if [[ -f share/baycom/baycom-pr.pccom-ttyS0-only.ini.example ]]; then
+  ok "share/baycom single-modem example"
+else
+  fail "missing share/baycom/baycom-pr.pccom-ttyS0-only.ini.example"
+fi
+
+if [[ -f share/clients/index.yaml ]] && [[ -f share/clients/tnc2c.yaml ]]; then
+  ok "share/clients registry"
+else
+  fail "missing share/clients/ (index.yaml or tnc2c.yaml)"
+fi
+
+if [[ -f local/README.md ]]; then
+  ok "local/README.md (gitignored site overrides)"
+else
+  fail "missing local/README.md"
 fi
 
 if [[ -f include/max25/protocol.md ]]; then
@@ -108,8 +126,10 @@ for dev in pktnc2 baycom-par96 baycom-kiss; do
   fi
 done
 
-# --- HyBBX INI examples ---
-for ini in share/hybbx/tnc2c-edge.ini.example \
+# --- HyBBX INI templates (stack-local) ---
+for ini in stacks/tncs/hybbx-tnc2c.ini \
+           stacks/tncs/hybbx-dual.ini \
+           share/hybbx/tnc2c-edge.ini.example \
            share/hybbx/baycom-ser12-edge.ini.example \
            share/hybbx/crdop-edge.ini.example; do
   [[ -f "$ini" ]] && ok "ini $ini" || fail "missing $ini"
