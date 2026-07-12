@@ -29,9 +29,20 @@ pass "shell scripts"
 
 echo ""
 echo "=== 2. Build ==="
-make -C tools clean all
+REPO_ROOT="$(cd "${ROOT}/../.." && pwd)"
+BIN_DIR=""
+if [[ -x "${REPO_ROOT}/build/bin/baycom_test" ]]; then
+	BIN_DIR="${REPO_ROOT}/build/bin"
+elif [[ -f tools/Makefile ]]; then
+	make -C tools clean all
+	BIN_DIR="tools"
+else
+	cmake -B "${REPO_ROOT}/build" -DCMAKE_BUILD_TYPE=Release >/dev/null
+	cmake --build "${REPO_ROOT}/build" --target baycom_test baycom_sethdlc baycom_kissbridge baycom_kiss_serial >/dev/null
+	BIN_DIR="${REPO_ROOT}/build/bin"
+fi
 for b in baycom_test baycom_sethdlc baycom_kissbridge baycom_kiss_serial; do
-	[[ -x "tools/${b}" ]] || fail "binary missing: tools/${b}"
+	[[ -x "${BIN_DIR}/${b}" ]] || fail "binary missing: ${BIN_DIR}/${b}"
 done
 pass "tools built"
 

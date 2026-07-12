@@ -5,7 +5,7 @@ Operator tools and docs for **Landolt TNC2C** and **PK-TNC2** (planned). HyBBX a
 ## Quick start
 
 ```bash
-make -C stacks/tncs all
+./scripts/build.sh
 ./scripts/max25-ctl start --hardware tncs --device tnc2c
 ```
 

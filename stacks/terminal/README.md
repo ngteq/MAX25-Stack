@@ -9,8 +9,8 @@ Official text-only operator client for `max25d`. Cross-platform; connects via M2
 ## Build
 
 ```bash
-make all          # max25-terminal + max25-client symlink
-make test
+./scripts/build.sh
+bash stacks/terminal/test-terminal.sh
 ```
 
 Requires a C11 compiler and ncurses (Linux: `libncurses-dev`).

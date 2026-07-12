@@ -1,9 +1,9 @@
-# minicom — PK-TNC2 Host direkt (/dev/ttyS5)
-# Client-Seite: lokales Terminal am Stabo-Desk.
-# Verbindung zu HyBBX läuft über AX.25 ON-AIR (nicht über dieses minicom!).
-# Nur wenn HyBBX AUS ist auf ttyS5 (HyBBX nutzt nur ttyS4).
+# minicom - PK-TNC2 host direct (/dev/ttyS5)
+# Client side: local terminal at the desk.
+# Connection to HyBBX is over AX.25 ON-AIR (not via this minicom!).
+# Only when HyBBX is OFF on ttyS5 (HyBBX uses ttyS4 only).
 # Install: cp minirc.pktnc2 ~/.minicom/minirc.pktnc2
-# Start:   minicom pktnc2  (vorher: ./pktnc2-boot-wait.sh)
+# Start:   minicom pktnc2  (first: ./pktnc2-boot-wait.sh)
 
 pu port             /dev/ttyS5
 pu baudrate         9600

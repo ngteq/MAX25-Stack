@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-tnc2c-autotest — safe, exhaustive Landolt TNC2C serial discovery.
+tnc2c-autotest - safe, exhaustive Landolt TNC2C serial discovery.
 
 Tests baud/parity combinations, modem lines, host vs echo vs garbage,
 firmware banner, and (optionally) KISS without RF frames.
@@ -13,7 +13,7 @@ Usage:
   ./tnc2c-autotest.sh --quick          # likely bauds only (~45s)
   ./tnc2c-autotest.sh --write-env      # update tnc2c-serial.env if confident
   ./tnc2c-autotest.sh --json out.json
-  ./tnc2c-autotest.sh --host-check    # nach Strom-Reset: nur 19200 8N1 (~6s)
+  ./tnc2c-autotest.sh --host-check    # after power reset: 19200 8N1 only (~6s)
   ./tnc2c-autotest.sh --host-check --write-env
 """
 
@@ -396,7 +396,7 @@ def test_host_check(
     dtr_cycle: bool = False,
     no_kiss: bool = False,
 ) -> ProfileResult:
-    """Gentle single-profile check — DTR high, optional KISS-reset, kiss off, INFO."""
+    """Gentle single-profile check - DTR high, optional KISS-reset, kiss off, INFO."""
     data_bits, parity, stop_bits = line_format(line)
     res = ProfileResult(name=profile_name(baud, line), baud=baud, line=line)
 
@@ -517,16 +517,16 @@ def port_holders(dev: str) -> list[str]:
 def preflight(dev: str) -> list[str]:
     issues: list[str] = []
     if os.system("pgrep -x hybbx >/dev/null 2>&1") == 0:
-        issues.append("hybbx läuft — bitte stoppen")
+        issues.append("hybbx is running - stop it first")
     if os.system("pgrep minicom >/dev/null 2>&1") == 0:
-        issues.append("minicom läuft — bitte beenden (pkill minicom)")
+        issues.append("minicom is running - exit it first (pkill minicom)")
     if not os.path.exists(dev):
-        issues.append(f"{dev} existiert nicht")
+        issues.append(f"{dev} does not exist")
     elif not os.access(dev, os.R_OK | os.W_OK):
-        issues.append(f"kein Zugriff auf {dev} (Gruppe dialout?)")
+        issues.append(f"no access to {dev} (dialout group?)")
     holders = port_holders(dev)
     if holders:
-        issues.append(f"Port belegt: {', '.join(holders[:3])}")
+        issues.append(f"port in use: {', '.join(holders[:3])}")
     return issues
 
 
@@ -535,13 +535,13 @@ def quartz_hint(baud: int) -> str:
     term_98304 = {9600: "TERM Pos.1", 4800: "TERM Pos.2", 2400: "TERM Pos.3", 1200: "TERM Pos.4"}
     term_49152 = {4800: "TERM Pos.1", 2400: "TERM Pos.2", 1200: "TERM Pos.3", 600: "TERM Pos.4"}
     if baud in term_98304:
-        hints.append(f"bei 9,8304-MHz-Quarz: {term_98304[baud]}")
+        hints.append(f"with 9.8304 MHz crystal: {term_98304[baud]}")
     if baud in term_49152:
-        hints.append(f"bei 4,9152-MHz-Quarz: {term_49152[baud]}")
+        hints.append(f"with 4.9152 MHz crystal: {term_49152[baud]}")
     if baud == 19200:
-        hints.append("19200 steht im Handbuch nur bei FUNK-Brücke (2,4576 MHz Pos.5), nicht TERM")
-        hints.append("→ evtl. Umbau, erweiterte Firmware, oder anderer Quarz")
-    return "; ".join(hints) if hints else "—"
+        hints.append("19200 is in the manual only with RADIO bridge (2.4576 MHz Pos.5), not TERM")
+        hints.append("-> possible mod, extended firmware, or different crystal")
+    return "; ".join(hints) if hints else "-"
 
 
 def suggest_env(best: ProfileResult) -> dict[str, str]:
@@ -632,11 +632,11 @@ def run_tx_test(dev: str, best: ProfileResult) -> dict:
 
 def preview(data: bytes, limit: int = 72) -> str:
     if not data:
-        return "(leer)"
+        return "(empty)"
     s = data[:limit].decode("ascii", errors="replace")
     s = s.replace("\r", "\\r").replace("\n", "\\n")
     if len(data) > limit:
-        s += "…"
+        s += "..."
     return s
 
 
@@ -660,28 +660,28 @@ def print_result_summary(
     echo_profiles = [r for r in ranked if r.classify() == "ECHO"]
     garbage_profiles = [r for r in ranked if r.classify() == "GARBAGE"]
 
-    print_header("Ergebnis")
-    print(f"  Bestes Profil:  {best.name}")
-    print(f"  Klasse:         {best.classify()}")
-    print(f"  Host-Score:     {best.host_score}")
+    print_header("Result")
+    print(f"  Best profile:   {best.name}")
+    print(f"  Class:          {best.classify()}")
+    print(f"  Host score:     {best.host_score}")
     print(f"  Modem:          RTS={int(best.rts)} CTS={int(best.cts)} DSR={int(best.dsr)}")
     print(f"  INFO:           {preview(best.info_reply, 120)}")
     if best.has_firmware or has_firmware_banner(best.info_reply):
-        print("  Firmware-Banner: JA")
+        print("  Firmware banner: YES")
     if best.has_cmd:
-        print("  cmd:-Prompt:     JA")
-    print(f"  Quarz/Brücke:   {quartz_hint(best.baud)}")
+        print("  cmd: prompt:     YES")
+    print(f"  Crystal/bridge: {quartz_hint(best.baud)}")
 
     if host_profiles:
-        print(f"\n  HOST-Profile ({len(host_profiles)}): {', '.join(r.name for r in host_profiles[:5])}")
+        print(f"\n  HOST profiles ({len(host_profiles)}): {', '.join(r.name for r in host_profiles[:5])}")
     if echo_profiles and not host_profiles:
-        print(f"\n  Nur ECHO ({len(echo_profiles)}) — TNC spiegelt Befehle, verarbeitet sie nicht.")
-        print("  → Strom-Reset am TNC, dann: ./tnc2c-autotest.sh --host-check --write-env")
+        print(f"\n  ECHO only ({len(echo_profiles)}) - TNC mirrors commands, does not process them.")
+        print("  -> Power-reset the TNC, then: ./tnc2c-autotest.sh --host-check --write-env")
     if garbage_profiles:
         top_g = sorted(garbage_profiles, key=lambda r: r.printable_ratio, reverse=True)[:3]
-        print(f"  GARBAGE-Profile: {', '.join(r.name for r in top_g)} (falsche Baud/Parität)")
+        print(f"  GARBAGE profiles: {', '.join(r.name for r in top_g)} (wrong baud/parity)")
 
-    print("\n  Empfohlene Einstellung:")
+    print("\n  Recommended settings:")
     print(f"    minicom -D {dev} -b {best.baud}   (# {best.line})")
     for k in ("TNC2C_BAUD", "TNC2C_LINE", "HYBBX_SERIAL_LINE"):
         print(f"    {k}={suggested[k]}")
@@ -689,17 +689,17 @@ def print_result_summary(
     if args.write_env and best.classify() == "HOST":
         env_path = os.path.join(root, "tnc2c-serial.env")
         write_env_file(env_path, dev, best)
-        print(f"\n  Geschrieben: {env_path}")
+        print(f"\n  Written: {env_path}")
     elif args.write_env:
-        print("\n  --write-env übersprungen (kein sicheres HOST-Profil)")
+        print("\n  --write-env skipped (no reliable HOST profile)")
 
     print_header("KISS-TX")
     if not args.tx:
-        print("  Übersprungen (sicher). Optional: --tx (PTT kann ziehen!)")
+        print("  Skipped (safe). Optional: --tx (PTT may key!)")
     else:
-        print("  WARNUNG: Sendet AX.25-UI-Frame — PTT-LED prüfen!")
+        print("  WARNING: sends AX.25 UI frame - check PTT LED!")
         tx_result = run_tx_test(dev, best)
-        print(f"  Gesendet {tx_result['sent']} B, RX {tx_result['rx_len']} B, Echo={tx_result['echoed']}")
+        print(f"  Sent {tx_result['sent']} B, RX {tx_result['rx_len']} B, Echo={tx_result['echoed']}")
 
     elapsed = time.time() - t0
     status = "OK" if best.classify() == "HOST" else (
@@ -710,7 +710,7 @@ def print_result_summary(
     print(f"  Status:   {status}")
     print(f"  Device:   {dev}")
     print(f"  Profile:  {best.name} ({best.classify()})")
-    print(f"  Dauer:    {elapsed:.0f}s")
+    print(f"  Duration: {elapsed:.0f}s")
 
     if args.json:
         report = {
@@ -746,28 +746,28 @@ def run_host_check(
     args: argparse.Namespace,
 ) -> int:
     t0 = time.time()
-    print_header("TNC2C HOST-CHECK (DTR high — kein DTR-Drop, kein Baud-Sweep)")
+    print_header("TNC2C HOST-CHECK (DTR high - no DTR drop, no baud sweep)")
     print(f"Device:  {dev}")
     print(f"Started: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     if args.dtr_cycle:
-        print("Hinweis: --dtr-cycle aktiv (DTR-Drop — kann Echo-Modus auslösen)")
+        print("Note: --dtr-cycle active (DTR drop - may trigger echo mode)")
 
     print_header("1) Preflight")
     issues = preflight(dev)
     if issues:
         for i in issues:
             print(f"  FAIL: {i}")
-        print("\nAbbruch — Port/Hintergrunddienste bereinigen und erneut starten.")
+        print("\nAbort - clear port/background services and retry.")
         return 2
-    print("  OK: Port frei, hybbx/minicom inaktiv, Zugriff vorhanden")
+    print("  OK: port free, hybbx/minicom inactive, access OK")
 
-    kiss_step = "kiss off → INFO" if args.no_kiss else "KISS-reset → kiss off → INFO"
-    print_header(f"2) Host-Check 19200-8N1 (passiv → {kiss_step})")
+    kiss_step = "kiss off -> INFO" if args.no_kiss else "KISS-reset -> kiss off -> INFO"
+    print_header(f"2) Host-Check 19200-8N1 (passive -> {kiss_step})")
     results: list[ProfileResult] = []
     for line in HOST_CHECK_LINES:
         name = profile_name(19200, line)
         if not args.quiet:
-            print(f"  {name:12} …", end="", flush=True)
+            print(f"  {name:12} ...", end="", flush=True)
         try:
             r = test_host_check(
                 dev, 19200, line, dtr_cycle=args.dtr_cycle, no_kiss=args.no_kiss
@@ -783,7 +783,7 @@ def run_host_check(
                 print(f" ERROR: {e}")
 
     if not results:
-        print("  Keine Profile getestet.")
+        print("  No profiles tested.")
         return 2
 
     ranked = sorted(results, key=rank_key, reverse=True)
@@ -799,22 +799,22 @@ def main() -> int:
     parser.add_argument(
         "--host-check",
         action="store_true",
-        help="sanft nur 19200-8N1 — nach Strom-Reset (~10s)",
+        help="gentle 19200-8N1 only - after power reset (~10s)",
     )
     parser.add_argument(
         "--dtr-cycle",
         action="store_true",
-        help="DTR kurz absenken (alt; kann Echo-Modus auslösen — nicht für host-check)",
+        help="brief DTR drop (legacy; may trigger echo mode - not for host-check)",
     )
     parser.add_argument(
         "--no-kiss",
         action="store_true",
-        help="host-check: KISS-reset-Frame überspringen",
+        help="host-check: skip KISS-reset frame",
     )
     parser.add_argument("--quick", action="store_true", help="19200 first, then 2400/4800/9600")
     parser.add_argument("--write-env", action="store_true", help="write tnc2c-serial.env if HOST found")
     parser.add_argument("--json", metavar="FILE", help="write JSON report")
-    parser.add_argument("--tx", action="store_true", help="KISS TX test — keys PTT!")
+    parser.add_argument("--tx", action="store_true", help="KISS TX test - keys PTT!")
     parser.add_argument("-q", "--quiet", action="store_true")
     args = parser.parse_args()
 
@@ -829,9 +829,9 @@ def main() -> int:
     total = len(bauds) * len(LINE_FORMATS)
 
     t0 = time.time()
-    print_header("TNC2C AUTOTEST (safe — no PTT unless --tx)")
+    print_header("TNC2C AUTOTEST (safe - no PTT unless --tx)")
     print(f"Device:  {dev}")
-    print(f"Mode:    {'quick' if args.quick else 'full'} ({total} profiles, 19200 zuerst)")
+    print(f"Mode:    {'quick' if args.quick else 'full'} ({total} profiles, 19200 first)")
     print(f"Started: {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     print_header("1) Preflight")
@@ -839,18 +839,18 @@ def main() -> int:
     if issues:
         for i in issues:
             print(f"  FAIL: {i}")
-        print("\nAbbruch — Port/Hintergrunddienste bereinigen und erneut starten.")
+        print("\nAbort - clear port/background services and retry.")
         return 2
-    print("  OK: Port frei, hybbx/minicom inaktiv, Zugriff vorhanden")
+    print("  OK: port free, hybbx/minicom inactive, access OK")
 
-    print_header("2) Host-Vorcheck 19200-8N1")
+    print_header("2) Host precheck 19200-8N1")
     precheck = test_host_check(dev, 19200, "8N1", dtr_cycle=args.dtr_cycle)
     print(
         f"  {precheck.name:12} {precheck.classify():7} fw={int(precheck.has_firmware)} "
         f"INFO={preview(precheck.info_reply, 60)!r}"
     )
 
-    print_header("3) Profile-Sweep (19200 zuerst, kein Ctrl+C bei 19200)")
+    print_header("3) Profile sweep (19200 first, no Ctrl+C at 19200)")
     results: list[ProfileResult] = [precheck]
     seen = {precheck.name}
     n = 0
@@ -861,7 +861,7 @@ def main() -> int:
                 continue
             n += 1
             if not args.quiet:
-                print(f"  [{n:2}/{total - 1}] {name:12} …", end="", flush=True)
+                print(f"  [{n:2}/{total - 1}] {name:12} ...", end="", flush=True)
             try:
                 gentle = baud == 19200
                 r = test_profile(dev, baud, line, data_bits, parity, stop_bits, gentle=gentle)
@@ -895,7 +895,7 @@ def main() -> int:
     for r in deep_targets:
         if r.name == precheck.name and precheck.classify() == "HOST":
             continue
-        print(f"  → {r.name} …", flush=True)
+        print(f"  -> {r.name} ...", flush=True)
         deep_test(dev, r)
 
     ranked = sorted(results, key=rank_key, reverse=True)
@@ -912,10 +912,10 @@ def main() -> int:
         saved_name = profile_name(int(env["TNC2C_BAUD"]), saved_line)
         saved = next((r for r in results if r.name == saved_name), None)
         if saved and saved.classify() != "HOST":
-            print(f"  (Hinweis: gespeichertes Profil {saved_name} — nach Strom-Reset --host-check nutzen)")
+            print(f"  (Note: saved profile {saved_name} - use --host-check after power reset)")
 
     if best is None:
-        print("  Keine Antwort auf keinem Profil.")
+        print("  No response on any profile.")
         return 2
 
     suggested = suggest_env(best)

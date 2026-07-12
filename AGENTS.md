@@ -40,7 +40,7 @@ Registry: `plugins/manifest.yaml`
 ## Commands
 
 ```bash
-make all | test | release-check
+./scripts/build.sh | ./scripts/test.sh | ./scripts/release-check.sh
 ./scripts/max25-ctl help
 ./scripts/discover-plugins.sh --json
 ```

@@ -256,9 +256,9 @@ Menu contents and numbers are part of the product — new features belong in the
 ### Build
 
 ```bash
-make -C stacks/terminal all
-# Produces: stacks/terminal/max25-terminal
-# Symlink: stacks/terminal/max25-client -> max25-terminal
+./scripts/build.sh
+# Produces: build/bin/max25-terminal
+# Symlink: build/bin/max25-client -> max25-terminal (after cmake --install)
 ```
 
 Linux dependency: `libncurses-dev` (or ncurses via pkg-config).
@@ -290,9 +290,9 @@ make amiga-terminal
 ### Automated protocol tests
 
 ```bash
-make -C stacks/daemon smoke    # test_proto.py + test_auth.py
-make -C stacks/terminal test   # binary + TCP probe
-make release-check             # full gates including both stacks
+python3 stacks/daemon/test_proto.py && python3 stacks/daemon/test_auth.py
+bash stacks/terminal/test-terminal.sh
+./scripts/release-check.sh             # full gates including both stacks
 ```
 
 ### Manual protocol test (e.g. with netcat)
@@ -322,7 +322,7 @@ Before merge / release of the terminal:
 - [ ] TCP auth tested when `tcp_password` is set
 - [ ] `--ax25-ui` sets `SET AX25_UI on` on the daemon
 - [ ] No direct hardware access in the client
-- [ ] `make release-check` green
+- [ ] `./scripts/release-check.sh` green
 
 ---
 

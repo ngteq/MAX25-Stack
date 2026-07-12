@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-tnc2c-host-reset — recover Landolt TNC2C terminal/host mode over serial.
+tnc2c-host-reset - recover Landolt TNC2C terminal/host mode over serial.
 
 Unlike raw shell redirects (printf > /dev/ttyS4), this keeps DTR+RTS asserted
-so the TNC sees an attached terminal — same as minicom.
+so the TNC sees an attached terminal - same as minicom.
 
 Usage:
   ./tnc2c-host-reset.sh
@@ -35,8 +35,8 @@ FIRMWARE_MARKERS = (
 )
 
 POWER_HINT = """\
-Hinweis: Bei Echo-only zuerst TNC-Strom trennen (10–15 s), dann wieder an.
-Sofort danach dieses Skript starten (innerhalb ~30 s nach LED-Blinken).
+Note: For echo-only, disconnect TNC power first (10-15 s), then reconnect.
+Run this script immediately after (within ~30 s of LED blink).
 """
 
 
@@ -109,7 +109,7 @@ def print_block(label: str, data: bytes) -> None:
     if data:
         print(decode(data), end="" if data.endswith(b"\n") else "\n")
     else:
-        print("(leer)")
+        print("(empty)")
 
 
 def main() -> int:
@@ -136,14 +136,14 @@ def main() -> int:
         print(POWER_HINT)
 
     if os.system("pgrep minicom >/dev/null 2>&1") == 0:
-        print("FAIL: minicom läuft — bitte beenden (pkill minicom)", file=sys.stderr)
+        print("FAIL: minicom is running - exit it first (pkill minicom)", file=sys.stderr)
         return 2
 
     if not os.path.exists(dev):
-        print(f"FAIL: {dev} existiert nicht", file=sys.stderr)
+        print(f"FAIL: {dev} does not exist", file=sys.stderr)
         return 2
     if not os.access(dev, os.R_OK | os.W_OK):
-        print(f"FAIL: kein Zugriff auf {dev} (Gruppe dialout?)", file=sys.stderr)
+        print(f"FAIL: no access to {dev} (dialout group?)", file=sys.stderr)
         return 2
 
     print(f"TNC2C host-reset @ {dev} {BAUD} 8N1 (DTR+RTS high)")
@@ -160,14 +160,14 @@ def main() -> int:
 
     passive = read_for(fd, 2.0)
     received += passive
-    print_block("passiv (2s)", passive)
+    print_block("passive (2s)", passive)
 
     if not args.no_kiss:
         write_flush(fd, b"\xc0\xff\xc0")
         time.sleep(1.0)
         after_kiss = read_for(fd, 1.0)
         received += after_kiss
-        print_block("nach KISS-reset", after_kiss)
+        print_block("after KISS-reset", after_kiss)
 
     write_flush(fd, b"kiss off\r")
     time.sleep(1.0)
@@ -184,17 +184,17 @@ def main() -> int:
 
     print()
     if has_banner(received):
-        print("OK: Firmware-Banner erkannt — Host-/Terminalmodus aktiv")
+        print("OK: firmware banner detected - host/terminal mode active")
         return 0
     if is_echo_only(info_reply):
-        print("ECHO: INFO → nur Echo — TNC nicht im Hostmodus")
-        print("  → Strom vom TNC ab (10 s), wieder an, sofort:")
+        print("ECHO: INFO -> echo only - TNC not in host mode")
+        print("  -> Disconnect TNC power (10 s), reconnect, then immediately:")
         print("     ./tnc2c-host-reset.sh --power-hint")
         return 1
     if received:
-        print("PARTIAL: Antwort ohne Firmware-Banner")
+        print("PARTIAL: reply without firmware banner")
         return 1
-    print("SILENT: keine Antwort")
+    print("SILENT: no response")
     return 1
 
 

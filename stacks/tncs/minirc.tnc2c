@@ -1,5 +1,5 @@
-# minicom — TNC2C Host direkt (/dev/ttyS4)
-# Nur wenn HyBBX AUS ist! Sonst Port belegt.
+# minicom - TNC2C host direct (/dev/ttyS4)
+# Only when HyBBX is OFF! Otherwise port is in use.
 # Install: mkdir -p ~/.minicom && cp minirc.tnc2c ~/.minicom/minirc.tnc2c
 # Start:   minicom tnc2c
 

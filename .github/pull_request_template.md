@@ -13,11 +13,11 @@
 
 ## Testing
 
-<!-- How did you verify? e.g. make test, make release-check -->
+<!-- How did you verify? e.g. ./scripts/test.sh, ./scripts/release-check.sh -->
 
-- [ ] `make all` succeeds
-- [ ] `make test` succeeds (offline)
-- [ ] `make release-check` succeeds
+- [ ] `./scripts/build.sh` succeeds
+- [ ] `./scripts/test.sh` succeeds (offline)
+- [ ] `./scripts/release-check.sh` succeeds
 - [ ] Manual hardware verification (if TNC/modem/RF touched):
 
 ## Documentation

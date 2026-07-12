@@ -109,7 +109,7 @@ Those remain MainAX25 (MAX25) / merged stack responsibilities.
 ### Preparation (MainAX25)
 
 ```bash
-make -C stacks/crdop all
+./scripts/build.sh
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 

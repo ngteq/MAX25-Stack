@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HyBBX-ready check — must use same open port as boot-wait (DTR must stay high).
+HyBBX-ready check - must use same open port as boot-wait (DTR must stay high).
 
 After boot-wait closes the port, DTR drops and the TNC often returns to echo mode.
 Use:  ./tnc2c-boot-wait.sh   (includes HyBBX verify by default)
@@ -29,10 +29,10 @@ def load_module(name: str, filename: str):
 
 def preflight() -> int | None:
     if os.system("pgrep -x hybbx >/dev/null 2>&1") == 0:
-        print("FAIL: hybbx läuft")
+        print("FAIL: hybbx is running")
         return 2
     if os.system("pgrep minicom >/dev/null 2>&1") == 0:
-        print("FAIL: minicom läuft")
+        print("FAIL: minicom is running")
         return 2
     return None
 
@@ -41,7 +41,7 @@ def run_quick_check(dev: str) -> int:
     hr = load_module("host_reset", "tnc2c-host-reset.py")
 
     print(f"TNC2C integration-test @ {dev}")
-    print("(Port war geschlossen — DTR war weg; Echo ist wahrscheinlich)\n")
+    print("(Port was closed - DTR was low; echo is likely)\n")
 
     try:
         fd = hr.open_serial(dev)
@@ -60,22 +60,22 @@ def run_quick_check(dev: str) -> int:
     os.close(fd)
 
     if hr.has_banner(received):
-        print("OK: HOST — HyBBX darf starten")
+        print("OK: HOST - HyBBX may start")
         print(received.decode("ascii", errors="replace")[:500])
         return 0
 
-    print("FAIL: ECHO oder kein Banner")
-    print("  → Port-Schließen nach boot-wait lässt DTR fallen.")
-    print("  → Nutze EINEN Befehl:")
+    print("FAIL: ECHO or no banner")
+    print("  -> Closing the port after boot-wait drops DTR.")
+    print("  -> Use ONE command:")
     print("       ./tnc2c-boot-wait.sh")
-    print("     (Strom aus/an während Skript läuft — prüft HyBBX-ready vor Schließen)")
-    print("  oder:")
+    print("     (power off/on while script runs - checks HyBBX-ready before close)")
+    print("  or:")
     print("       ./tnc2c-integration-test.sh --boot")
     return 1
 
 
 def run_with_boot(dev: str) -> int:
-    print("Starte boot-wait + HyBBX-verify in einem Prozess …\n")
+    print("Starting boot-wait + HyBBX verify in one process ...\n")
     script = os.path.join(ROOT, "tnc2c-boot-wait.sh")
     return subprocess.call([script, dev])
 

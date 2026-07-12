@@ -34,6 +34,10 @@ if(MAX25_BUILD_TERMINAL)
 endif()
 
 if(MAX25_BUILD_DAEMON)
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E chmod u+x "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d"
+        ERROR_QUIET
+    )
     install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
@@ -59,28 +63,47 @@ add_custom_target(max25_release_check
     COMMENT "Run offline release-check gates"
 )
 
-add_custom_target(max25_smoke
-    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH= "${CMAKE_SOURCE_DIR}/stacks/daemon/test_proto.py"
-    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH= "${CMAKE_SOURCE_DIR}/stacks/daemon/test_auth.py"
+add_custom_target(baycom_pr_test
+    COMMAND bash "${CMAKE_SOURCE_DIR}/stacks/baycom-pr/scripts/test-all.sh"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "BayCom PR offline test-all"
+)
+
+if(TARGET crdopc)
+    add_custom_target(crdop_smoke
+        COMMAND "${CMAKE_COMMAND}" -E env CRDOP_BIN="${CMAKE_BINARY_DIR}/bin/crdopc"
+                bash "${CMAKE_SOURCE_DIR}/stacks/crdop/scripts/test-smoke.sh"
+        DEPENDS crdopc
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        COMMENT "CRDOP smoke test"
+    )
+endif()
+
+add_custom_target(max25_daemon_smoke
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_proto.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_auth.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "max25d M25/1 smoke tests"
 )
 
 if(TARGET max25-terminal)
     add_custom_target(max25_terminal_test
-        COMMAND "${CMAKE_BINARY_DIR}/bin/max25-terminal" --help
-        COMMAND "${CMAKE_COMMAND}" -E env
-            MAX25_TERMINAL="${CMAKE_BINARY_DIR}/bin/max25-terminal"
-            "${CMAKE_SOURCE_DIR}/stacks/terminal/test_connect.py"
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/stacks/terminal"
+        COMMAND bash "${CMAKE_SOURCE_DIR}/stacks/terminal/test-terminal.sh"
         DEPENDS max25-terminal
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         COMMENT "max25-terminal TCP probe"
     )
 endif()
 
 add_custom_target(max25_test
-    DEPENDS max25_smoke
+    DEPENDS max25_daemon_smoke baycom_pr_test
 )
+
+if(TARGET crdop_smoke)
+    add_dependencies(max25_test crdop_smoke)
+endif()
 
 if(TARGET max25-terminal)
     add_dependencies(max25_test max25_terminal_test)

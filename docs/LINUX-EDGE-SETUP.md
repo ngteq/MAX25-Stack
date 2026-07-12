@@ -92,8 +92,8 @@ cmake -B build && cmake --build build -j$(nproc)
 Or step by step:
 
 ```bash
-make all
-sudo make install PREFIX=/usr/local
+./scripts/build.sh
+cmake --install build --prefix /usr/local
 ```
 
 Installs:
@@ -109,7 +109,7 @@ Installs:
 ### BayCom only (kernel modem)
 
 ```bash
-make -C stacks/baycom-pr all
+./scripts/build.sh
 sudo make -C stacks/baycom-pr install
 sudo bash stacks/baycom-pr/scripts/install-root.sh   # full root setup + preflight
 ```
@@ -213,7 +213,7 @@ sudo max25d -c /etc/max25/max25d.ini
 ### CRDOP + USB sound
 
 ```bash
-make -C stacks/crdop all
+./scripts/build.sh
 # Configure ALSA — stacks/crdop/docs/
 # /etc/max25/max25d.ini → hardware=soft-modems device=soft-crdop
 sudo max25d -c /etc/max25/max25d.ini
@@ -237,7 +237,7 @@ Offline smoke (no hardware):
 
 ```bash
 max25d --no-stack -c share/max25/max25d.ini.example &
-make -C stacks/daemon smoke
+python3 stacks/daemon/test_proto.py && python3 stacks/daemon/test_auth.py
 ```
 
 ---

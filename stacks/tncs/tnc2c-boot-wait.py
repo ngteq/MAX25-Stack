@@ -141,19 +141,19 @@ def run_tx_rx(fd: int) -> None:
     write_flush(fd, pkt)
     time.sleep(3.0)
     tx_rx = read_for(fd, 1.0)
-    print(f"  Gesendet {len(pkt)} B, Seriell-RX {len(tx_rx)} B")
-    print("  → LED2 PTT + Modem-Ton am 2. CB prüfen")
+    print(f"  Sent {len(pkt)} B, serial RX {len(tx_rx)} B")
+    print("  -> CHECK: LED2 PTT + modem tone on 2m CB")
 
     write_flush(fd, b"kiss off\r")
     time.sleep(0.5)
     read_for(fd, 0.5)
 
-    print("\n--- RX (passiv 10s) ---")
-    print("  Lausche … (leeres Band = 0 Bytes ok; LED3 CD bei Rauschen?)")
+    print("\n--- RX (passive 10s) ---")
+    print("  Listening ... (empty band = 0 bytes OK; LED3 CD with noise?)")
     rx = read_for(fd, 10.0)
-    print(f"  Passiv RX: {len(rx)} bytes")
+    print(f"  Passive RX: {len(rx)} bytes")
     if rx and b"\xc0" in rx:
-        print("  OK: KISS-Frame empfangen")
+        print("  OK: KISS frame received")
 
 
 def verify_hybbx_ready(fd: int) -> tuple[bool, bytes, bool]:
@@ -179,7 +179,7 @@ def finish_host(fd: int, hybbx_ready: bool, do_tx_rx: bool) -> int:
             if do_tx_rx:
                 run_tx_rx(fd)
             os.close(fd)
-            print("\nWARN: kiss/INFO unerwartet")
+            print("\nWARN: unexpected kiss/INFO response")
             return 1
     else:
         host_ok = True
@@ -189,7 +189,7 @@ def finish_host(fd: int, hybbx_ready: bool, do_tx_rx: bool) -> int:
 
     os.close(fd)
     if host_ok:
-        print("\nOK: HOST — HyBBX-ready" + (" + TX/RX getestet" if do_tx_rx else ""))
+        print("\nOK: HOST - HyBBX-ready" + (" + TX/RX tested" if do_tx_rx else ""))
         return 0
     return 1
 
@@ -212,30 +212,30 @@ def main() -> int:
     parser.add_argument(
         "--tx-rx",
         action="store_true",
-        help="TX KISS + passive RX on same port before close (mit Strom-Zyklus)",
+        help="TX KISS + passive RX on same port before close (with power cycle)",
     )
     args = parser.parse_args()
     hybbx_ready = not args.no_hybbx_ready
     do_tx_rx = args.tx_rx
 
     if not os.access(args.device, os.R_OK | os.W_OK):
-        print(f"FAIL: kein Zugriff auf {args.device}", file=sys.stderr)
+        print(f"FAIL: no access to {args.device}", file=sys.stderr)
         return 2
 
     print(f"=== TNC boot-wait @ {args.device} {args.baud} {args.line.upper()} ===")
-    print("DTR+RTS HIGH — jetzt TNC STROM AUS (10s), dann STROM AN.")
-    print("CB: Squelch ZU (CD aus) — sonst TX/Boot gestört.")
-    print(f"Lausche {args.wait}s auf Boot-Banner …\n")
+    print("DTR+RTS HIGH - power OFF the TNC now (10s), then power ON.")
+    print("CB: squelch CLOSED (CD off) - otherwise TX/boot may be disturbed.")
+    print(f"Listening {args.wait}s for boot banner ...\n")
 
     fd = open_serial(args.device, args.baud, args.line)
     buf = read_for(fd, args.wait)
 
     if has_banner(buf):
-        print("--- Boot-Banner (passiv) ---")
+        print("--- Boot banner (passive) ---")
         show(buf)
         return finish_host(fd, hybbx_ready, do_tx_rx)
 
-    print(f"(kein Banner in {args.wait}s — versuche kiss off + INFO)\n")
+    print(f"(no banner in {args.wait}s - trying kiss off + INFO)\n")
     write_flush(fd, b"kiss off\r")
     time.sleep(0.6)
     buf += read_for(fd, 1.0)
@@ -250,7 +250,7 @@ def main() -> int:
     if has_banner(buf):
         return finish_host(fd, hybbx_ready, do_tx_rx)
     os.close(fd)
-    print("\nDEGRADED: nur Echo — minicom testen oder Strom-Reset wiederholen")
+    print("\nDEGRADED: echo only - try minicom or repeat power reset")
     return 1
 
 

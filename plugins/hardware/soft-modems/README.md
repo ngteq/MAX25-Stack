@@ -9,7 +9,7 @@ Sound-card software modems managed by MainAX25 — no serial TNC or kernel BayCo
 ## Build
 
 ```bash
-make -C stacks/crdop all
+./scripts/build.sh
 # or: ./scripts/max25-ctl build
 ```
 

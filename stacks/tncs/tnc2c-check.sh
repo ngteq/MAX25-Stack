@@ -15,18 +15,18 @@ LINE="${TNC2C_LINE:-7e1}"
 echo "=== TNC2C check: $DEV (${BAUD} ${LINE}) ==="
 
 if pgrep -x hybbx >/dev/null 2>&1; then
-    echo "WARN: hybbx läuft ($(pgrep -x hybbx | tr '\n' ' ')) — Port evtl. belegt"
+    echo "WARN: hybbx is running ($(pgrep -x hybbx | tr '\n' ' ')) - port may be in use"
 fi
 
 if fuser -s "$DEV" 2>/dev/null; then
-    echo "WARN: $DEV in Benutzung:"
+    echo "WARN: $DEV in use:"
     fuser -v "$DEV" 2>&1 || true
 else
-    echo "OK: $DEV nicht belegt"
+    echo "OK: $DEV not in use"
 fi
 
 if [[ ! -r "$DEV" || ! -w "$DEV" ]]; then
-    echo "FAIL: kein Zugriff auf $DEV (Gruppe dialout?)" >&2
+    echo "FAIL: no access to $DEV (dialout group?)" >&2
     exit 1
 fi
 

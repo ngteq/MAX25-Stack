@@ -61,7 +61,7 @@ cmd_discover() {
 }
 
 cmd_build() {
-  bash "${ROOT}/scripts/build-all.sh"
+  bash "${ROOT}/scripts/build.sh"
 }
 
 cmd_start() {
@@ -69,7 +69,7 @@ cmd_start() {
   case "$HARDWARE" in
     tncs)
       case "$DEVICE" in
-        tnc2c|"") echo "TNC2C boot-wait — power-cycle TNC while script runs"; exec "${ROOT}/stacks/tncs/tnc2c-boot-wait.sh" ;;
+        tnc2c|"") echo "TNC2C boot-wait: power-cycle TNC while script runs"; exec "${ROOT}/stacks/tncs/tnc2c-boot-wait.sh" ;;
         pktnc2) exec "${ROOT}/stacks/tncs/pktnc2-boot-wait.sh" ;;
         *) echo "Unknown TNC device: $DEVICE" >&2; exit 1 ;;
       esac
@@ -82,12 +82,12 @@ cmd_start() {
     soft-modems)
       case "$DEVICE" in
         soft-crdop|"")
-          if [[ ! -x "${ROOT}/stacks/crdop/build/crdopc" ]]; then
-            echo "Building CRDOP (stacks/crdop)…"
-            make -C "${ROOT}/stacks/crdop" all
+          if [[ ! -x "${ROOT}/build/bin/crdopc" ]]; then
+            echo "Building CRDOP..."
+            bash "${ROOT}/scripts/build.sh"
           fi
-          echo "Starting crdopc — attach HyBBX crdop plugin to TCP :8515"
-          exec "${ROOT}/stacks/crdop/scripts/crdopc"
+          echo "Starting crdopc (HyBBX crdop plugin attaches to TCP :8515)"
+          CRDOP_BIN="${ROOT}/build/bin/crdopc" exec "${ROOT}/stacks/crdop/scripts/crdopc"
           ;;
         *)
           echo "Unknown soft-modem device: $DEVICE" >&2
@@ -124,12 +124,10 @@ cmd_status() {
 }
 
 cmd_test() {
-  echo "-- TNCs stack --"
-  make -C "${ROOT}/stacks/tncs" test 2>/dev/null || true
-  echo "-- BayCom PR stack --"
-  make -C "${ROOT}/stacks/baycom-pr" test
-  echo "-- CRDOP soft modem --"
-  make -C "${ROOT}/stacks/crdop" smoke 2>/dev/null || true
+  if [[ ! -d "${ROOT}/build" ]]; then
+    bash "${ROOT}/scripts/build.sh"
+  fi
+  cmake --build "${ROOT}/build" --target max25_test
 }
 
 case "$ACTION" in

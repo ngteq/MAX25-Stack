@@ -15,7 +15,7 @@ ARDOP — parallel to AX.25/KISS, not a replacement.
 ## Quick start
 
 ```bash
-make -C stacks/crdop all
+./scripts/build.sh
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 

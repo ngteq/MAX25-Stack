@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-tnc2c-health — full Landolt TNC2C health check (serial, host, KISS, optional TX).
+tnc2c-health - full Landolt TNC2C health check (serial, host, KISS, optional TX).
 
 Does NOT replace visual LED checks (Power/PTT/CD/Connected/Status).
 
@@ -311,17 +311,17 @@ def main() -> int:
     # --- preflight ---
     print_header("1) Preflight")
     if os.system("pgrep -x hybbx >/dev/null 2>&1") == 0:
-        print("FAIL: hybbx läuft — bitte stoppen")
+        print("FAIL: hybbx is running - stop it first")
         return 2
-    print("OK: hybbx nicht aktiv")
+    print("OK: hybbx not active")
 
     if not os.access(dev, os.R_OK | os.W_OK):
-        print(f"FAIL: kein Zugriff auf {dev} (Gruppe dialout?)")
+        print(f"FAIL: no access to {dev} (dialout group?)")
         return 2
-    print(f"OK: Zugriff auf {dev}")
+    print(f"OK: access to {dev}")
 
     # --- profile sweep ---
-    print_header("2) Seriell-Profile (Host-Erkennung)")
+    print_header("2) Serial profiles (host detection)")
     results: list[ProfileResult] = []
     for name, baud, seven in PROFILES:
         try:
@@ -338,7 +338,7 @@ def main() -> int:
 
     best = max(results, key=lambda x: x.host_score, default=None)
     if best is None:
-        print("FAIL: keine Profile getestet")
+        print("FAIL: no profiles tested")
         return 2
 
     # pick working line: prefer env, else best score, else 19200-8N1 clean echo
@@ -365,70 +365,70 @@ def main() -> int:
     print(f"Working profile for tests: {work_name}")
 
     # --- diagnosis ---
-    print_header("3) Diagnose Seriell / Host-Modus")
+    print_header("3) Serial / host mode diagnosis")
     any_cmd = any(r.has_cmd_prompt for r in results)
     mostly_echo = all(r.echo_only or r.host_score < 15 for r in results)
 
     if any_cmd:
-        print("OK: echter Host-Modus (cmd:-Prompt) erkannt")
+        print("OK: real host mode (cmd: prompt) detected")
     elif mostly_echo:
-        print("WARN: nur Kommando-Echo — kein cmd:-Prompt, kein INFO-Listing")
-        print("      → TNC verarbeitet Befehle vermutlich NICHT")
-        print("      → KISS/PTT über Software wahrscheinlich wirkungslos")
-        print("      → LEDs ändern sich nicht (passt zu diesem Bild)")
+        print("WARN: command echo only - no cmd: prompt, no INFO listing")
+        print("      -> TNC probably does NOT process commands")
+        print("      -> KISS/PTT via software probably ineffective")
+        print("      -> LEDs do not change (matches this picture)")
     else:
-        print("PARTIAL: Antworten vorhanden, aber kein klarer Host-Dialog")
+        print("PARTIAL: replies present but no clear host dialog")
 
     if all(not r.cts for r in results):
-        print("WARN: CTS=0 bei allen Profilen — Handshake-Problem")
-        print("      → ggf. DB25 Pin 4 und 5 im Kabel überbrücken (Handbuch)")
+        print("WARN: CTS=0 on all profiles - handshake problem")
+        print("      -> bridge DB25 pins 4 and 5 in cable if needed (manual)")
 
     # --- RF / LED manual ---
-    print_header("4) TNC LEDs (ohne Funk / mit Funk)")
-    print("Ohne Funk (NF ab): Pin4 offen → LED3 (CD) oft dauernd AN (normal)")
-    print("Mit Funk: LED3 soll bei Rauschen AN, bei geschlossenem SQ AUS")
+    print_header("4) TNC LEDs (no radio / with radio)")
+    print("No radio (audio off): Pin4 open -> LED3 (CD) often ON continuously (normal)")
+    print("With radio: LED3 should be ON with noise, OFF with squelch closed")
     print("LED 1 Power | LED 2 PTT | LED 3 CD | LED 4 Connected | LED 5 Status")
 
     # --- optional TX ---
-    print_header("5) KISS Sendetest")
+    print_header("5) KISS send test")
     if not args.tx:
-        print("Übersprungen (ohne --tx). Zum Testen: ./tnc2c-health.sh --tx")
+        print("Skipped (without --tx). To test: ./tnc2c-health.sh --tx")
     else:
-        print("WARNUNG: sendet KISS-Frame — PTT kann ziehen!")
+        print("WARNING: sends KISS frame - PTT may key!")
         tx = run_tx_test(dev, work_name, work_baud, work_7e1)
-        print(f"  Profil: {work_name}")
-        print(f"  Gesendet: {tx['sent']} bytes KISS")
+        print(f"  Profile: {work_name}")
+        print(f"  Sent: {tx['sent']} bytes KISS")
         print(f"  RX: {tx['rx_len']} bytes")
-        print(f"  Frame direkt zurückgeechoed: {tx['frame_echoed_back']}")
+        print(f"  Frame echoed back directly: {tx['frame_echoed_back']}")
         if tx["frame_echoed_back"]:
-            print("  WARN: Frame kommt unverändert zurück → evtl. Seriell-Loopback,")
-            print("        nicht über Funk gesendet")
-        print("  → JETZT prüfen: LED2 (PTT) und S-Meter am Funk")
+            print("  WARN: frame returns unchanged -> possible serial loopback,")
+            print("        not sent over radio")
+        print("  -> CHECK NOW: LED2 (PTT) and S-meter on radio")
 
     # --- hardware checklist ---
-    print_header("6) Hardware-Checkliste (wenn nicht sendet)")
-    print("  [ ] PTT  Funk Rot      → TNC DIN Pin 3")
-    print("  [ ] GND  Funk Schwarz   → TNC DIN Pin 2")
-    print("  [ ] TX   Funk Weiß      → TNC DIN Pin 1")
-    print("  [ ] RX   3,5mm Tip      → TNC DIN Pin 4 (links Mitte)")
-    print("  [ ] VOX  am AE6110      → AUS")
-    print("  [ ] Mike-Gain am TNC    → langsam erhöhen (Poti am Modem)")
-    print("  [ ] FUNK-Brücke TNC     → 2400 Baud (Pos. 2)")
-    print("  [ ] TERM-Brücke TNC     → 19200")
+    print_header("6) Hardware checklist (if not transmitting)")
+    print("  [ ] PTT  radio red      -> TNC DIN Pin 3")
+    print("  [ ] GND  radio black    -> TNC DIN Pin 2")
+    print("  [ ] TX   radio white    -> TNC DIN Pin 1")
+    print("  [ ] RX   3.5mm tip      -> TNC DIN Pin 4 (left center)")
+    print("  [ ] VOX  on AE6110      -> OFF")
+    print("  [ ] Mike gain on TNC    -> increase slowly (pot on modem)")
+    print("  [ ] RADIO bridge TNC    -> 2400 baud (Pos. 2)")
+    print("  [ ] TERM bridge TNC     -> 19200")
 
     # --- software checklist ---
-    print_header("7) Software / Nächste Schritte")
+    print_header("7) Software / next steps")
     if mostly_echo and not any_cmd:
-        print("  1. TNC evtl. hängt in KISS/transparent — Strom TNC kurz aus/ein")
-        print("  2. minicom -D {} -b {} ({} testen)".format(
+        print("  1. TNC may be stuck in KISS/transparent - power-cycle TNC briefly")
+        print("  2. minicom -D {} -b {} (test {})".format(
             dev, work_baud, "7E1" if work_7e1 else "8N1"))
-        print("  3. Nach Reset: 'kiss off' + Enter, dann 'INFO' — cmd: erwarten")
-        print("  4. Erst wenn cmd: kommt → ./tnc2c-health.sh --tx")
-        print("  5. HyBBX erst danach (serial_line aus tnc2c-serial.env)")
+        print("  3. After reset: 'kiss off' + Enter, then 'INFO' - expect cmd:")
+        print("  4. Only when cmd: appears -> ./tnc2c-health.sh --tx")
+        print("  5. Start HyBBX only after that (serial_line from tnc2c-serial.env)")
     else:
-        print(f"  Seriell ok mit {work_name}")
-        print("  ./tnc2c-send-test.sh für Einzel-Sendetest")
-        print("  HyBBX: baud=19200 serial_line=8n1 (dieses Gerät)")
+        print(f"  Serial OK with {work_name}")
+        print("  ./tnc2c-send-test.sh for single send test")
+        print("  HyBBX: baud=19200 serial_line=8n1 (this device)")
 
     print_header("SUMMARY")
     status = "DEGRADED" if mostly_echo and not any_cmd else "OK"

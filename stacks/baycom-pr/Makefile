@@ -21,16 +21,35 @@ help:
 	@echo "Docs: docs/INDEX.md · docs/GETTING-STARTED.md · docs/CONNECTS.md"
 
 all:
-	$(MAKE) -C tools all
+	@if [ -f tools/Makefile ]; then \
+		$(MAKE) -C tools all; \
+	else \
+		cmake -B ../../build -DCMAKE_BUILD_TYPE=Release && \
+		cmake --build ../../build --target baycom_test baycom_sethdlc baycom_kissbridge baycom_kiss_serial; \
+	fi
 
 clean:
-	$(MAKE) -C tools clean
+	@if [ -f tools/Makefile ]; then \
+		$(MAKE) -C tools clean; \
+	else \
+		rm -f ../../build/bin/baycom_test ../../build/bin/baycom_sethdlc \
+		      ../../build/bin/baycom_kissbridge ../../build/bin/baycom_kiss_serial; \
+	fi
 
 install:
-	$(MAKE) -C tools install
+	@if [ -f tools/Makefile ]; then \
+		$(MAKE) -C tools install; \
+	else \
+		echo "Install BayCom tools from MAX25 root: cmake --install build --prefix /usr/local" >&2; \
+		exit 1; \
+	fi
 
 test-config:
-	$(MAKE) -C tools test-config
+	@if [ -f tools/Makefile ]; then \
+		$(MAKE) -C tools test-config; \
+	else \
+		python3 tools/baycom_validate_config.py config/baycom-pr.ini; \
+	fi
 
 test:
 	bash scripts/test-all.sh

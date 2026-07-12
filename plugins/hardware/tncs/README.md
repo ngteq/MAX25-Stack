@@ -18,8 +18,8 @@ Use HyBBX `packet_radio` plugin with `tnc=` profile per device.
 ## Build & test
 
 ```bash
-make -C stacks/tncs all
-make -C stacks/tncs integration
+./scripts/build.sh
+./stacks/tncs/tnc2c-integration-test.sh   # with hardware
 ```
 
 ## Operator docs

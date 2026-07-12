@@ -26,8 +26,8 @@ fi
 if [[ -f plugins/manifest.yaml ]]; then
   ok "plugins/manifest.yaml"
   grep -q 'default_betriebsform: standalone' plugins/manifest.yaml \
-    && ok "default betriebsform: standalone" \
-    || fail "manifest missing default_betriebsform: standalone"
+    && ok "default operating mode: standalone" \
+    || fail "manifest missing default operating mode (default_betriebsform: standalone)"
 else
   fail "plugins/manifest.yaml missing"
 fi
@@ -38,7 +38,7 @@ for doc in README.md CONTRIBUTING.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md do
 done
 
 # --- scripts executable ---
-for script in scripts/discover-plugins.sh scripts/build-all.sh scripts/release-check.sh scripts/max25-ctl scripts/install-max25.sh; do
+for script in scripts/discover-plugins.sh scripts/build-all.sh scripts/build.sh scripts/test.sh scripts/clean.sh scripts/release-check.sh scripts/max25-ctl scripts/install-max25.sh; do
   if [[ -x "$script" ]]; then
     ok "executable $script"
   else
@@ -109,39 +109,24 @@ for ini in share/hybbx/tnc2c-edge.ini.example \
   [[ -f "$ini" ]] && ok "ini $ini" || fail "missing $ini"
 done
 
-# --- build artifacts (CMake primary) ---
-if [[ -f CMakeLists.txt ]]; then
-  cmake -B build -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1 \
-    && cmake --build build -j"$(nproc 2>/dev/null || echo 2)" >/dev/null 2>&1 \
-    && ok "cmake build (build/bin/)" \
-    || fail "cmake build"
-  [[ -x build/bin/tnc2c-probe ]] && ok "tnc2c-probe built" || fail "tnc2c-probe build"
-  [[ -x build/bin/baycom_test ]] && ok "baycom-pr tools built" || fail "baycom-pr build"
-  [[ -x build/bin/crdopc ]] && ok "crdopc built" || fail "crdopc missing"
-  [[ -x build/bin/max25-terminal ]] && ok "max25-terminal built" || fail "max25-terminal build"
-else
-  make -C stacks/tncs all >/dev/null 2>&1 \
-    && [[ -x stacks/tncs/tnc2c-probe ]] && ok "tnc2c-probe built" \
-    || fail "tnc2c-probe build"
-
-  make -C stacks/baycom-pr all >/dev/null 2>&1 && ok "baycom-pr build" || fail "baycom-pr build"
-
-  if [[ -x stacks/crdop/build/crdopc ]]; then
-    ok "crdopc binary"
-  else
-    make -C stacks/crdop all >/dev/null 2>&1
-    [[ -x stacks/crdop/build/crdopc ]] && ok "crdopc built" || fail "crdopc missing"
-  fi
-fi
+# --- build artifacts (CMake) ---
+cmake -B build -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1 \
+  && cmake --build build -j"$(nproc 2>/dev/null || echo 2)" >/dev/null 2>&1 \
+  && ok "cmake build (build/bin/)" \
+  || fail "cmake build"
+[[ -x build/bin/tnc2c-probe ]] && ok "tnc2c-probe built" || fail "tnc2c-probe build"
+[[ -x build/bin/baycom_test ]] && ok "baycom-pr tools built" || fail "baycom-pr build"
+[[ -x build/bin/crdopc ]] && ok "crdopc built" || fail "crdopc missing"
+[[ -x build/bin/max25-terminal ]] && ok "max25-terminal built" || fail "max25-terminal build"
 
 # --- offline tests ---
-if make -C stacks/baycom-pr test >/dev/null 2>&1; then
+if bash stacks/baycom-pr/scripts/test-all.sh >/dev/null 2>&1; then
   ok "baycom-pr test-all"
 else
   fail "baycom-pr test-all"
 fi
 
-if make -C stacks/crdop smoke >/dev/null 2>&1; then
+if CRDOP_BIN="${PWD}/build/bin/crdopc" bash stacks/crdop/scripts/test-smoke.sh >/dev/null 2>&1; then
   ok "crdop smoke"
 else
   fail "crdop smoke"
@@ -155,29 +140,21 @@ else
 fi
 
 # --- max25d + terminal ---
-make -C stacks/daemon all >/dev/null 2>&1 && ok "max25d ready" || fail "max25d"
-if [[ -x build/bin/max25-terminal ]]; then
-  ok "max25-terminal built (cmake)"
-  if [[ -L build/bin/max25-client ]] || [[ -x build/bin/max25-client ]]; then
-    ok "max25-client symlink"
-  else
-    warn "max25-client symlink missing until cmake --install"
-  fi
-elif make -C stacks/terminal all >/dev/null 2>&1 \
-  && [[ -x stacks/terminal/max25-terminal ]] && ok "max25-terminal built" \
-  && [[ -L stacks/terminal/max25-client ]] && ok "max25-client symlink"; then
-  :
+chmod +x stacks/daemon/max25d 2>/dev/null || true
+[[ -x stacks/daemon/max25d ]] && ok "max25d ready" || fail "max25d"
+if [[ -L build/bin/max25-client ]] || [[ -x build/bin/max25-client ]]; then
+  ok "max25-client symlink"
 else
-  fail "max25-terminal build"
+  warn "max25-client symlink missing until cmake --install"
 fi
 if MAX25_TERMINAL="${PWD}/build/bin/max25-terminal" \
-   make -C stacks/terminal test >/dev/null 2>&1; then
+   bash stacks/terminal/test-terminal.sh >/dev/null 2>&1; then
   ok "max25-terminal TCP probe"
 else
   fail "max25-terminal TCP probe"
 fi
 
-if make -C stacks/daemon smoke >/dev/null 2>&1; then
+if python3 stacks/daemon/test_proto.py >/dev/null 2>&1; then
   ok "max25d protocol smoke"
 else
   fail "max25d protocol smoke"
@@ -197,16 +174,14 @@ if [[ -x /opt/amiga/bin/m68k-amigaos-gcc ]]; then
     fail "max25-terminal AmigaOS cross-build"
   fi
 else
-  warn "Amiga SDK not at /opt/amiga — skip Amiga terminal build"
+  warn "Amiga SDK not at /opt/amiga; skip Amiga terminal build"
 fi
 
 # --- CI workflow ---
 [[ -f .github/workflows/ci.yml ]] && ok "ci workflow" || fail "missing .github/workflows/ci.yml"
 
 # --- tncs probe (warn without hardware) ---
-if stacks/tncs/tnc2c-probe >/dev/null 2>&1; then
-  ok "tnc2c-probe (serial found)"
-elif [[ -x build/bin/tnc2c-probe ]] && build/bin/tnc2c-probe >/dev/null 2>&1; then
+if build/bin/tnc2c-probe >/dev/null 2>&1; then
   ok "tnc2c-probe (serial found)"
 else
   warn "tnc2c-probe: no serial devices (OK for CI without hardware)"

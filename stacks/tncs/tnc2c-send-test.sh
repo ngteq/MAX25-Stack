@@ -1,5 +1,5 @@
 #!/bin/bash
-# Send one AX.25 UI frame via KISS on TNC2C — keys PTT / transmits on radio.
+# Send one AX.25 UI frame via KISS on TNC2C - keys PTT / transmits on radio.
 # Requires: antenna or dummyload, VOX off, HyBBX stopped.
 # Usage: ./tnc2c-send-test.sh [message] [src] [dst]
 
@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 [[ -f "$ROOT/tnc2c-serial.env" ]] && source "$ROOT/tnc2c-serial.env"
 
 if pgrep -x hybbx >/dev/null 2>&1; then
-    echo "ERROR: hybbx läuft — erst stoppen" >&2
+    echo "ERROR: hybbx is running - stop it first" >&2
     exit 1
 fi
 
@@ -96,5 +96,5 @@ except BlockingIOError:
 os.write(fd, b"kiss off\r")
 termios.tcdrain(fd)
 os.close(fd)
-print("Prüfe LED 2 (PTT) am TNC und S-Meter am Funk.")
+print("Check LED 2 (PTT) on TNC and S-meter on radio.")
 PY

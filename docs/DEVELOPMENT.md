@@ -4,15 +4,13 @@
 
 ## Toolchain
 
-Linux primary. GCC or Clang, make, bash. CRDOP needs CMake 3.16+ and ALSA dev headers. Example edge setup: [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md).
+Linux primary. GCC or Clang, CMake 3.16+, bash. CRDOP needs ALSA dev headers. Example edge setup: [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md).
 
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(nproc)
+./scripts/build.sh
 cmake --install build --prefix /usr/local
-# or: make all && make install
-make test
-make release-check
+cmake --build build --target max25_test
+./scripts/release-check.sh
 ```
 
 *BSD porting is deferred — daemon stays Linux; see [PLATFORMS.md](PLATFORMS.md).
@@ -61,8 +59,8 @@ HyBBX (external) → packet_radio | baycom | crdop plugins (after MAX25 prep)
 ## Testing
 
 ```bash
-make test                  # offline stack tests
-make release-check         # v1.0.0 gates (no root, no serial required)
+./scripts/test.sh            # offline stack tests (cmake target max25_test)
+./scripts/release-check.sh   # v1.0.0 gates (no root, no serial required)
 ./scripts/discover-plugins.sh --json
 ```
 

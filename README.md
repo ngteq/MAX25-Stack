@@ -13,13 +13,13 @@ Merged from:
 ## Quick start
 
 ```bash
-make all
+./scripts/build.sh
 ./scripts/discover-plugins.sh
 ./scripts/max25-ctl help
 ```
 
 Build output: `build/bin/` (`tnc2c-probe`, `crdopc`, `max25-terminal`, …).  
-Stale CRDOP cache after moving the tree: `rm -rf build stacks/crdop/build && make all`.
+Stale CRDOP cache after moving the tree: `./scripts/clean.sh && ./scripts/build.sh`.
 
 ### Example Linux edge setup
 
@@ -45,7 +45,7 @@ Setup guide: [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md).
 ### BayCom SER12
 
 ```bash
-make -C stacks/baycom-pr all
+./scripts/build.sh
 sudo make -C stacks/baycom-pr install
 ./scripts/max25-ctl start --hardware modems --device baycom-ser12
 ```
@@ -53,7 +53,7 @@ sudo make -C stacks/baycom-pr install
 ### CRDOP soft modem (soft-crdop)
 
 ```bash
-make -C stacks/crdop all
+./scripts/build.sh
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 # HyBBX Secondary with share/hybbx/crdop-edge.ini.example
 ```
@@ -108,7 +108,7 @@ MainAX25 ships **standalone-first**: one operator brings up TNC or modem without
 **Default operating mode:** `standalone` · **Deferred:** `pktnc2`, `baycom-par96`, `baycom-kiss`, minicom fork, *BSD port.
 
 ```bash
-make release-check    # v1.0.0 offline gates
+./scripts/release-check.sh    # v1.0.0 offline gates
 ```
 
 Full scope, acceptance tests, and release checklist: [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md).

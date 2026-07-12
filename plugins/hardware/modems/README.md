@@ -19,7 +19,7 @@ Use HyBBX `baycom` plugin (`-DHYBBX_PLUGIN_BAYCOM=ON`). Stack must be **running*
 ## Quick start
 
 ```bash
-make -C stacks/baycom-pr all
+./scripts/build.sh
 sudo make -C stacks/baycom-pr install
 sudo baycom-pr-ctl probe && sudo baycom-pr-ctl start
 ```

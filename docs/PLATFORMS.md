@@ -31,12 +31,12 @@ See [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
 ```bash
 # Debian / Ubuntu
 ./scripts/install-max25.sh --deps
-# or: make all && sudo make install
+# or: ./scripts/build.sh && sudo cmake --install build
 ```
 
 | Need | Role |
 |------|------|
-| GCC or Clang, make | Build merged stacks |
+| GCC or Clang, CMake | Build merged stacks |
 | `libncurses-dev` | `max25-terminal` |
 | `python3` | `max25d` |
 | `libasound2-dev` | CRDOP |

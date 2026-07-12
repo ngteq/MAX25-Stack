@@ -1,5 +1,5 @@
 #!/bin/bash
-# Passive listen on TNC2C — NO commands that can key PTT (no kiss on, no MONitor).
+# Passive listen on TNC2C - NO commands that can key PTT (no kiss on, no MONitor).
 # Usage: ./tnc2c-listen.sh [seconds] [device]
 
 set -euo pipefail
@@ -20,7 +20,7 @@ case "$LINE" in
 esac
 
 if pgrep -x hybbx >/dev/null 2>&1; then
-    echo "WARN: hybbx läuft — Port evtl. belegt" >&2
+    echo "WARN: hybbx is running - port may be in use" >&2
 fi
 
 echo "Passive listen: $DEV @ ${BAUD} ${LINE} for ${SECS}s (no TX commands)"

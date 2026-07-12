@@ -63,7 +63,7 @@ MainAX25-Stack (MAX25-Stack)/
 2. `plugins/**/plugin.yaml` — per-plugin metadata (HyBBX mapping, scripts, INI)
 3. `scripts/discover-plugins.sh` — list/filter plugins (no Python deps)
 4. `scripts/max25-ctl` — unified start/stop/build entry
-5. `make all` — builds merged stacks (tncs, baycom-pr, crdop)
+5. `./scripts/build.sh` — builds merged stacks (tncs, baycom-pr, crdop)
 
 ## Platform
 

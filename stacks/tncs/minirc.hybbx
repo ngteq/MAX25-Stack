@@ -1,16 +1,16 @@
-# minicom — HyBBX-Session (ersetzt direktes ttyS4 wenn HyBBX läuft)
+# minicom - HyBBX session (replaces direct ttyS4 when HyBBX is running)
 #
-# HyBBX hält /dev/ttyS4 in KISS — du verbindest per Telnet zur BBS.
-# KISS/AX.25: HyBBX <-> TNC2C (automatisch). Diese Session: Operator -> HyBBX.
+# HyBBX holds /dev/ttyS4 in KISS - connect via Telnet to the BBS.
+# KISS/AX.25: HyBBX <-> TNC2C (automatic). This session: operator -> HyBBX.
 #
 # Install:
 #   mkdir -p ~/.minicom
 #   cp minirc.hybbx ~/.minicom/minirc.hybbx
 #   chmod +x ~/Code/tnc2c/hybbx-connect.sh
 #
-# Start (empfohlen):
+# Start (recommended):
 #   ./hybbx-connect.sh
 #
-# Oder minicom mit socat-Bridge:
+# Or minicom with socat bridge:
 #   socat -,raw,echo=0 TCP:127.0.0.1:2323
-# (dann in anderem Terminal — minicom ist für seriell, Telnet ist einfacher)
+# (then in another terminal - minicom is for serial, Telnet is simpler)

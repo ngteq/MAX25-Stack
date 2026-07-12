@@ -11,7 +11,7 @@ usage() {
 Usage: discover-plugins.sh [--json] [--type TYPE] [--id ID]
 
   --json       Machine-readable output (one JSON object per line)
-  --type TYPE  Filter: betriebsform | hardware | device
+  --type TYPE  Filter: hardware | device
   --id ID      Show single plugin by id
 EOF
 }
@@ -67,7 +67,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   [[ -z "$line" ]] && continue
 
   case "$line" in
-    betriebsform:) section=betriebsform; continue ;;
+    betriebsform:) section=""; continue ;;
     hardware:) section=hardware; continue ;;
     devices:) section=device; continue ;;
     schema_version:*|stack:*|description:*) continue ;;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TX then RX diagnostic for TNC2C + CB — no HyBBX."""
+"""TX then RX diagnostic for TNC2C + CB - no HyBBX."""
 
 from __future__ import annotations
 
@@ -103,14 +103,14 @@ def main() -> int:
     print("=" * 60)
 
     if os.system("pgrep -x hybbx >/dev/null 2>&1") == 0:
-        print("FAIL: hybbx läuft — bitte stoppen")
+        print("FAIL: hybbx is running - stop it first")
         return 2
 
     fd = open_port()
     print(f"Device: {DEV} 19200 8N1  {modem(fd)}")
 
     # --- Host check ---
-    print("\n[1] Host-Check")
+    print("\n[1] Host check")
     passive = read_sec(fd, 2.0)
     write(fd, b"kiss off\r")
     time.sleep(0.5)
@@ -120,11 +120,11 @@ def main() -> int:
     info = read_sec(fd, 4.0)
     all_host = passive + pre + info
     if has_fw(all_host):
-        print("  OK: Firmware/Host erkannt")
+        print("  OK: firmware/host detected")
     elif info.strip() in (b"INFO", b"INFO\r", b"INFO\r\n"):
-        print("  WARN: nur Echo — ./tnc2c-boot-wait.sh + Strom-Zyklus empfohlen")
+        print("  WARN: echo only - ./tnc2c-boot-wait.sh + power cycle recommended")
     else:
-        print(f"  INFO-Antwort: {info[:120]!r}")
+        print(f"  INFO reply: {info[:120]!r}")
 
     # --- TX ---
     print("\n[2] TX (KISS UI TEST-0 -> CQ, Msg=TXRX)")
@@ -140,42 +140,42 @@ def main() -> int:
     time.sleep(0.3)
 
     kiss_back = b"\xc0" in tx_rx or b"TXRX" in tx_rx
-    print(f"  Gesendet: {len(pkt)} bytes KISS")
-    print(f"  Seriell RX: {len(tx_rx)} bytes")
+    print(f"  Sent: {len(pkt)} bytes KISS")
+    print(f"  Serial RX: {len(tx_rx)} bytes")
     if kiss_back:
-        print("  OK: KISS-Frame auf Seriell gesehen")
+        print("  OK: KISS frame seen on serial")
     else:
-        print("  WARN: kein KISS-Echo auf Seriell")
-    print("  → JETZT prüfen: LED2 PTT + Modem-Ton am 2. CB-Funk")
+        print("  WARN: no KISS echo on serial")
+    print("  -> CHECK NOW: LED2 PTT + modem tone on 2m CB radio")
 
-    # --- RX (passiv, kein TX) ---
-    print("\n[3] RX (passiv 12s, kiss off — lauscht auf Funk/Monitor)")
+    # --- RX (passive, no TX) ---
+    print("\n[3] RX (passive 12s, kiss off - listening on radio/monitor)")
     termios.tcflush(fd, termios.TCIOFLUSH)
     write(fd, b"kiss off\r")
     time.sleep(0.5)
     read_sec(fd, 0.5)
-    print("  Lausche 12s … (Funk-Rauschen/CD sollte LED3 an halten)")
+    print("  Listening 12s ... (RF noise/CD should keep LED3 on)")
     rx_data = read_sec(fd, 12.0)
     os.close(fd)
 
-    print(f"  Passiv RX: {len(rx_data)} bytes")
+    print(f"  Passive RX: {len(rx_data)} bytes")
     if rx_data:
         printable = sum(1 for b in rx_data if 32 <= b < 127 or b in (9, 10, 13))
         ratio = printable / len(rx_data)
-        print(f"  Anteil druckbar: {ratio:.0%}")
+        print(f"  Printable ratio: {ratio:.0%}")
         if b"\xc0" in rx_data:
-            print("  OK: KISS-Frame(s) empfangen (Funk-Traffic oder Monitor)")
+            print("  OK: KISS frame(s) received (RF traffic or monitor)")
         else:
             print(f"  Sample: {rx_data[:80]!r}")
     else:
-        print("  (kein Seriell-Traffic — normal bei leerem Band)")
-        print("  → Hardware-RX: LED3 CD bei Rauschen/SQ offen?")
+        print("  (no serial traffic - normal on empty band)")
+        print("  -> Hardware RX: LED3 CD with noise/SQ open?")
 
     print("\n" + "=" * 60)
-    print("Hardware-Checkliste:")
-    print("  TX: LED2 (PTT) blinkte? 2.CB hörte Modem-Ton?")
-    print("  RX: LED3 (CD) an bei Rauschen? SQ zu → CD aus?")
-    print("  DIN: Pin1=TX(weiß) Pin2=GND Pin3=PTT(rot) Pin4=RX(tip)")
+    print("Hardware checklist:")
+    print("  TX: LED2 (PTT) blinked? 2m CB heard modem tone?")
+    print("  RX: LED3 (CD) on with noise? SQ closed -> CD off?")
+    print("  DIN: Pin1=TX(white) Pin2=GND Pin3=PTT(red) Pin4=RX(tip)")
     print("=" * 60)
     return 0
 

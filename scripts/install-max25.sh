@@ -60,11 +60,11 @@ if [[ "$INSTALL_DEPS" -eq 1 ]]; then
       pkgs+=("linux-headers-$(uname -r)")
     fi
     sudo apt-get install -y "${pkgs[@]}" || {
-      echo "WARN: some optional headers failed — BayCom kernel build may need manual headers" >&2
+      echo "WARN: some optional headers failed; BayCom kernel build may need manual headers" >&2
       sudo apt-get install -y build-essential make cmake pkg-config git python3 libncurses-dev libasound2-dev
     }
   else
-    echo "WARN: apt-get not found — install build deps manually (see docs/LINUX-EDGE-SETUP.md)" >&2
+    echo "WARN: apt-get not found; install build deps manually (see docs/LINUX-EDGE-SETUP.md)" >&2
   fi
 fi
 
@@ -87,8 +87,8 @@ fi
 
 echo ""
 echo "== MAX25 installed to ${PREFIX} =="
-echo "  max25d, max25-terminal, max25-ctl → ${PREFIX}/bin"
-echo "  examples → ${PREFIX}/share/max25/"
+echo "  max25d, max25-terminal, max25-ctl -> ${PREFIX}/bin"
+echo "  examples -> ${PREFIX}/share/max25/"
 echo ""
 echo "Next steps:"
 echo "  sudo usermod -aG dialout \$USER   # serial access"

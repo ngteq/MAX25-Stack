@@ -8,26 +8,26 @@
 
 ---
 
-## Executive Summary (DE)
+## Executive Summary
 
-Der Linux-Kernel enthält **keinen dedizierten BayCom-USB-Treiber**. USB-Modems laufen über **KISS auf ttyUSB/ttyACM** (`mkiss` im Kernel oder `baycom_kiss_serial` im PR-Stack). Für serielle ser12-Modems (PC-COM, klassische COM-Ports) ist **`baycom_ser_fdx`** der relevante Treiber; Parallelport-Modems nutzen **`baycom_par`** (par96/picpar) bzw. **`baycom_epp`** (EPP, nur 32-Bit).
+The Linux kernel has **no dedicated BayCom USB driver**. USB modems run over **KISS on ttyUSB/ttyACM** (`mkiss` in the kernel or `baycom_kiss_serial` in the PR stack). For serial ser12 modems (PC-COM, classic COM ports), **`baycom_ser_fdx`** is the relevant driver; parallel-port modems use **`baycom_par`** (par96/picpar) or **`baycom_epp`** (EPP, 32-bit only).
 
-Die Treiber stammen aus **1996–2000** (Thomas Sailer, HB9JNX). Sie arbeiten mit **direktem I/O-Port-Zugriff** und **hoher IRQ-Last** (~100 IRQ/s pro ser12-Port im Empfang). **Falsche IRQ-Nummer, doppelte IRQ, oder UART-Konflikt mit dem 8250-Treiber** sind die häufigsten Ursachen für **System-Freezes** — insbesondere bei Dual-PC-COM (z. B. ttyS0+ttyS5 mit IRQ 4 und IRQ 30).
+The drivers date from **1996-2000** (Thomas Sailer, HB9JNX). They use **direct I/O port access** and **high IRQ load** (~100 IRQ/s per ser12 port in receive). **Wrong IRQ number, duplicate IRQ, or UART conflict with the 8250 driver** are the most common causes of **system freezes** - especially with dual PC-COM (e.g. ttyS0+ttyS5 with IRQ 4 and IRQ 30).
 
-Der PR-Stack adressiert das bereits mit `preflight`, `setserial uart none`, staged dual start und IRQ-Storm-Rollback. **Kernel-seitig fehlen jedoch Schutzmechanismen** (IRQ-Rate-Limit, Konfliktprüfung mit 8250, Validierung der IRQ-Quelle).
+The PR stack already addresses this with `preflight`, `setserial uart none`, staged dual start, and IRQ-storm rollback. **The kernel side still lacks safeguards** (IRQ rate limiting, 8250 conflict checks, IRQ source validation).
 
-### Top-Befunde (priorisiert)
+### Top findings (prioritized)
 
-| Prio | Befund | Auswirkung |
-|------|--------|------------|
-| **P0** | Falsche IRQ / doppelte IRQ bei `baycom_ser_fdx` | IRQ-Sturm, Host-Freeze |
-| **P0** | UART-Konflikt (8250 + baycom auf gleichem Port) | I/O-Busy, instabiles Verhalten |
-| **P1** | `ser12_set_divisor()` während TX kann IRQ-Sturm auslösen | Dokumentiert im Quellcode, kein Schutz |
-| **P1** | ISR ruft `local_irq_enable()` und schwere HDLC-Arbeit im IRQ-Kontext | Latenz, Re-Entrancy-Risiko |
-| **P1** | `baycom_ser_hdx`: IRQ auf 2–15 begrenzt | **Unbrauchbar für IRQ 30** (PC-COM ttyS5) |
-| **P2** | `baycom_epp`: Kconfig `!64BIT` — auf amd64 nicht verfügbar | EPP-Modem unsupported |
-| **P2** | Kein Hotplug/Runtime-PM für USB-Pfad (by design: userspace) | Erwartetes Verhalten |
-| **P3** | Legacy-Code: `outb()` auf MSR, veraltete APIs, fehlende compat-ioctl | Wartbarkeit |
+| Prio | Finding | Impact |
+|------|---------|--------|
+| **P0** | Wrong IRQ / duplicate IRQ on `baycom_ser_fdx` | IRQ storm, host freeze |
+| **P0** | UART conflict (8250 + baycom on same port) | I/O busy, unstable behavior |
+| **P1** | `ser12_set_divisor()` during TX can trigger IRQ storm | Documented in source, no protection |
+| **P1** | ISR calls `local_irq_enable()` and heavy HDLC work in IRQ context | Latency, re-entrancy risk |
+| **P1** | `baycom_ser_hdx`: IRQ limited to 2-15 | **Unusable for IRQ 30** (PC-COM ttyS5) |
+| **P2** | `baycom_epp`: Kconfig `!64BIT` - unavailable on amd64 | EPP modem unsupported |
+| **P2** | No hotplug/runtime PM for USB path (by design: userspace) | Expected behavior |
+| **P3** | Legacy code: `outb()` on MSR, outdated APIs, missing compat-ioctl | Maintainability |
 
 ---
 

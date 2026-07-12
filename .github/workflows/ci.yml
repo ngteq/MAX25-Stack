@@ -17,11 +17,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake libasound2-dev pkg-config libncurses-dev
 
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
       - name: Build merged stacks
-        run: make all
+        run: cmake --build build -j$(nproc)
 
       - name: Offline tests
-        run: make test
+        run: cmake --build build --target max25_test
 
       - name: Release gates
-        run: make release-check
+        run: bash scripts/release-check.sh
