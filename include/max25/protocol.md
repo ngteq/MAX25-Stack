@@ -88,7 +88,7 @@ Invalid `SET CALLERID` / `SET CALLID` → `ERR invalid CALLERID` / `ERR invalid 
 |------|---------|
 | `OK` | Command succeeded |
 | `ERR <message>` | Command failed |
-| `STATUS hardware=… device=… mode=… callerid=… callid=… ax25_ui=… connected=… stack=…` | State snapshot |
+| `STATUS hardware=… device=… mode=… callerid=… callid=… ax25_ui=… connected=… stack=… serial=…` | State snapshot |
 | `RX <text>` | Received traffic for display |
 | `EVENT connected` | Session attached (`CONNECT`) |
 | `EVENT disconnected` | Session detached (`DISCONNECT`) |

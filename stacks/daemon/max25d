@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import configparser
-import errno
 import os
 import re
 import select
@@ -19,9 +18,11 @@ import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, Set, TextIO
+from typing import Optional, Set
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from kiss_bridge import KissBridge, serial_profile_for_device  # noqa: E402
 DEFAULT_TCP_PORT = 7325
 DEFAULT_UNIX = "/run/max25/modem.sock"
 CALLSIGN_RE = re.compile(r"^[A-Z0-9]{1,6}(-(1[0-5]|[0-9]))?$")
@@ -40,6 +41,11 @@ class DaemonConfig:
     callid: str = "QST"
     ax25_ui: bool = True
     auto_start: bool = True
+    serial_device: str = ""
+    serial_baud: int = 0
+    serial_line: str = ""
+    serial_dtr_rts: str = ""
+    serial_kiss_entry: str = ""
 
 
 @dataclass
@@ -49,6 +55,8 @@ class DaemonState:
     monitor_only: bool = False
     stack_proc: Optional[subprocess.Popen] = None
     stack_status: str = "stopped"
+    serial_status: str = "n/a"
+    bridge: Optional[KissBridge] = None
     clients: Set[socket.socket] = field(default_factory=set)
     lock: threading.Lock = field(default_factory=threading.Lock)
 
@@ -103,6 +111,12 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
             "true",
             "on",
         )
+    if cp.has_section("serial"):
+        cfg.serial_device = cp.get("serial", "device", fallback="")
+        cfg.serial_baud = cp.getint("serial", "baud", fallback=0)
+        cfg.serial_line = cp.get("serial", "line", fallback="")
+        cfg.serial_dtr_rts = cp.get("serial", "dtr_rts", fallback="")
+        cfg.serial_kiss_entry = cp.get("serial", "kiss_entry", fallback="")
     log(f"config {path}")
     return cfg
 
@@ -110,12 +124,15 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
 def status_line(state: DaemonState) -> str:
     c = state.cfg
     with state.lock:
+        serial = state.serial_status
+        if state.bridge is not None:
+            serial = state.bridge.status
         return (
             f"STATUS hardware={c.hardware} device={c.device} mode={c.mode} "
             f"callerid={c.callerid} callid={c.callid} "
             f"ax25_ui={'on' if c.ax25_ui else 'off'} "
             f"connected={'yes' if state.connected else 'no'} "
-            f"stack={state.stack_status}"
+            f"stack={state.stack_status} serial={serial}"
         )
 
 
@@ -174,6 +191,7 @@ def start_stack(state: DaemonState) -> None:
 
 
 def stop_stack(state: DaemonState) -> None:
+    close_bridge(state)
     proc = state.stack_proc
     if proc is not None and proc.poll() is None:
         try:
@@ -193,6 +211,92 @@ def stop_stack(state: DaemonState) -> None:
             stderr=subprocess.DEVNULL,
         )
     log("stack stopped")
+
+
+def bridge_ini_overrides(cfg: DaemonConfig) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if cfg.serial_device:
+        out["device"] = cfg.serial_device
+    if cfg.serial_baud:
+        out["baud"] = str(cfg.serial_baud)
+    if cfg.serial_line:
+        out["line"] = cfg.serial_line
+    if cfg.serial_dtr_rts:
+        out["dtr_rts"] = cfg.serial_dtr_rts
+    if cfg.serial_kiss_entry:
+        out["kiss_entry"] = cfg.serial_kiss_entry
+    return out
+
+
+def tnc_serial_enabled(cfg: DaemonConfig) -> bool:
+    return cfg.hardware == "tncs" and cfg.device in ("tnc2c", "pktnc2")
+
+
+def on_bridge_rx(state: DaemonState, line: str) -> None:
+    log(f"rx {line}")
+    broadcast(state, f"RX {line}")
+
+
+def open_bridge(state: DaemonState) -> bool:
+    if not tnc_serial_enabled(state.cfg):
+        state.serial_status = "n/a"
+        return False
+    if state.bridge is not None and state.bridge.status not in ("closed", "error-open"):
+        return state.bridge.status in ("open", "ready")
+    profile = serial_profile_for_device(
+        state.cfg.device,
+        str(ROOT),
+        bridge_ini_overrides(state.cfg),
+    )
+    bridge = KissBridge(profile, lambda line: on_bridge_rx(state, line), log)
+    if not bridge.open():
+        state.bridge = bridge
+        state.serial_status = bridge.status
+        return False
+    state.bridge = bridge
+    state.serial_status = bridge.status
+    return True
+
+
+def close_bridge(state: DaemonState) -> None:
+    if state.bridge is not None:
+        state.bridge.close()
+        state.serial_status = state.bridge.status
+        state.bridge = None
+
+
+def attach_bridge_session(state: DaemonState) -> bool:
+    if not tnc_serial_enabled(state.cfg):
+        return True
+    if state.bridge is None or state.bridge.status == "closed":
+        if not open_bridge(state):
+            return False
+    assert state.bridge is not None
+    return state.bridge.attach_session(state.cfg.callerid)
+
+
+def detach_bridge_session(state: DaemonState) -> None:
+    if state.bridge is not None:
+        state.bridge.detach_session()
+        state.serial_status = state.bridge.status
+
+
+def poll_stack(state: DaemonState) -> None:
+    proc = state.stack_proc
+    if proc is None:
+        return
+    rc = proc.poll()
+    if rc is None:
+        return
+    state.stack_proc = None
+    if rc == 0:
+        state.stack_status = "ready"
+        log(f"stack boot-wait finished rc={rc}")
+        if tnc_serial_enabled(state.cfg):
+            open_bridge(state)
+    else:
+        state.stack_status = f"error-rc{rc}"
+        log(f"stack boot-wait failed rc={rc}")
 
 
 def format_tx(state: DaemonState, text: str) -> str:
@@ -247,12 +351,17 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
         return
 
     if upper == "CONNECT":
+        if tnc_serial_enabled(state.cfg):
+            if not attach_bridge_session(state):
+                send_line(sock, "ERR serial not ready")
+                return
         state.connected = True
         send_line(sock, "EVENT connected")
         send_line(sock, "OK")
         return
 
     if upper == "DISCONNECT":
+        detach_bridge_session(state)
         state.connected = False
         send_line(sock, "EVENT disconnected")
         send_line(sock, "OK")
@@ -273,6 +382,20 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
             return
         payload = line[5:]
         framed = format_tx(state, payload)
+        if tnc_serial_enabled(state.cfg):
+            if state.bridge is None or state.bridge.status != "ready":
+                send_line(sock, "ERR serial not ready")
+                return
+            ok, display = state.bridge.transmit(
+                state.cfg.callerid,
+                state.cfg.callid,
+                payload,
+                state.cfg.ax25_ui,
+            )
+            if not ok:
+                send_line(sock, f"ERR {display}")
+                return
+            framed = display
         log(f"tx {framed}")
         send_line(sock, f"RX {framed}")
         broadcast(state, f"RX {framed}", skip=sock)
@@ -369,6 +492,7 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
     )
 
     while running:
+        poll_stack(state)
         socks = [lsock for lsock, _ in listeners]
         rlist, _, _ = select.select(socks, [], [], 1.0)
         for lsock, from_tcp in listeners:
@@ -470,6 +594,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         default=None,
         help="Override TCP listen port",
     )
+    parser.add_argument(
+        "--no-serial",
+        action="store_true",
+        help="Disable KISS serial bridge (loopback SEND only)",
+    )
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -477,6 +606,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         cfg.auto_start = False
     if args.tcp_port is not None:
         cfg.tcp_port = args.tcp_port
+    if args.no_serial:
+        cfg.hardware = "none"
 
     state = DaemonState(cfg=cfg)
     listeners = make_listeners(cfg)

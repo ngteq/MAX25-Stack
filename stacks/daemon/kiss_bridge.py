@@ -1,0 +1,450 @@
+"""
+KISS serial bridge for max25d — AX.25 UI over TNC2C / PK-TNC2.
+
+PTT is handled by TNC firmware when KISS DATA frames are accepted (requires MYCALL).
+"""
+from __future__ import annotations
+
+import fcntl
+import os
+import struct
+import termios
+import threading
+import time
+from dataclasses import dataclass
+from typing import Callable, Optional
+
+FEND = 0xC0
+FESC = 0xDB
+TFEND = 0xDC
+TFESC = 0xDD
+
+KISS_CMD_DATA = 0x00
+MAX_FRAME = 1024
+MAX_PAYLOAD = 256
+
+
+@dataclass
+class SerialProfile:
+    device: str = "/dev/ttyS4"
+    baud: int = 19200
+    line: str = "8n1"
+    dtr_rts: bool = True
+    kiss_entry: str = "kiss_on"  # kiss_on | auto
+
+
+def parse_callsign(text: str) -> tuple[str, int]:
+    text = text.strip().upper()
+    if "-" in text:
+        call, ssid_s = text.split("-", 1)
+        try:
+            ssid = int(ssid_s)
+        except ValueError:
+            ssid = 0
+        if ssid < 0 or ssid > 15:
+            ssid = 0
+        return call[:6], ssid
+    return text[:6], 0
+
+
+def ax25_crc(data: bytes) -> int:
+    crc = 0xFFFF
+    for b in data:
+        crc ^= b
+        for _ in range(8):
+            crc = (crc >> 1) ^ 0x8408 if crc & 1 else crc >> 1
+    return crc ^ 0xFFFF
+
+
+def ax25_encode_address(call: str, ssid: int, last: bool) -> bytes:
+    padded = call.upper().ljust(6)[:6]
+    raw = bytes((ord(c) << 1) for c in padded)
+    ssid_b = ((ssid & 0x0F) << 1) | (0x01 if last else 0x00)
+    return raw + bytes([ssid_b])
+
+
+def ax25_build_ui(src: str, dst: str, info: bytes) -> bytes:
+    src_call, src_ssid = parse_callsign(src)
+    dst_call, dst_ssid = parse_callsign(dst)
+    body = (
+        ax25_encode_address(dst_call, dst_ssid, False)
+        + ax25_encode_address(src_call, src_ssid, True)
+        + b"\x03\xF0"
+        + info
+    )
+    crc = ax25_crc(body)
+    return body + bytes((crc & 0xFF, crc >> 8))
+
+
+def ax25_decode_address(raw: bytes) -> tuple[str, int]:
+    call = "".join(chr((b >> 1) & 0x7F) for b in raw[:6]).strip()
+    ssid = (raw[6] >> 1) & 0x0F
+    return call, ssid
+
+
+def ax25_parse_ui(frame: bytes) -> Optional[tuple[str, str, bytes]]:
+    if len(frame) < 16:
+        return None
+    pos = 0
+    addresses: list[tuple[str, int, bool]] = []
+    while pos + 7 <= len(frame):
+        last = bool(frame[pos + 6] & 0x01)
+        addresses.append((*ax25_decode_address(frame[pos : pos + 7]), last))
+        pos += 7
+        if last:
+            break
+    if len(addresses) < 2:
+        return None
+    if pos + 4 > len(frame):
+        return None
+    if frame[pos] != 0x03:
+        return None
+    pos += 2
+    crc_rx = frame[-2] | (frame[-1] << 8)
+    if ax25_crc(frame[:-2]) != crc_rx:
+        return None
+    payload = frame[pos:-2]
+    dst_call, dst_ssid, _ = addresses[0]
+    src_call, src_ssid, _ = addresses[-1]
+    dst = dst_call if not dst_ssid else f"{dst_call}-{dst_ssid}"
+    src = src_call if not src_ssid else f"{src_call}-{src_ssid}"
+    return src, dst, payload
+
+
+class KissDecoder:
+    def __init__(self) -> None:
+        self._buf = bytearray()
+        self._in_frame = False
+        self._escape = False
+
+    def feed(self, data: bytes) -> list[tuple[int, bytes]]:
+        frames: list[tuple[int, bytes]] = []
+        for byte in data:
+            if byte == FEND:
+                if self._in_frame and self._buf:
+                    parsed = self._deliver()
+                    if parsed is not None:
+                        frames.append(parsed)
+                self._in_frame = True
+                self._escape = False
+                self._buf.clear()
+                continue
+            if not self._in_frame:
+                continue
+            if self._escape:
+                if byte == TFEND:
+                    byte = FEND
+                elif byte == TFESC:
+                    byte = FESC
+                self._escape = False
+            elif byte == FESC:
+                self._escape = True
+                continue
+            if len(self._buf) >= MAX_FRAME:
+                self._buf.clear()
+                self._in_frame = False
+                continue
+            self._buf.append(byte)
+        return frames
+
+    def _deliver(self) -> Optional[tuple[int, bytes]]:
+        if len(self._buf) < 1:
+            return None
+        port = (self._buf[0] >> 4) & 0x0F
+        payload = bytes(self._buf[1:])
+        return port, payload
+
+
+def kiss_escape(data: bytes) -> bytes:
+    out = bytearray()
+    for b in data:
+        if b == FEND:
+            out.extend((FESC, TFEND))
+        elif b == FESC:
+            out.extend((FESC, TFESC))
+        else:
+            out.append(b)
+    return bytes(out)
+
+
+def kiss_encode(port: int, cmd: int, payload: bytes) -> bytes:
+    cmd_byte = ((port & 0x0F) << 4) | (cmd & 0x0F)
+    return b"\xC0" + kiss_escape(bytes([cmd_byte]) + payload) + b"\xC0"
+
+
+def kiss_data_frame(port: int, ax25_frame: bytes) -> bytes:
+    """Build KISS DATA; strip FCS when CRC validates."""
+    if len(ax25_frame) >= 2:
+        crc_rx = ax25_frame[-2] | (ax25_frame[-1] << 8)
+        if ax25_crc(ax25_frame[:-2]) == crc_rx:
+            ax25_frame = ax25_frame[:-2]
+    return kiss_encode(port, KISS_CMD_DATA, ax25_frame)
+
+
+def format_rx_line(src: str, dst: str, payload: bytes, ax25_ui: bool) -> str:
+    try:
+        text = payload.decode("utf-8")
+    except UnicodeDecodeError:
+        text = payload.decode("utf-8", errors="replace")
+    if ax25_ui:
+        return f"[AX25 UI {src}>{dst}] {text}"
+    return text
+
+
+def load_env_file(path: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not path or not os.path.isfile(path):
+        return out
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, val = line.split("=", 1)
+                out[key.strip()] = val.strip()
+    return out
+
+
+def serial_profile_for_device(device_id: str, root: str, ini: dict[str, str]) -> SerialProfile:
+    prof = SerialProfile()
+    if ini.get("device"):
+        prof.device = ini["device"]
+    if ini.get("baud"):
+        prof.baud = int(ini["baud"])
+    if ini.get("line"):
+        prof.line = ini["line"].lower()
+    if ini.get("dtr_rts"):
+        prof.dtr_rts = ini["dtr_rts"].lower() in ("1", "yes", "true", "on")
+    if ini.get("kiss_entry"):
+        prof.kiss_entry = ini["kiss_entry"].lower()
+
+    env_path = os.path.join(root, "stacks", "tncs", f"{device_id}-serial.env")
+    env = load_env_file(env_path)
+
+    if device_id == "tnc2c":
+        prof.device = ini.get("device") or env.get("TNC2C_DEV", prof.device)
+        prof.baud = int(ini.get("baud") or env.get("TNC2C_BAUD", prof.baud))
+        prof.line = (ini.get("line") or env.get("TNC2C_LINE", prof.line)).lower()
+        if "dtr_rts" not in ini:
+            prof.dtr_rts = True
+        if "kiss_entry" not in ini:
+            prof.kiss_entry = "kiss_on"
+    elif device_id == "pktnc2":
+        prof.device = ini.get("device") or env.get("PKTNC2_DEV") or env.get("TNC_DEV", prof.device)
+        prof.baud = int(ini.get("baud") or env.get("PKTNC2_BAUD") or env.get("TNC_BAUD", "9600"))
+        prof.line = (ini.get("line") or env.get("PKTNC2_LINE") or env.get("TNC_LINE", "8n1")).lower()
+        if "dtr_rts" not in ini:
+            prof.dtr_rts = False
+        if "kiss_entry" not in ini:
+            prof.kiss_entry = "auto"
+    return prof
+
+
+def _parse_line(line: str) -> tuple[int, int]:
+    line = line.lower()
+    if line == "7e1":
+        return termios.CS7, termios.PARENB
+    return termios.CS8, 0
+
+
+def _parse_baud(baud: int) -> int:
+    table = {
+        1200: termios.B1200,
+        2400: termios.B2400,
+        4800: termios.B4800,
+        9600: termios.B9600,
+        19200: termios.B19200,
+    }
+    if baud not in table:
+        raise ValueError(f"unsupported baud: {baud}")
+    return table[baud]
+
+
+class KissBridge:
+    """Thread-safe KISS bridge on a serial TNC port."""
+
+    def __init__(
+        self,
+        profile: SerialProfile,
+        on_rx: Callable[[str], None],
+        log: Optional[Callable[[str], None]] = None,
+    ) -> None:
+        self.profile = profile
+        self._on_rx = on_rx
+        self._log = log or (lambda _m: None)
+        self._fd: Optional[int] = None
+        self._thread: Optional[threading.Thread] = None
+        self._stop = threading.Event()
+        self._lock = threading.Lock()
+        self._kiss_active = False
+        self._mycall = ""
+        self.status = "closed"
+        self._decoder = KissDecoder()
+
+    def open(self) -> bool:
+        dev = self.profile.device
+        if not os.access(dev, os.R_OK | os.W_OK):
+            self.status = "error-no-device"
+            self._log(f"serial: no access to {dev}")
+            return False
+        try:
+            speed = _parse_baud(self.profile.baud)
+            databits, parity = _parse_line(self.profile.line)
+        except ValueError as exc:
+            self.status = "error-config"
+            self._log(f"serial: {exc}")
+            return False
+        try:
+            fd = os.open(dev, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+            t = termios.tcgetattr(fd)
+            t[0] = t[1] = 0
+            t[2] = termios.CLOCAL | termios.CREAD | databits | parity
+            t[3] = t[4] = t[5] = speed
+            t[6][termios.VMIN] = 0
+            t[6][termios.VTIME] = 5
+            termios.tcsetattr(fd, termios.TCSANOW, t)
+            termios.tcflush(fd, termios.TCIOFLUSH)
+            flags = struct.unpack("I", fcntl.ioctl(fd, 0x5415, struct.pack("I", 0)))[0]
+            if self.profile.dtr_rts:
+                flags |= 0x004 | 0x002
+            fcntl.ioctl(fd, 0x5416, struct.pack("I", flags))
+        except OSError as exc:
+            self.status = "error-open"
+            self._log(f"serial open failed: {exc}")
+            return False
+        self._fd = fd
+        self.status = "open"
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._rx_loop, name="kiss-rx", daemon=True)
+        self._thread.start()
+        self._log(f"serial open {dev} {self.profile.baud} {self.profile.line.upper()}")
+        return True
+
+    def close(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+            self._thread = None
+        with self._lock:
+            if self._fd is not None:
+                if self._kiss_active:
+                    self._write_unlocked(b"kiss off\r")
+                try:
+                    os.close(self._fd)
+                except OSError:
+                    pass
+                self._fd = None
+            self._kiss_active = False
+        self.status = "closed"
+        self._decoder = KissDecoder()
+
+    def attach_session(self, mycall: str) -> bool:
+        if self._fd is None:
+            return False
+        self._mycall = mycall.upper()
+        with self._lock:
+            self._write_unlocked(b"kiss off\r")
+            time.sleep(0.3)
+            self._drain_unlocked(0.2)
+            if not self._set_mycall_unlocked(self._mycall):
+                self._log("serial: MYCALL may have failed")
+            if not self._enter_kiss_unlocked():
+                self.status = "error-kiss"
+                return False
+            self._kiss_active = True
+        self.status = "ready"
+        return True
+
+    def detach_session(self) -> None:
+        with self._lock:
+            if self._fd is not None and self._kiss_active:
+                self._write_unlocked(b"kiss off\r")
+                time.sleep(0.2)
+            self._kiss_active = False
+        if self._fd is not None:
+            self.status = "open"
+
+    def transmit(self, src: str, dst: str, text: str, ax25_ui: bool) -> tuple[bool, str]:
+        if self._fd is None or not self._kiss_active:
+            return False, "serial not ready"
+        if len(text.encode("utf-8")) > MAX_PAYLOAD:
+            return False, "payload too long"
+        info = text.encode("utf-8")
+        frame = ax25_build_ui(src, dst, info)
+        pkt = kiss_data_frame(0, frame)
+        with self._lock:
+            try:
+                self._write_unlocked(pkt)
+                termios.tcdrain(self._fd)
+            except OSError as exc:
+                self.status = "error-tx"
+                return False, f"tx failed: {exc}"
+        display = format_rx_line(src, dst, info, ax25_ui)
+        return True, display
+
+    def _write_unlocked(self, data: bytes) -> None:
+        if self._fd is None:
+            return
+        os.write(self._fd, data)
+
+    def _drain_unlocked(self, seconds: float) -> bytes:
+        if self._fd is None:
+            return b""
+        end = time.time() + seconds
+        chunks: list[bytes] = []
+        while time.time() < end:
+            try:
+                chunk = os.read(self._fd, 4096)
+                if chunk:
+                    chunks.append(chunk)
+            except BlockingIOError:
+                time.sleep(0.02)
+        return b"".join(chunks)
+
+    def _set_mycall_unlocked(self, call: str) -> bool:
+        cmd = f"MYCALL {call}\r".encode("ascii", errors="replace")
+        self._write_unlocked(cmd)
+        time.sleep(0.4)
+        reply = self._drain_unlocked(0.6)
+        return b"?" not in reply[:32]
+
+    def _enter_kiss_unlocked(self) -> bool:
+        if self.profile.kiss_entry == "auto":
+            self._write_unlocked(b"kiss on\r")
+            time.sleep(0.5)
+            reply = self._drain_unlocked(0.5)
+            if reply.strip() and reply.strip() == b"kiss on":
+                self._write_unlocked(b"\x1b@K")
+                time.sleep(0.5)
+                self._drain_unlocked(0.5)
+        else:
+            self._write_unlocked(b"kiss on\r")
+            time.sleep(0.5)
+            self._drain_unlocked(0.3)
+        return True
+
+    def _rx_loop(self) -> None:
+        while not self._stop.is_set():
+            fd = self._fd
+            if fd is None:
+                break
+            try:
+                chunk = os.read(fd, 4096)
+            except BlockingIOError:
+                time.sleep(0.05)
+                continue
+            except OSError:
+                break
+            if not chunk:
+                time.sleep(0.05)
+                continue
+            for _port, payload in self._decoder.feed(chunk):
+                if not payload:
+                    continue
+                parsed = ax25_parse_ui(payload)
+                if parsed is None:
+                    continue
+                src, dst, info = parsed
+                line = format_rx_line(src, dst, info, ax25_ui=True)
+                self._on_rx(line)

@@ -262,7 +262,8 @@ For **broadcast** traffic on 1200 baud, keep UI payloads **short** (≤ **48** c
 |------|--------|
 | AX.25 UI build/parse rules (this doc) | **Specified** |
 | CALLSIGN validation (6+SSID) | **max25d** + `max25-terminal` |
-| KISS encode + FCS strip | **max25d** bridge (in progress) |
+| KISS encode + FCS strip | **max25d** `kiss_bridge.py` |
+| Serial KISS bridge (TNC2C/PK-TNC2) | **max25d** `kiss_bridge.py` |
 | MYCALL + kiss entry per profile | **max25d** / stack scripts |
 | Kernel BayCom TX/RX | **stacks/baycom-pr** (mature) |
 | TNC2C boot-wait | **stacks/tncs** (mature) |

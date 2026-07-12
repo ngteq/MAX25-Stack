@@ -26,3 +26,14 @@ ax25_ui = yes
 [stack]
 ; Auto-start hardware on daemon start
 auto_start = yes
+
+[serial]
+; Optional overrides — defaults come from stacks/tncs/<device>-serial.env
+; device = /dev/ttyS4
+; baud = 19200
+; line = 8n1
+; dtr_rts = yes
+; kiss_entry = kiss_on
+;
+; tnc2c: 19200 8N1, DTR+RTS on, kiss_entry=kiss_on
+; pktnc2: 9600 8N1, DTR+RTS off, kiss_entry=auto
