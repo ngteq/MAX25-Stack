@@ -4,9 +4,17 @@
 [daemon]
 ; Operating mode: standalone | service | hybbx-edge
 mode = standalone
-; Plugin device id from plugins/manifest.yaml
+; Default hardware stack (per-device override in [serial.<id>] if needed)
 hardware = tncs
+; Legacy single-device id (used when [devices] is absent)
 device = tnc2c
+
+[devices]
+; Multi-device: one KissBridge per id (5+ supported). Serial path or empty = env default.
+default = tnc2c
+tnc2c = /dev/ttyS4
+pktnc2 = /dev/ttyS5
+; enabled = tnc2c,pktnc2   ; optional — omit to enable all listed ids
 
 [network]
 ; Terminal clients connect here (TCP). Unix socket always enabled on Linux.
@@ -24,16 +32,27 @@ callid = QST
 ax25_ui = yes
 
 [stack]
-; Auto-start hardware on daemon start
+; Auto-start hardware on daemon start (boot-wait per enabled device)
 auto_start = yes
 
 [serial]
-; Optional overrides — defaults come from stacks/tncs/<device>-serial.env
+; Legacy single-device overrides — ignored when [devices] is present.
 ; device = /dev/ttyS4
 ; baud = 19200
 ; line = 8n1
 ; dtr_rts = yes
 ; kiss_entry = kiss_on
-;
-; tnc2c: 19200 8N1, DTR+RTS on, kiss_entry=kiss_on
+
+[serial.tnc2c]
+; Per-device serial profile (optional — defaults from stacks/tncs/tnc2c-serial.env)
+; baud = 19200
+; line = 8n1
+; dtr_rts = yes
+; kiss_entry = kiss_on
+
+[serial.pktnc2]
 ; pktnc2: 9600 8N1, DTR+RTS off, kiss_entry=auto
+; baud = 9600
+; line = 8n1
+; dtr_rts = no
+; kiss_entry = auto

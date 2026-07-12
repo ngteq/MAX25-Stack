@@ -3,6 +3,7 @@
 max25d — MainAX25-Stack daemon (Linux only).
 
 Owns config, plugin hardware lifecycle, and M25/1 IPC for max25-terminal clients.
+Supports multiple concurrent KISS serial devices (one KissBridge per device).
 """
 from __future__ import annotations
 
@@ -23,9 +24,24 @@ from typing import Optional, Set
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kiss_bridge import KissBridge, serial_profile_for_device  # noqa: E402
+
 DEFAULT_TCP_PORT = 7325
 DEFAULT_UNIX = "/run/max25/modem.sock"
 CALLSIGN_RE = re.compile(r"^[A-Z0-9]{1,6}(-(1[0-5]|[0-9]))?$")
+TNC_KISS_DEVICES = frozenset({"tnc2c", "pktnc2"})
+RESERVED_DEVICE_KEYS = frozenset({"default", "enabled"})
+
+
+@dataclass
+class DeviceConfig:
+    device_id: str
+    hardware: str = ""
+    serial_device: str = ""
+    serial_baud: int = 0
+    serial_line: str = ""
+    serial_dtr_rts: str = ""
+    serial_kiss_entry: str = ""
+    enabled: bool = True
 
 
 @dataclass
@@ -33,6 +49,8 @@ class DaemonConfig:
     mode: str = "standalone"
     hardware: str = "tncs"
     device: str = "tnc2c"
+    default_device: str = ""
+    devices: list[DeviceConfig] = field(default_factory=list)
     tcp_host: str = "0.0.0.0"
     tcp_port: int = DEFAULT_TCP_PORT
     unix_socket: str = DEFAULT_UNIX
@@ -41,6 +59,8 @@ class DaemonConfig:
     callid: str = "QST"
     ax25_ui: bool = True
     auto_start: bool = True
+    serial_enabled: bool = True
+    # Legacy single-device [serial] overrides (used when [devices] absent).
     serial_device: str = ""
     serial_baud: int = 0
     serial_line: str = ""
@@ -49,14 +69,21 @@ class DaemonConfig:
 
 
 @dataclass
+class DeviceRuntime:
+    cfg: DeviceConfig
+    bridge: Optional[KissBridge] = None
+    stack_proc: Optional[subprocess.Popen] = None
+    stack_status: str = "stopped"
+    serial_status: str = "n/a"
+
+
+@dataclass
 class DaemonState:
     cfg: DaemonConfig
     connected: bool = False
     monitor_only: bool = False
-    stack_proc: Optional[subprocess.Popen] = None
-    stack_status: str = "stopped"
-    serial_status: str = "n/a"
-    bridge: Optional[KissBridge] = None
+    selected_device: str = ""
+    devices: dict[str, DeviceRuntime] = field(default_factory=dict)
     clients: Set[socket.socket] = field(default_factory=set)
     lock: threading.Lock = field(default_factory=threading.Lock)
 
@@ -67,6 +94,84 @@ def log(msg: str) -> None:
 
 def valid_callsign(value: str) -> bool:
     return bool(value and CALLSIGN_RE.match(value.upper()))
+
+
+def _truthy(value: str) -> bool:
+    return value.lower() in ("1", "yes", "true", "on")
+
+
+def _serial_overrides_from_section(cp: configparser.ConfigParser, section: str) -> dict[str, str]:
+    if not cp.has_section(section):
+        return {}
+    out: dict[str, str] = {}
+    for key in ("device", "baud", "line", "dtr_rts", "kiss_entry"):
+        if cp.has_option(section, key):
+            out[key] = cp.get(section, key)
+    return out
+
+
+def _apply_serial_overrides(dev: DeviceConfig, overrides: dict[str, str]) -> None:
+    if overrides.get("device"):
+        dev.serial_device = overrides["device"]
+    if overrides.get("baud"):
+        dev.serial_baud = int(overrides["baud"])
+    if overrides.get("line"):
+        dev.serial_line = overrides["line"]
+    if overrides.get("dtr_rts"):
+        dev.serial_dtr_rts = overrides["dtr_rts"]
+    if overrides.get("kiss_entry"):
+        dev.serial_kiss_entry = overrides["kiss_entry"]
+
+
+def parse_devices(cp: configparser.ConfigParser, cfg: DaemonConfig) -> list[DeviceConfig]:
+    """Build device list from [devices] or legacy [daemon] device= + [serial]."""
+    if cp.has_section("devices"):
+        default_id = cp.get("devices", "default", fallback="").strip()
+        enabled_raw = cp.get("devices", "enabled", fallback="").strip()
+        enabled_set: Optional[set[str]] = None
+        if enabled_raw:
+            enabled_set = {x.strip() for x in enabled_raw.split(",") if x.strip()}
+
+        entries: list[DeviceConfig] = []
+        for key in cp.options("devices"):
+            if key.lower() in RESERVED_DEVICE_KEYS:
+                continue
+            device_id = key.strip()
+            serial_path = cp.get("devices", key, fallback="").strip()
+            dev = DeviceConfig(device_id=device_id, serial_device=serial_path)
+            _apply_serial_overrides(dev, _serial_overrides_from_section(cp, f"serial.{device_id}"))
+            if enabled_set is not None:
+                dev.enabled = device_id in enabled_set
+            entries.append(dev)
+
+        if not entries:
+            log("[devices] section empty — falling back to legacy single device")
+        else:
+            if default_id:
+                cfg.default_device = default_id
+            elif cfg.device:
+                cfg.default_device = cfg.device
+            else:
+                cfg.default_device = entries[0].device_id
+            return entries
+
+    # Legacy single device
+    device_id = cfg.device or "tnc2c"
+    dev = DeviceConfig(device_id=device_id)
+    legacy = _serial_overrides_from_section(cp, "serial")
+    if cfg.serial_device:
+        legacy.setdefault("device", cfg.serial_device)
+    if cfg.serial_baud:
+        legacy.setdefault("baud", str(cfg.serial_baud))
+    if cfg.serial_line:
+        legacy.setdefault("line", cfg.serial_line)
+    if cfg.serial_dtr_rts:
+        legacy.setdefault("dtr_rts", cfg.serial_dtr_rts)
+    if cfg.serial_kiss_entry:
+        legacy.setdefault("kiss_entry", cfg.serial_kiss_entry)
+    _apply_serial_overrides(dev, legacy)
+    cfg.default_device = device_id
+    return [dev]
 
 
 def load_config(path: Optional[Path]) -> DaemonConfig:
@@ -82,6 +187,8 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
                 break
     if path is None or not path.is_file():
         log(f"using built-in defaults (no ini at {path})")
+        cfg.devices = [DeviceConfig(device_id=cfg.device)]
+        cfg.default_device = cfg.device
         return cfg
 
     cp = configparser.ConfigParser(strict=False)
@@ -98,42 +205,98 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
     if cp.has_section("modem"):
         cfg.callerid = cp.get("modem", "callerid", fallback=cfg.callerid).upper()
         cfg.callid = cp.get("modem", "callid", fallback=cfg.callid).upper()
-        cfg.ax25_ui = cp.get("modem", "ax25_ui", fallback="yes").lower() in (
-            "1",
-            "yes",
-            "true",
-            "on",
-        )
+        cfg.ax25_ui = _truthy(cp.get("modem", "ax25_ui", fallback="yes"))
     if cp.has_section("stack"):
-        cfg.auto_start = cp.get("stack", "auto_start", fallback="yes").lower() in (
-            "1",
-            "yes",
-            "true",
-            "on",
-        )
+        cfg.auto_start = _truthy(cp.get("stack", "auto_start", fallback="yes"))
     if cp.has_section("serial"):
         cfg.serial_device = cp.get("serial", "device", fallback="")
         cfg.serial_baud = cp.getint("serial", "baud", fallback=0)
         cfg.serial_line = cp.get("serial", "line", fallback="")
         cfg.serial_dtr_rts = cp.get("serial", "dtr_rts", fallback="")
         cfg.serial_kiss_entry = cp.get("serial", "kiss_entry", fallback="")
-    log(f"config {path}")
+
+    cfg.devices = parse_devices(cp, cfg)
+    if not cfg.default_device and cfg.devices:
+        cfg.default_device = cfg.devices[0].device_id
+    cfg.device = cfg.default_device
+    log(f"config {path} ({len(cfg.devices)} device(s))")
     return cfg
+
+
+def init_device_runtimes(state: DaemonState) -> None:
+    state.devices.clear()
+    for dev_cfg in state.cfg.devices:
+        if not dev_cfg.enabled:
+            continue
+        state.devices[dev_cfg.device_id] = DeviceRuntime(cfg=dev_cfg)
+    if state.cfg.default_device in state.devices:
+        state.selected_device = state.cfg.default_device
+    elif state.devices:
+        state.selected_device = next(iter(state.devices))
+    else:
+        state.selected_device = state.cfg.default_device
+
+
+def enabled_device_ids(state: DaemonState) -> list[str]:
+    return list(state.devices.keys())
+
+
+def device_hardware(state: DaemonState, dev_id: str) -> str:
+    rt = state.devices.get(dev_id)
+    if rt is None:
+        return state.cfg.hardware
+    return rt.cfg.hardware or state.cfg.hardware
+
+
+def tnc_serial_enabled(state: DaemonState, dev_id: str) -> bool:
+    if not state.cfg.serial_enabled:
+        return False
+    hw = device_hardware(state, dev_id)
+    return hw == "tncs" and dev_id in TNC_KISS_DEVICES
+
+
+def aggregate_stack_status(state: DaemonState) -> str:
+    if not state.devices:
+        return "stopped"
+    statuses = {rt.stack_status for rt in state.devices.values()}
+    if "running" in statuses:
+        return "running"
+    if any(s.startswith("error") for s in statuses):
+        return "error"
+    if statuses == {"ready"} or statuses == {"stopped"}:
+        return next(iter(statuses))
+    if "ready" in statuses:
+        return "ready"
+    return "running" if "running" in statuses else "stopped"
+
+
+def aggregate_serial_status(state: DaemonState) -> str:
+    if not state.devices:
+        return "n/a"
+    if len(state.devices) == 1:
+        rt = next(iter(state.devices.values()))
+        if rt.bridge is not None:
+            return rt.bridge.status
+        return rt.serial_status
+    parts: list[str] = []
+    for dev_id in sorted(state.devices):
+        rt = state.devices[dev_id]
+        st = rt.bridge.status if rt.bridge is not None else rt.serial_status
+        parts.append(f"{dev_id}={st}")
+    return ",".join(parts)
 
 
 def status_line(state: DaemonState) -> str:
     c = state.cfg
-    with state.lock:
-        serial = state.serial_status
-        if state.bridge is not None:
-            serial = state.bridge.status
-        return (
-            f"STATUS hardware={c.hardware} device={c.device} mode={c.mode} "
-            f"callerid={c.callerid} callid={c.callid} "
-            f"ax25_ui={'on' if c.ax25_ui else 'off'} "
-            f"connected={'yes' if state.connected else 'no'} "
-            f"stack={state.stack_status} serial={serial}"
-        )
+    dev_list = ",".join(enabled_device_ids(state))
+    selected = state.selected_device or c.default_device or c.device
+    return (
+        f"STATUS hardware={c.hardware} device={selected} devices={dev_list} "
+        f"mode={c.mode} callerid={c.callerid} callid={c.callid} "
+        f"ax25_ui={'on' if c.ax25_ui else 'off'} "
+        f"connected={'yes' if state.connected else 'no'} "
+        f"stack={aggregate_stack_status(state)} serial={aggregate_serial_status(state)}"
+    )
 
 
 def broadcast(state: DaemonState, line: str, skip: Optional[socket.socket] = None) -> None:
@@ -155,20 +318,112 @@ def send_line(sock: socket.socket, line: str) -> None:
     sock.sendall((line + "\n").encode("utf-8"))
 
 
-def start_stack(state: DaemonState) -> None:
+def bridge_ini_overrides(dev_cfg: DeviceConfig) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if dev_cfg.serial_device:
+        out["device"] = dev_cfg.serial_device
+    if dev_cfg.serial_baud:
+        out["baud"] = str(dev_cfg.serial_baud)
+    if dev_cfg.serial_line:
+        out["line"] = dev_cfg.serial_line
+    if dev_cfg.serial_dtr_rts:
+        out["dtr_rts"] = dev_cfg.serial_dtr_rts
+    if dev_cfg.serial_kiss_entry:
+        out["kiss_entry"] = dev_cfg.serial_kiss_entry
+    return out
+
+
+def on_bridge_rx(state: DaemonState, dev_id: str, line: str) -> None:
+    log(f"rx {dev_id}: {line}")
+    broadcast(state, f"RX device={dev_id} {line}")
+
+
+def open_bridge(state: DaemonState, dev_id: str) -> bool:
+    rt = state.devices.get(dev_id)
+    if rt is None or not tnc_serial_enabled(state, dev_id):
+        if rt is not None:
+            rt.serial_status = "n/a"
+        return False
+    if rt.bridge is not None and rt.bridge.status not in ("closed", "error-open"):
+        return rt.bridge.status in ("open", "ready")
+    profile = serial_profile_for_device(
+        dev_id,
+        str(ROOT),
+        bridge_ini_overrides(rt.cfg),
+    )
+    bridge = KissBridge(profile, lambda line, d=dev_id: on_bridge_rx(state, d, line), log)
+    if not bridge.open():
+        rt.bridge = bridge
+        rt.serial_status = bridge.status
+        return False
+    rt.bridge = bridge
+    rt.serial_status = bridge.status
+    return True
+
+
+def close_bridge(state: DaemonState, dev_id: str) -> None:
+    rt = state.devices.get(dev_id)
+    if rt is None or rt.bridge is None:
+        return
+    rt.bridge.close()
+    rt.serial_status = rt.bridge.status
+    rt.bridge = None
+
+
+def close_all_bridges(state: DaemonState) -> None:
+    for dev_id in list(state.devices):
+        close_bridge(state, dev_id)
+
+
+def attach_bridge_session(state: DaemonState, dev_id: str) -> bool:
+    if not tnc_serial_enabled(state, dev_id):
+        return True
+    rt = state.devices[dev_id]
+    if rt.bridge is None or rt.bridge.status == "closed":
+        if not open_bridge(state, dev_id):
+            return False
+    assert rt.bridge is not None
+    return rt.bridge.attach_session(state.cfg.callerid)
+
+
+def detach_bridge_session(state: DaemonState, dev_id: str) -> None:
+    rt = state.devices.get(dev_id)
+    if rt is None or rt.bridge is None:
+        return
+    rt.bridge.detach_session()
+    rt.serial_status = rt.bridge.status
+
+
+def attach_all_sessions(state: DaemonState) -> bool:
+    ok = True
+    for dev_id in enabled_device_ids(state):
+        if tnc_serial_enabled(state, dev_id):
+            if not attach_bridge_session(state, dev_id):
+                ok = False
+    return ok
+
+
+def detach_all_sessions(state: DaemonState) -> None:
+    for dev_id in enabled_device_ids(state):
+        detach_bridge_session(state, dev_id)
+
+
+def start_device_stack(state: DaemonState, dev_id: str) -> None:
+    rt = state.devices[dev_id]
     ctl = ROOT / "scripts" / "max25-ctl"
     if not ctl.is_file():
-        state.stack_status = "error-no-ctl"
+        rt.stack_status = "error-no-ctl"
         return
+    hw = device_hardware(state, dev_id)
     args = [
         str(ctl),
         "start",
         "--mode",
         state.cfg.mode,
         "--hardware",
-        state.cfg.hardware,
+        hw,
         "--device",
-        state.cfg.device,
+        dev_id,
     ]
     env = os.environ.copy()
     env["MAX25_MODE"] = state.cfg.mode
@@ -182,17 +437,23 @@ def start_stack(state: DaemonState) -> None:
             start_new_session=True,
         )
     except OSError as exc:
-        log(f"stack start failed: {exc}")
-        state.stack_status = "error"
+        log(f"stack start failed ({dev_id}): {exc}")
+        rt.stack_status = "error"
         return
-    state.stack_proc = proc
-    state.stack_status = "running"
-    log(f"stack started pid={proc.pid} ({state.cfg.hardware}/{state.cfg.device})")
+    rt.stack_proc = proc
+    rt.stack_status = "running"
+    log(f"stack started pid={proc.pid} ({hw}/{dev_id})")
 
 
-def stop_stack(state: DaemonState) -> None:
-    close_bridge(state)
-    proc = state.stack_proc
+def start_stacks(state: DaemonState) -> None:
+    for dev_id in enabled_device_ids(state):
+        start_device_stack(state, dev_id)
+
+
+def stop_device_stack(state: DaemonState, dev_id: str) -> None:
+    close_bridge(state, dev_id)
+    rt = state.devices[dev_id]
+    proc = rt.stack_proc
     if proc is not None and proc.poll() is None:
         try:
             os.killpg(proc.pid, signal.SIGTERM)
@@ -200,109 +461,72 @@ def stop_stack(state: DaemonState) -> None:
             pass
         except OSError:
             proc.terminate()
-    state.stack_proc = None
-    state.stack_status = "stopped"
+    rt.stack_proc = None
+    rt.stack_status = "stopped"
+    hw = device_hardware(state, dev_id)
     ctl = ROOT / "scripts" / "max25-ctl"
     if ctl.is_file():
         subprocess.run(
-            [str(ctl), "stop", "--hardware", state.cfg.hardware],
+            [str(ctl), "stop", "--hardware", hw],
             cwd=str(ROOT),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-    log("stack stopped")
 
 
-def bridge_ini_overrides(cfg: DaemonConfig) -> dict[str, str]:
-    out: dict[str, str] = {}
-    if cfg.serial_device:
-        out["device"] = cfg.serial_device
-    if cfg.serial_baud:
-        out["baud"] = str(cfg.serial_baud)
-    if cfg.serial_line:
-        out["line"] = cfg.serial_line
-    if cfg.serial_dtr_rts:
-        out["dtr_rts"] = cfg.serial_dtr_rts
-    if cfg.serial_kiss_entry:
-        out["kiss_entry"] = cfg.serial_kiss_entry
-    return out
+def stop_stacks(state: DaemonState) -> None:
+    for dev_id in list(state.devices):
+        stop_device_stack(state, dev_id)
+    log("all stacks stopped")
 
 
-def tnc_serial_enabled(cfg: DaemonConfig) -> bool:
-    return cfg.hardware == "tncs" and cfg.device in ("tnc2c", "pktnc2")
-
-
-def on_bridge_rx(state: DaemonState, line: str) -> None:
-    log(f"rx {line}")
-    broadcast(state, f"RX {line}")
-
-
-def open_bridge(state: DaemonState) -> bool:
-    if not tnc_serial_enabled(state.cfg):
-        state.serial_status = "n/a"
-        return False
-    if state.bridge is not None and state.bridge.status not in ("closed", "error-open"):
-        return state.bridge.status in ("open", "ready")
-    profile = serial_profile_for_device(
-        state.cfg.device,
-        str(ROOT),
-        bridge_ini_overrides(state.cfg),
-    )
-    bridge = KissBridge(profile, lambda line: on_bridge_rx(state, line), log)
-    if not bridge.open():
-        state.bridge = bridge
-        state.serial_status = bridge.status
-        return False
-    state.bridge = bridge
-    state.serial_status = bridge.status
-    return True
-
-
-def close_bridge(state: DaemonState) -> None:
-    if state.bridge is not None:
-        state.bridge.close()
-        state.serial_status = state.bridge.status
-        state.bridge = None
-
-
-def attach_bridge_session(state: DaemonState) -> bool:
-    if not tnc_serial_enabled(state.cfg):
-        return True
-    if state.bridge is None or state.bridge.status == "closed":
-        if not open_bridge(state):
-            return False
-    assert state.bridge is not None
-    return state.bridge.attach_session(state.cfg.callerid)
-
-
-def detach_bridge_session(state: DaemonState) -> None:
-    if state.bridge is not None:
-        state.bridge.detach_session()
-        state.serial_status = state.bridge.status
-
-
-def poll_stack(state: DaemonState) -> None:
-    proc = state.stack_proc
+def poll_device_stack(state: DaemonState, dev_id: str) -> None:
+    rt = state.devices[dev_id]
+    proc = rt.stack_proc
     if proc is None:
         return
     rc = proc.poll()
     if rc is None:
         return
-    state.stack_proc = None
+    rt.stack_proc = None
     if rc == 0:
-        state.stack_status = "ready"
-        log(f"stack boot-wait finished rc={rc}")
-        if tnc_serial_enabled(state.cfg):
-            open_bridge(state)
+        rt.stack_status = "ready"
+        log(f"stack boot-wait finished ({dev_id}) rc={rc}")
+        if tnc_serial_enabled(state, dev_id):
+            open_bridge(state, dev_id)
     else:
-        state.stack_status = f"error-rc{rc}"
-        log(f"stack boot-wait failed rc={rc}")
+        rt.stack_status = f"error-rc{rc}"
+        log(f"stack boot-wait failed ({dev_id}) rc={rc}")
+
+
+def poll_stacks(state: DaemonState) -> None:
+    for dev_id in enabled_device_ids(state):
+        poll_device_stack(state, dev_id)
 
 
 def format_tx(state: DaemonState, text: str) -> str:
     if state.cfg.ax25_ui:
         return f"[AX25 UI {state.cfg.callerid}>{state.cfg.callid}] {text}"
     return text
+
+
+def resolve_selected_device(state: DaemonState) -> Optional[str]:
+    dev_id = state.selected_device
+    if dev_id in state.devices:
+        return dev_id
+    ids = enabled_device_ids(state)
+    return ids[0] if ids else None
+
+
+def device_line(state: DaemonState, dev_id: str) -> str:
+    rt = state.devices[dev_id]
+    serial = rt.bridge.status if rt.bridge is not None else rt.serial_status
+    hw = device_hardware(state, dev_id)
+    enabled = "yes" if rt.cfg.enabled else "no"
+    return (
+        f"DEVICE id={dev_id} hardware={hw} serial={serial} "
+        f"stack={rt.stack_status} enabled={enabled}"
+    )
 
 
 def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
@@ -317,6 +541,23 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
 
     if upper == "GET STATUS":
         send_line(sock, status_line(state))
+        send_line(sock, "OK")
+        return
+
+    if upper == "GET DEVICES":
+        for dev_id in sorted(state.devices):
+            send_line(sock, device_line(state, dev_id))
+        send_line(sock, "OK")
+        return
+
+    if upper.startswith("SET DEVICE ") or upper.startswith("SELECT DEVICE "):
+        prefix = "SET DEVICE " if upper.startswith("SET DEVICE ") else "SELECT DEVICE "
+        dev_id = line[len(prefix) :].strip()
+        if dev_id not in state.devices:
+            send_line(sock, f"ERR unknown device: {dev_id}")
+            return
+        state.selected_device = dev_id
+        state.cfg.device = dev_id
         send_line(sock, "OK")
         return
 
@@ -351,17 +592,16 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
         return
 
     if upper == "CONNECT":
-        if tnc_serial_enabled(state.cfg):
-            if not attach_bridge_session(state):
-                send_line(sock, "ERR serial not ready")
-                return
+        if not attach_all_sessions(state):
+            send_line(sock, "ERR serial not ready")
+            return
         state.connected = True
         send_line(sock, "EVENT connected")
         send_line(sock, "OK")
         return
 
     if upper == "DISCONNECT":
-        detach_bridge_session(state)
+        detach_all_sessions(state)
         state.connected = False
         send_line(sock, "EVENT disconnected")
         send_line(sock, "OK")
@@ -380,13 +620,18 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
         if not state.connected:
             send_line(sock, "ERR not connected")
             return
+        dev_id = resolve_selected_device(state)
+        if dev_id is None:
+            send_line(sock, "ERR no device configured")
+            return
         payload = line[5:]
         framed = format_tx(state, payload)
-        if tnc_serial_enabled(state.cfg):
-            if state.bridge is None or state.bridge.status != "ready":
+        if tnc_serial_enabled(state, dev_id):
+            rt = state.devices[dev_id]
+            if rt.bridge is None or rt.bridge.status != "ready":
                 send_line(sock, "ERR serial not ready")
                 return
-            ok, display = state.bridge.transmit(
+            ok, display = rt.bridge.transmit(
                 state.cfg.callerid,
                 state.cfg.callid,
                 payload,
@@ -395,8 +640,8 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
             if not ok:
                 send_line(sock, f"ERR {display}")
                 return
-            framed = display
-        log(f"tx {framed}")
+            framed = f"device={dev_id} {display}"
+        log(f"tx {dev_id}: {framed}")
         send_line(sock, f"RX {framed}")
         broadcast(state, f"RX {framed}", skip=sock)
         send_line(sock, "OK")
@@ -484,15 +729,15 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
     signal.signal(signal.SIGINT, on_signal)
 
     if state.cfg.auto_start:
-        start_stack(state)
+        start_stacks(state)
 
     log(
         f"listening tcp={state.cfg.tcp_host}:{state.cfg.tcp_port} "
-        f"unix={state.cfg.unix_socket}"
+        f"unix={state.cfg.unix_socket} devices={','.join(enabled_device_ids(state))}"
     )
 
     while running:
-        poll_stack(state)
+        poll_stacks(state)
         socks = [lsock for lsock, _ in listeners]
         rlist, _, _ = select.select(socks, [], [], 1.0)
         for lsock, from_tcp in listeners:
@@ -511,7 +756,7 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
                 daemon=True,
             ).start()
 
-    stop_stack(state)
+    stop_stacks(state)
     for lsock, _ in listeners:
         lsock.close()
     if state.cfg.unix_socket:
@@ -607,14 +852,15 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.tcp_port is not None:
         cfg.tcp_port = args.tcp_port
     if args.no_serial:
-        cfg.hardware = "none"
+        cfg.serial_enabled = False
 
     state = DaemonState(cfg=cfg)
+    init_device_runtimes(state)
     listeners = make_listeners(cfg)
     try:
         serve(state, listeners)
     except KeyboardInterrupt:
-        stop_stack(state)
+        stop_stacks(state)
     return 0
 
 

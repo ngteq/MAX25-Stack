@@ -237,8 +237,22 @@ For **broadcast** traffic on 1200 baud, keep UI payloads **short** (≤ **48** c
 | Rule | Reason |
 |------|--------|
 | Only **one** owner per `/dev/tty*` | boot-wait, KISS, or HyBBX — never minicom + driver + HyBBX concurrently |
+| One `KissBridge` per device id | `max25d` `[devices]` — each id maps to one serial port |
 | BayCom kernel loaded | **No** minicom on raw UART |
 | MAX25 `max25d` owns prep | HyBBX opens serial **after** boot-wait / `baycom-pr-ctl start` |
+
+### Multi-device (max25d)
+
+Configure multiple TNCs in `max25d.ini`:
+
+```ini
+[devices]
+default = tnc2c
+tnc2c = /dev/ttyS4
+pktnc2 = /dev/ttyS5
+```
+
+M25/1: `devices=` in `STATUS`, `SET DEVICE <id>` for TX routing, `RX device=<id> …` on receive. See [`include/max25/protocol.md`](../include/max25/protocol.md).
 
 ---
 
@@ -264,6 +278,7 @@ For **broadcast** traffic on 1200 baud, keep UI payloads **short** (≤ **48** c
 | CALLSIGN validation (6+SSID) | **max25d** + `max25-terminal` |
 | KISS encode + FCS strip | **max25d** `kiss_bridge.py` |
 | Serial KISS bridge (TNC2C/PK-TNC2) | **max25d** `kiss_bridge.py` |
+| Multi-device KISS (5+ concurrent) | **max25d** — one bridge per `[devices]` id |
 | MYCALL + kiss entry per profile | **max25d** / stack scripts |
 | Kernel BayCom TX/RX | **stacks/baycom-pr** (mature) |
 | TNC2C boot-wait | **stacks/tncs** (mature) |

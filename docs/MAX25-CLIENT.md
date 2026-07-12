@@ -127,6 +127,8 @@ Short overview: **line-oriented UTF-8**, one command per line, terminated with `
 | `SET CALLERID <id>` | Live source callsign (uppercase) |
 | `SET CALLID <id>` | Live destination callsign |
 | `SET AX25_UI on\|off` | AX.25 UI mode |
+| `SET DEVICE <id>` | Select TX target (`SELECT DEVICE` alias) |
+| `GET DEVICES` | List enabled devices |
 | `CONNECT` | Attach session → `EVENT connected`, `OK` |
 | `DISCONNECT` | Detach session → `EVENT disconnected`, `OK` |
 | `SEND <text>` | Send line (remainder of line after `SEND `) |
@@ -138,8 +140,10 @@ Short overview: **line-oriented UTF-8**, one command per line, terminated with `
 |------|---------|
 | `OK` | Command succeeded |
 | `ERR <msg>` | Command rejected |
-| `STATUS hardware=… device=… mode=… callerid=… callid=… ax25_ui=on\|off connected=yes\|no stack=…` | State snapshot |
-| `RX <text>` | Received line for display |
+| `STATUS hardware=… device=… devices=… mode=… callerid=… callid=… ax25_ui=on\|off connected=yes\|no stack=…` | State snapshot |
+| `DEVICE id=… serial=… stack=… enabled=…` | One device (`GET DEVICES`) |
+| `RX device=<id> <text>` | Received line from device `<id>` |
+| `RX <text>` | Loopback TX echo (no serial) |
 | `EVENT connected` / `EVENT disconnected` | Session events |
 
 ### Typical dialogues
@@ -344,11 +348,14 @@ Before merge / release of the terminal:
 - listens on TCP (`max25d.ini` → `[network] tcp_port`) and optional Unix
 - one thread per client (`client_thread`)
 - shared `DaemonState` (CALLERID/CALLID global for all clients)
+- one `KissBridge` per enabled `[devices]` id (5+ supported)
 - plain-text TCP auth when `tcp_password` is set
 
 Configuration: `share/max25/max25d.ini.example`, systemd: `share/max25/max25d.service.example`.
 
-**Note:** Hardware TX/RX bridge (KISS/serial) is being built server-side; the client contract (`SEND` / `RX`) stays stable.
+**Multi-device:** `[devices]` in `max25d.ini`; M25/1 `devices=`, `SET DEVICE`, `GET DEVICES`, `RX device=<id> …`. Legacy single `[daemon] device=` still works.
+
+**Note:** Hardware TX/RX bridge (KISS/serial) is server-side; the client contract (`SEND` / `RX`) stays stable.
 
 Planned daemon extensions (do **not** change the text UI contract):
 

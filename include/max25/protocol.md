@@ -27,7 +27,7 @@ On connect, **the daemon sends first** (client must not send before reading).
 
 ```
 OK
-STATUS hardware=<hw> device=<dev> mode=<mode> callerid=<id> callid=<id> ax25_ui=on|off connected=yes|no stack=<state>
+STATUS hardware=<hw> device=<selected> devices=<id1,id2,...> mode=<mode> callerid=<id> callid=<id> ax25_ui=on|off connected=yes|no stack=<state> serial=<state>
 ```
 
 ### With TCP auth (`[network] tcp_password` set — **TCP only**)
@@ -61,12 +61,14 @@ Implementations **must buffer** incomplete lines across `read()` calls.
 |---------|-------------|
 | `PING` | Keepalive |
 | `GET STATUS` | Query state → `STATUS …` then `OK` |
+| `GET DEVICES` | List enabled devices → one `DEVICE …` line each, then `OK` |
+| `SET DEVICE <id>` | Select TX target device for this session (`SELECT DEVICE` alias) |
 | `SET CALLERID <id>` | Live source callsign (uppercase) |
 | `SET CALLID <id>` | Live destination callsign |
 | `SET AX25_UI on\|off` | Toggle AX.25 UI framing for TX |
-| `CONNECT` | Attach modem session (required before `SEND`) |
+| `CONNECT` | Attach modem session on all enabled devices (required before `SEND`) |
 | `DISCONNECT` | Detach session (daemon keeps running) |
-| `SEND <text>` | Transmit line — payload is remainder of line after `SEND ` (may be empty) |
+| `SEND <text>` | Transmit line on session-selected device — payload is remainder of line after `SEND ` (may be empty) |
 | `MONITOR on\|off` | RX-only mode (`SEND` → `ERR monitor-only`) |
 
 Command keywords are case-sensitive except `SET AX25_UI` flags (`on`/`off` case-insensitive).
@@ -88,8 +90,10 @@ Invalid `SET CALLERID` / `SET CALLID` → `ERR invalid CALLERID` / `ERR invalid 
 |------|---------|
 | `OK` | Command succeeded |
 | `ERR <message>` | Command failed |
-| `STATUS hardware=… device=… mode=… callerid=… callid=… ax25_ui=… connected=… stack=… serial=…` | State snapshot |
-| `RX <text>` | Received traffic for display |
+| `STATUS hardware=… device=… devices=… mode=… callerid=… callid=… ax25_ui=… connected=… stack=… serial=…` | State snapshot |
+| `DEVICE id=… hardware=… serial=… stack=… enabled=…` | One enabled device (`GET DEVICES`) |
+| `RX device=<id> <text>` | Received traffic from `<id>` for display |
+| `RX <text>` | Loopback TX echo (no serial) or legacy single-device |
 | `EVENT connected` | Session attached (`CONNECT`) |
 | `EVENT disconnected` | Session detached (`DISCONNECT`) |
 
@@ -99,10 +103,12 @@ Invalid `SET CALLERID` / `SET CALLID` → `ERR invalid CALLERID` / `ERR invalid 
 |---------|-------------------|
 | `PING` | `OK` |
 | `GET STATUS` | `STATUS …` → `OK` |
+| `GET DEVICES` | `DEVICE …` (one per enabled id) → `OK` |
+| `SET DEVICE <id>` / `SELECT DEVICE <id>` | `OK` or `ERR unknown device: …` |
 | `SET CALLERID` / `SET CALLID` / `SET AX25_UI` / `MONITOR` | `OK` or `ERR …` |
 | `CONNECT` | `EVENT connected` → `OK` |
 | `DISCONNECT` | `EVENT disconnected` → `OK` |
-| `SEND <text>` | `RX <framed>` → `OK` (sender); other clients get `RX <framed>` only |
+| `SEND <text>` | `RX device=<id> <framed>` → `OK` (sender); other clients get `RX …` only |
 
 With `ax25_ui=on`, framed text looks like: `[AX25 UI <callerid>><callid>] <payload>`.
 
@@ -120,9 +126,27 @@ With `ax25_ui=on`, framed text looks like: `[AX25 UI <callerid>><callid>] <paylo
 ## Session model
 
 - `max25d` holds **global** `callerid`, `callid`, `ax25_ui` for all clients.
+- `device=` in `STATUS` is the **session TX target** (default: `[devices] default=` or first enabled).
+- `devices=` lists all enabled device ids (comma-separated).
 - `connected` is per-daemon-session state (shared across clients in current implementation).
 - `MONITOR` is per-daemon global flag in current implementation.
-- Hardware lifecycle (`stack=running`) is owned by `max25d`, not the terminal.
+- Hardware lifecycle (`stack=running`) is owned by `max25d` per device, not the terminal.
+- Each enabled device owns one serial port exclusively (one `KissBridge` each).
+
+## Multi-device configuration
+
+`max25d.ini` `[devices]` section (see `share/max25/max25d.ini.example`):
+
+```ini
+[devices]
+default = tnc2c
+tnc2c = /dev/ttyS4
+pktnc2 = /dev/ttyS5
+```
+
+Legacy single-device configs (`[daemon] device=` + optional `[serial]`) remain valid.
+
+Per-device serial overrides: `[serial.<id>]` sections (baud, line, dtr_rts, kiss_entry).
 
 ---
 
@@ -130,17 +154,19 @@ With `ax25_ui=on`, framed text looks like: `[AX25 UI <callerid>><callid>] <paylo
 
 ```
 ← OK
-← STATUS hardware=tncs device=tnc2c mode=standalone callerid=CB-0 callid=QST ax25_ui=on connected=no stack=stopped
+← STATUS hardware=tncs device=tnc2c devices=tnc2c,pktnc2 mode=standalone callerid=CB-0 callid=QST ax25_ui=on connected=no stack=stopped
+→ SET DEVICE tnc2c
+← OK
 → CONNECT
 ← EVENT connected
 ← OK
 → SET CALLERID DG1ABC
 ← OK
 → SEND 73
-← RX [AX25 UI DG1ABC>QST] 73
+← RX device=tnc2c [AX25 UI DG1ABC>QST] 73
 ← OK
 → GET STATUS
-← STATUS hardware=tncs device=tnc2c mode=standalone callerid=DG1ABC callid=QST ax25_ui=on connected=yes stack=stopped
+← STATUS hardware=tncs device=tnc2c devices=tnc2c,pktnc2 mode=standalone callerid=DG1ABC callid=QST ax25_ui=on connected=yes stack=stopped
 ← OK
 → DISCONNECT
 ← EVENT disconnected
@@ -159,6 +185,7 @@ With `ax25_ui=on`, framed text looks like: `[AX25 UI <callerid>><callid>] <paylo
 | Terminal UI | `stacks/terminal/max25_terminal.c` |
 | Daemon server | `stacks/daemon/max25d` |
 | Offline smoke test | `stacks/daemon/test_proto.py` |
+| Multi-device tests | `stacks/daemon/test_multi_device.py` |
 
 ---
 
