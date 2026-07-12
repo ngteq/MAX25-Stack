@@ -1,0 +1,62 @@
+# MainAX25-Stack (MAX25-Stack) plugin registry — auto-discovered by scripts/discover-plugins.sh
+# HyBBX attaches to a running MainAX25 stack; these plugins define the contract.
+schema_version: 1
+stack: max25
+name: MainAX25-Stack
+alias: MAX25-Stack
+description: MainAX25-Stack (MAX25-Stack) — Main AX.25 Packet Radio standalone stack (HyBBX-compatible)
+
+betriebsform:
+  - id: standalone
+    path: betriebsform/standalone
+    label: Standalone
+    description: Single operator — terminal AX.25 clients, one modem/TNC
+  - id: service
+    path: betriebsform/service
+    label: Service
+    description: 24/7 dual-radio operation (HyBBX, digipeater, automation)
+  - id: hybbx-edge
+    path: betriebsform/hybbx-edge
+    label: HyBBX Edge
+    description: Secondary RF edge — KISS/HBX link to HyBBX Main
+
+hardware:
+  - id: tncs
+    path: hardware/tncs
+    stack: stacks/tncs
+    hybbx_plugin: packet_radio
+    description: Serial/USB TNC hardware group (TNC2C, PK-TNC2, PK-232, …)
+  - id: modems
+    path: hardware/modems
+    stack: stacks/baycom-pr
+    hybbx_plugin: baycom
+    description: BayCom kernel modems (SER12, PAR96, KISS serial)
+
+devices:
+  - id: tnc2c
+    path: devices/tnc2c
+    hardware: tncs
+    hybbx_profile: tnc2c
+    status: active
+  - id: pktnc2
+    path: devices/pktnc2
+    hardware: tncs
+    hybbx_profile: tnc2
+    status: planned
+  - id: baycom-ser12
+    path: devices/baycom-ser12
+    hardware: modems
+    hybbx_backend: kernel
+    hybbx_mode: ser12*
+    status: active
+  - id: baycom-par96
+    path: devices/baycom-par96
+    hardware: modems
+    hybbx_backend: kernel
+    hybbx_mode: par96
+    status: scaffold
+  - id: baycom-kiss
+    path: devices/baycom-kiss
+    hardware: modems
+    hybbx_backend: kiss
+    status: scaffold

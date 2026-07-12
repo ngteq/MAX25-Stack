@@ -1,0 +1,49 @@
+BayCom PR-Stack v0.5.0
+======================
+
+First public release — standalone Linux stack for BayCom/ser12 and KISS modems.
+
+Repository: https://github.com/ngteq/BayCom_PR-Stack
+License: GPL-3.0-or-later (see LICENSE, COPYRIGHT, NOTICE)
+
+What's included
+---------------
+  baycom-pr-ctl          INI-based control (start/stop/status/test/minicom)
+  baycom_sethdlc         HDLC ioctls (replaces broken sethdlc on kernel 6.x)
+  baycom_kissbridge      kernel-ser12: bcsf* <-> KISS PTY
+  baycom_kiss_serial     kiss-serial: USB/async KISS <-> PTY
+  baycom_test            offline modem test suite
+  modems.ini             25-entry hardware catalog
+  docs/                  operator and developer documentation
+
+Backends
+  kernel-ser12           baycom_ser_fdx on hardware UART (/dev/ttyS*)
+  kiss-serial            KISS on /dev/ttyUSB* or /dev/ttyACM*
+  Mixed profiles         e.g. ser12 on ttyS0 + USB KISS on ttyUSB0
+
+Verified without RF (v0.5.0)
+  Kernel baycom_ser_fdx load, IRQ, ioctl, TX delay
+  Dual modem stack (ttyS0 + ttyS5) on Linux / kernel 6.18
+  KISS PTY bridges
+  baycom-pr-ctl test, check, selftest
+  baycom_validate_config.py, make test
+
+Not verified in v0.5.0
+  On-air packet RX/TX (no radio at test time)
+  baycom_par / parallel port modems (catalog entries only)
+
+Quick start
+  make install
+  sudo baycom-pr-ctl start
+  sudo baycom-pr-ctl selftest
+
+Documentation
+  docs/QUICKSTART.md
+  docs/MANUAL.md
+  docs/TESTING.md
+  docs/MODEMS.md
+  docs/RELEASE-0.5.0.md
+
+Third-party
+  TFPCX and vendor manuals are not included in this repository (not GPL).
+  See NOTICE. Documentation may cite TFPCX as an external reference.

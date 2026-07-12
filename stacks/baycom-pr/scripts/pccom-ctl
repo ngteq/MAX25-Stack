@@ -1,0 +1,3 @@
+#!/bin/bash
+# Legacy wrapper — use baycom-pr-ctl and /etc/baycom/baycom-pr.ini
+exec "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/baycom-pr-ctl" "$@"

@@ -1,0 +1,27 @@
+id: service
+type: betriebsform
+parent_stack: MainAX25-Stack (MAX25-Stack)
+label: Service
+description: 24/7 dual-radio — HyBBX, digipeater, automation
+
+stack_requirements:
+  modems_min: 1
+  modems_max: 2
+  tncs_max: 2
+  unique_irq_per_uart: true
+  staged_start: true
+
+lifecycle:
+  start: scripts/max25-ctl start --mode service
+  recover: stacks/baycom-pr/scripts/baycom-pr-ctl recover
+
+hybbx:
+  role: primary
+  multi_instance: true
+  kiss_paths:
+    - /var/run/baycom-pr/kiss-a
+    - /var/run/baycom-pr/kiss-b
+
+templates:
+  - stacks/baycom-pr/config/examples/baycom-pr.dual.ini
+  - stacks/tncs/hybbx-dual.ini

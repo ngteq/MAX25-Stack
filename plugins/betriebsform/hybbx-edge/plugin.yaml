@@ -1,0 +1,27 @@
+id: hybbx-edge
+type: betriebsform
+parent_stack: MainAX25-Stack (MAX25-Stack)
+label: HyBBX Edge
+description: Secondary RF edge — serial TNC or BayCom KISS → HBX to Main
+
+stack_requirements:
+  hybbx_secondary: true
+  circuit_link: required
+
+hybbx:
+  plugins:
+    - packet_radio
+    - baycom
+  transport_sections:
+    - transport.packet_radioN
+    - transport.baycomN
+
+integration:
+  tncs:
+    boot_script: stacks/tncs/tnc2c-boot-wait.sh
+    integration_test: stacks/tncs/tnc2c-integration-test.sh
+    ini_template: stacks/tncs/hybbx-tnc2c.ini
+  modems:
+    kiss_link: /var/run/baycom-pr/kiss
+    ctl: stacks/baycom-pr/scripts/baycom-pr-ctl
+    plugin_doc: stacks/baycom-pr/docs/PLUGIN.md

@@ -1,0 +1,80 @@
+#!/usr/bin/expect -f
+# Auto-detect TNC2C host line on a serial device.
+# Usage: ./tnc2c-expect.exp /dev/ttyS4
+
+set timeout 6
+if {[llength $argv] < 1} {
+    puts "Usage: $argv0 <device>"
+    exit 1
+}
+set dev [lindex $argv 0]
+
+proc try_line {dev baud parity} {
+    global timeout
+    if {$parity eq "7E1"} {
+        spawn stty -F $dev $baud cs7 parenb -cstopb raw -echo min 0 time 10
+        expect eof
+    } else {
+        spawn stty -F $dev $baud cs8 -parenb -cstopb raw -echo min 0 time 10
+        expect eof
+    }
+
+    spawn cu -l $dev -s $baud
+    if {[catch {expect {
+        -re "." { }
+        timeout { }
+    }}]} {
+        catch {close}
+        return 0
+    }
+
+    set score 0
+    set sample ""
+
+    send "\r\r"
+    sleep 1
+    send "INFO\r"
+    sleep 3
+
+    if {[catch {set sample $expect_out(buffer)}]} {
+        set sample ""
+    }
+
+    if {[string match -nocase *cmd:* $sample]} { incr score 300 }
+    if {[string match -nocase *MYCALL* $sample]} { incr score 150 }
+    if {[string match -nocase *TXDELAY* $sample]} { incr score 100 }
+    if {[string match -nocase *INFO* $sample]} { incr score 20 }
+    incr score [string length $sample]
+
+    puts "  $baud $parity score=$score"
+    if {$sample ne ""} {
+        set short [string range $sample 0 180]
+        regsub -all {\r} $short {\\r} short
+        regsub -all {\n} $short {\\n} short
+        puts "    $short"
+    }
+
+    send "~.\r"
+    catch {close}
+    return $score
+}
+
+puts "TNC2C expect scan on $dev"
+set best 0
+set bestcfg ""
+
+foreach baud {9600 2400 4800 1200 19200 600 300} {
+    foreach parity {7E1 8N1} {
+        set s [try_line $dev $baud $parity]
+        if {$s > $best} {
+            set best $s
+            set bestcfg "$baud $parity"
+        }
+    }
+}
+
+puts "\nBest: $bestcfg (score=$best)"
+if {$best >= 200} {
+    exit 0
+}
+exit 2

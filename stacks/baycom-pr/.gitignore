@@ -1,0 +1,18 @@
+# Build artifacts
+/tools/baycom_test
+/tools/baycom_sethdlc
+/tools/baycom_kissbridge
+/tools/baycom_kiss_serial
+/tools/pccom_test
+/tools/pccom_sethdlc
+/tools/pccom_kissbridge
+/tools/__pycache__
+*.o
+
+# Local research archive (third-party, not GPL — not shipped in this repo)
+/research/
+
+# Editor / OS
+*~
+*.swp
+.DS_Store

@@ -1,0 +1,24 @@
+; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary edge (BayCom SER12)
+; Prerequisite: sudo stacks/baycom-pr/scripts/baycom-pr-ctl start
+; HyBBX build: -DHYBBX_PLUGIN_BAYCOM=ON
+
+[networks]
+baycom = yes
+ax25 = no
+
+[transport.baycom1]
+backend = kernel
+mode = ser12*
+interface = bcsf0
+iobase = 0x3f8
+irq = 4
+radio_baud = 1200
+txdelay = 30
+slot = 10
+persist = 128
+txtail = 1
+circuit_host = main.example.com
+circuit_port = 7323
+link_id = max25-baycom-ser12
+link_password = changeme
+frequency_mhz = 27.205

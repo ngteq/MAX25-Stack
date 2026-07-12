@@ -1,0 +1,24 @@
+id: standalone
+type: betriebsform
+parent_stack: MainAX25-Stack (MAX25-Stack)
+label: Standalone
+description: Single operator — one radio/TNC, terminal AX.25 clients
+
+stack_requirements:
+  modems_max: 1
+  tncs_max: 1
+
+lifecycle:
+  start: scripts/max25-ctl start --mode standalone
+  stop: scripts/max25-ctl stop
+  status: scripts/max25-ctl status
+
+hybbx:
+  role: optional
+  note: HyBBX may run on same host; stack exposes KISS or direct serial
+
+clients:
+  - listen
+  - call
+  - tnc2c-listen.sh
+  - baycom-pr-ctl listen

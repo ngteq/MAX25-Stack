@@ -1,0 +1,30 @@
+id: baycom-ser12
+type: device
+parent_stack: MainAX25-Stack (MAX25-Stack)
+hardware: modems
+label: BayCom SER12 (PC-COM, UART)
+status: active
+
+hybbx:
+  plugin: baycom
+  backend: kernel
+  mode: ser12*
+  interface: bcsf0
+
+kernel:
+  module: baycom_ser_fdx
+  netdev: bcsf0
+  radio_baud: 1200
+
+runtime:
+  kiss_link: /var/run/baycom-pr/kiss
+  ctl: stacks/baycom-pr/scripts/baycom-pr-ctl
+
+ini:
+  - stacks/baycom-pr/config/baycom-pr.ini
+  - stacks/baycom-pr/config/examples/baycom-pr.cb.ini
+  - share/hybbx/baycom-ser12-edge.ini.example
+
+docs:
+  - stacks/baycom-pr/docs/GETTING-STARTED.md
+  - stacks/baycom-pr/docs/PLUGIN.md

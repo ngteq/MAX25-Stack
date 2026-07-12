@@ -1,0 +1,27 @@
+# BayCom PR-Stack — systemd unit template (generic Linux)
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Install:
+#   sudo cp config/systemd/baycom-pr.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now baycom-pr.service
+#
+# Site config: /etc/baycom/baycom-pr.ini
+
+[Unit]
+Description=BayCom PR-Stack packet modem
+Documentation=file:///usr/share/doc/baycom-pr/GETTING-STARTED.md
+After=network.target
+Wants=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/usr/local/sbin/baycom-pr-ctl preflight
+ExecStartPre=/usr/local/sbin/baycom-pr-ctl axports apply
+ExecStart=/usr/local/sbin/baycom-pr-ctl start
+ExecStop=/usr/local/sbin/baycom-pr-ctl stop
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

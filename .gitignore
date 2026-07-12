@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.o
+*.a
+.DS_Store
+build/
+dist/
+*.log
+stacks/tncs/tnc2c-probe
+stacks/tncs/tnc2c-find
+stacks/baycom-pr/tools/baycom_test

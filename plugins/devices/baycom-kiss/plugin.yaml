@@ -1,0 +1,25 @@
+id: baycom-kiss
+type: device
+parent_stack: MainAX25-Stack (MAX25-Stack)
+hardware: modems
+label: BayCom KISS Serial (USB/async)
+status: scaffold
+
+hybbx:
+  plugin: baycom
+  backend: kiss
+  serial_baud: 1200
+
+serial:
+  default_device: /dev/ttyUSB0
+
+runtime:
+  kiss_link: /var/run/baycom-pr/kiss
+
+ini:
+  - stacks/baycom-pr/config/examples/baycom-pr.ham.ini
+
+docs:
+  - stacks/baycom-pr/docs/GETTING-STARTED.md
+
+notes: USB KISS path — no kernel baycom driver required.

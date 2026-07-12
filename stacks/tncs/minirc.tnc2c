@@ -1,0 +1,13 @@
+# minicom — TNC2C Host direkt (/dev/ttyS4)
+# Nur wenn HyBBX AUS ist! Sonst Port belegt.
+# Install: mkdir -p ~/.minicom && cp minirc.tnc2c ~/.minicom/minirc.tnc2c
+# Start:   minicom tnc2c
+
+pu port             /dev/ttyS4
+pu baudrate         19200
+pu bits             8
+pu parity           N
+pu stopbits         1
+pu rtscts           No
+pu xonxoff          No
+pu local_echo       No

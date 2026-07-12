@@ -1,0 +1,21 @@
+; MainAX25-Stack (MAX25-Stack) — service mode dual-radio (HyBBX)
+; See plugins/betriebsform/service/ and stacks/baycom-pr/config/examples/baycom-pr.dual.ini
+
+[networks]
+ax25 = yes
+baycom = yes
+
+; TNC edge A
+[transport.packet_radio1]
+tnc = tnc2c
+device = /dev/ttyS4
+link_id = max25-edge-a
+link_password = changeme
+
+; BayCom edge B (or second packet_radio)
+[transport.baycom1]
+backend = kernel
+mode = ser12*
+interface = bcsf1
+link_id = max25-edge-b
+link_password = changeme

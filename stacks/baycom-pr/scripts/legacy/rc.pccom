@@ -1,0 +1,28 @@
+#!/bin/bash
+# Optional rc-style init script for BayCom PR-Stack (generic Linux, legacy name)
+# Example: install to your local init directory and chmod +x
+
+CTL=/usr/local/sbin/baycom-pr-ctl
+[[ -x "${CTL}" ]] || CTL=/usr/local/sbin/pccom-ctl
+[[ -x "${CTL}" ]] || CTL="$(dirname "$0")/baycom-pr-ctl"
+
+case "$1" in
+start)
+	echo "Starting BayCom PR-Stack..."
+	"${CTL}" start
+	;;
+stop)
+	echo "Stopping BayCom PR-Stack..."
+	"${CTL}" stop
+	;;
+restart)
+	"${CTL}" restart
+	;;
+status)
+	"${CTL}" status
+	;;
+*)
+	echo "usage: $0 {start|stop|restart|status}"
+	exit 1
+	;;
+esac

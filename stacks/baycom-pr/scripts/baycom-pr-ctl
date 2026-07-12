@@ -1,0 +1,1420 @@
+#!/bin/bash
+# BayCom PR-Stack — Copyright (C) 2026 BayCom PR-Stack contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Standalone Linux service for BayCom packet radio modems
+#
+# Usage:
+#   baycom-pr-ctl [-c /etc/baycom/baycom-pr.ini] start|stop|recover|preflight|...
+#   baycom-pr-ctl minicom [modem-id] [--serial|--kiss]
+#   baycom-pr-ctl -f modem-a start          # legacy .env profile (deprecated)
+#
+# Configuration: INI files (config/baycom-pr.ini + config/modems.ini)
+
+set -euo pipefail
+
+SELF="${BASH_SOURCE[0]}"
+if command -v readlink >/dev/null; then
+	SELF="$(readlink -f "${SELF}" 2>/dev/null || echo "${SELF}")"
+fi
+SELF_DIR="$(cd "$(dirname "${SELF}")" && pwd)"
+PCCOM_ROOT="$(cd "${SELF_DIR}/.." && pwd)"
+
+PROFILE=""
+INI_FILE=""
+CMD=""
+CONFIG_SOURCE=""
+MINICOM_MODEM=""
+MINICOM_MODE=""
+EXTRA_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	-c|--config)
+		[[ $# -ge 2 ]] || { echo "baycom-pr-ctl: -c needs a file" >&2; exit 2; }
+		INI_FILE="$2"
+		shift 2
+		;;
+	--version|-V)
+		for vf in "${PCCOM_ROOT}/VERSION" "/etc/baycom/VERSION"; do
+			if [[ -f "${vf}" ]]; then
+				echo "baycom-pr-ctl $(tr -d '[:space:]' < "${vf}")"
+				exit 0
+			fi
+		done
+		echo "baycom-pr-ctl: version unknown" >&2
+		exit 1
+		;;
+	-f|--profile)
+		[[ $# -ge 2 ]] || { echo "baycom-pr-ctl: -f needs a profile name" >&2; exit 2; }
+		PROFILE="$2"
+		shift 2
+		;;
+	modem-a|modem-b|dual)
+		PROFILE="$1"
+		shift
+		;;
+	start|stop|restart|status|test|check|selftest|preflight|recover|probe|doctor|setup|minicom|axports|listen|call)
+		CMD="$1"
+		shift
+		;;
+	--serial)
+		MINICOM_MODE="serial"
+		shift
+		;;
+	--kiss)
+		MINICOM_MODE="kiss"
+		shift
+		;;
+	a|b|c|d|0|1|2|3)
+		if [[ "${CMD}" == "minicom" && -z "${MINICOM_MODEM}" ]]; then
+			MINICOM_MODEM="$1"
+			shift
+		elif [[ "${CMD}" == "axports" || "${CMD}" == "listen" || "${CMD}" == "call" ]]; then
+			EXTRA_ARGS+=("$1")
+			shift
+		else
+			echo "Usage: $0 [-c baycom-pr.ini] [-f legacy-profile] {start|stop|restart|status|test|minicom|axports|listen|call}" >&2
+			exit 2
+		fi
+		;;
+	*)
+		if [[ "${CMD}" == "minicom" && -z "${MINICOM_MODEM}" ]]; then
+			MINICOM_MODEM="$1"
+			shift
+		elif [[ "${CMD}" == "axports" || "${CMD}" == "listen" || "${CMD}" == "call" ]]; then
+			EXTRA_ARGS+=("$1")
+			shift
+		else
+			echo "Usage: $0 [-c baycom-pr.ini] [-f legacy-profile] {start|stop|restart|status|test|minicom|axports|listen|call}" >&2
+			exit 2
+		fi
+		;;
+	esac
+done
+
+CMD="${CMD:-status}"
+
+resolve_env_file() {
+	local profile="$1"
+	local f
+
+	if [[ -n "${profile}" ]]; then
+		for f in \
+			"/etc/baycom/legacy/pccom.env.${profile}" \
+			"${SELF_DIR}/../config/legacy/pccom.env.${profile}" \
+			"${SELF_DIR}/../config/pccom.env.${profile}"; do
+			if [[ -r "${f}" ]]; then
+				echo "${f}"
+				return 0
+			fi
+		done
+		echo "pccom-ctl: profile '${profile}' not found (expected pccom.env.${profile})" >&2
+		return 1
+	fi
+
+	if [[ -r /etc/baycom/legacy/pccom.env ]]; then
+		echo /etc/baycom/legacy/pccom.env
+	elif [[ -r /etc/pccom.env ]]; then
+		echo /etc/pccom.env
+	elif [[ -r "${SELF_DIR}/../config/legacy/pccom.env" ]]; then
+		echo "$(cd "${SELF_DIR}/../config/legacy" && pwd)/pccom.env"
+	elif [[ -r "${SELF_DIR}/../config/pccom.env" ]]; then
+		echo "$(cd "${SELF_DIR}/../config" && pwd)/pccom.env"
+	else
+		echo "pccom-ctl: missing /etc/baycom/legacy/pccom.env" >&2
+		return 1
+	fi
+}
+
+ENV_FILE=""
+if [[ "${CMD}" == "probe" ]]; then
+	CONFIG_SOURCE=""
+elif [[ -n "${PROFILE}" ]]; then
+	ENV_FILE="$(resolve_env_file "${PROFILE}")" || exit 1
+	CONFIG_SOURCE="env"
+elif [[ -n "${INI_FILE}" ]]; then
+	CONFIG_SOURCE="ini"
+elif [[ -r /etc/baycom/baycom-pr.ini ]]; then
+	INI_FILE=/etc/baycom/baycom-pr.ini
+	CONFIG_SOURCE="ini"
+elif [[ -r "${PCCOM_ROOT}/config/baycom-pr.ini" ]]; then
+	INI_FILE="${PCCOM_ROOT}/config/baycom-pr.ini"
+	CONFIG_SOURCE="ini"
+elif [[ -r /etc/baycom/legacy/pccom.env ]] || [[ -r /etc/pccom.env ]] \
+	|| [[ -r "${PCCOM_ROOT}/config/legacy/pccom.env" ]] || [[ -r "${PCCOM_ROOT}/config/pccom.env" ]]; then
+	ENV_FILE="$(resolve_env_file "")" || exit 1
+	CONFIG_SOURCE="env"
+else
+	echo "baycom-pr-ctl: no config (install /etc/baycom/baycom-pr.ini or use -c)" >&2
+	exit 1
+fi
+
+MODEM_COUNT=0
+declare -a M_ID M_SERIAL M_PARPORT M_IOBASE M_IRQ M_IFACE M_TXD M_KISS M_LABEL M_MODE M_OPTIONS M_BAUD M_DRIVER M_BACKEND M_KISS_BAUD M_PORT M_CALL
+
+find_helper_script() {
+	local base="$1" d
+	for d in \
+		"${SELF_DIR}" \
+		"${PCCOM_ROOT}/tools" \
+		"${PCCOM_BINDIR:-}" \
+		"/usr/local/sbin"; do
+		[[ -n "${d}" && -f "${d}/${base}" ]] || continue
+		echo "${d}/${base}"
+		return 0
+	done
+	return 1
+}
+
+modem_slot_var() {
+	local idx="$1" field="$2"
+	eval "echo \"\${PCCOM_MODEM${idx}_${field}:-}\""
+}
+
+init_modem_slots() {
+	local i n
+
+	# INI-loaded slots — skip legacy env fallback unless active.env reload
+	if [[ "${MODEM_COUNT:-0}" -gt 0 && -n "${M_ID[0]:-}" && -z "${PCCOM_MODEM_COUNT:-}" ]]; then
+		return 0
+	fi
+
+	if [[ -n "${PCCOM_MODEM_COUNT:-}" && "${PCCOM_MODEM_COUNT}" -gt 0 ]]; then
+		n="${PCCOM_MODEM_COUNT}"
+		for ((i = 0; i < n; i++)); do
+			M_ID[i]="$(modem_slot_var "${i}" ID)"
+			: "${M_ID[i]:=${i}}"
+			M_SERIAL[i]="$(modem_slot_var "${i}" SERIAL)"
+			M_IOBASE[i]="$(modem_slot_var "${i}" IOBASE)"
+			M_IRQ[i]="$(modem_slot_var "${i}" IRQ)"
+			M_IFACE[i]="$(modem_slot_var "${i}" IFACE)"
+			M_TXD[i]="$(modem_slot_var "${i}" TXD)"
+			M_KISS[i]="$(modem_slot_var "${i}" KISS)"
+			M_LABEL[i]="$(modem_slot_var "${i}" LABEL)"
+			: "${M_TXD[i]:=35}"
+			: "${M_KISS[i]:=${PCCOM_STATE_DIR}/kiss-${i}}"
+			: "${M_LABEL[i]:=modem${i}}"
+			M_BACKEND[i]="$(modem_slot_var "${i}" BACKEND)"
+			: "${M_BACKEND[i]:=kernel-ser12}"
+			M_KISS_BAUD[i]="$(modem_slot_var "${i}" KISS_BAUD)"
+			: "${M_KISS_BAUD[i]:=9600}"
+			M_MODE[i]="$(modem_slot_var "${i}" MODE)"
+			: "${M_MODE[i]:=${PCCOM_MODE:-ser12*}}"
+			M_BAUD[i]="$(modem_slot_var "${i}" BAUD)"
+			: "${M_BAUD[i]:=${PCCOM_BAUD:-1200}}"
+			M_DRIVER[i]="baycom_ser_fdx"
+			[[ -n "${M_SERIAL[i]}" && -n "${M_IOBASE[i]}" && -n "${M_IFACE[i]}" ]] \
+				|| die "incomplete PCCOM_MODEM${i}_* in ${ENV_FILE}"
+		done
+		MODEM_COUNT="${n}"
+		return 0
+	fi
+
+	: "${PCCOM_SERIAL:=/dev/ttyS0}"
+	: "${PCCOM_IOBASE:=0x3f8}"
+	: "${PCCOM_IRQ:=4}"
+	: "${PCCOM_IFACE:=bcsf0}"
+	: "${PCCOM_TXD:=35}"
+	: "${PCCOM_KISS_LINK:=${PCCOM_STATE_DIR}/kiss}"
+	: "${PCCOM_MODE:=ser12*}"
+	: "${PCCOM_BAUD:=1200}"
+
+	MODEM_COUNT=1
+	M_ID[0]="0"
+	M_SERIAL[0]="${PCCOM_SERIAL}"
+	M_IOBASE[0]="${PCCOM_IOBASE}"
+	M_IRQ[0]="${PCCOM_IRQ}"
+	M_IFACE[0]="${PCCOM_IFACE}"
+	M_TXD[0]="${PCCOM_TXD}"
+	M_KISS[0]="${PCCOM_KISS_LINK}"
+	M_LABEL[0]="${PCCOM_LABEL}"
+	M_MODE[0]="${PCCOM_MODE}"
+	M_BAUD[0]="${PCCOM_BAUD}"
+	M_DRIVER[0]="baycom_ser_fdx"
+	M_BACKEND[0]="kernel-ser12"
+	M_KISS_BAUD[0]=9600
+}
+
+load_from_ini() {
+	local f="$1" loader i p drv
+
+	loader="$(find_helper_script baycom_ini_load.py)" || {
+		echo "baycom-pr-ctl: ERROR: baycom_ini_load.py not found (run make install)" >&2
+		exit 1
+	}
+	# shellcheck disable=SC1090
+	eval "$(python3 "${loader}" "${f}")"
+
+	PCCOM_PROFILE="${BP_PROFILE}"
+	PCCOM_LABEL="${BP_PROFILE}"
+	PCCOM_STATE_DIR="${BP_STATE_DIR}"
+	PCCOM_KISS_BRIDGE="${BP_KISS_BRIDGE}"
+	PCCOM_BINDIR="${BP_BINDIR}"
+	MODEM_COUNT="${BP_MODEM_COUNT}"
+	ACTIVE_STATE="${PCCOM_STATE_DIR}/active.env"
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		p="BP_M${i}"
+		eval "M_ID[i]=\${${p}_ID:-${i}}"
+		eval "M_SERIAL[i]=\${${p}_SERIAL:-}"
+		eval "M_PARPORT[i]=\${${p}_PARPORT:-}"
+		eval "M_IOBASE[i]=\${${p}_IOBASE:-}"
+		eval "M_IRQ[i]=\${${p}_IRQ:-}"
+		eval "M_IFACE[i]=\${${p}_IFACE}"
+		eval "M_TXD[i]=\${${p}_TXD}"
+		eval "M_KISS[i]=\${${p}_KISS}"
+		eval "M_LABEL[i]=\${${p}_LABEL}"
+		eval "M_BACKEND[i]=\${${p}_BACKEND:-kernel-ser12}"
+		eval "M_KISS_BAUD[i]=\${${p}_KISS_BAUD:-9600}"
+		eval "M_MODE[i]=\${${p}_MODE}"
+		eval "M_OPTIONS[i]=\${${p}_OPTIONS:-}"
+		eval "M_BAUD[i]=\${${p}_BAUD}"
+		eval "M_PORT[i]=\${${p}_PORT:-}"
+		eval "M_CALL[i]=\${${p}_CALL:-}"
+		eval "drv=\${${p}_DRIVER:-baycom_ser_fdx}"
+		M_DRIVER[i]="${drv}"
+		case "${M_DRIVER[i]}" in
+		baycom_ser_fdx)
+			M_BACKEND[i]="kernel-ser12"
+			;;
+		baycom_par)
+			M_BACKEND[i]="kernel-par96"
+			;;
+		kiss_serial)
+			M_BACKEND[i]="kiss-serial"
+			;;
+		*)
+			die "modem ${i}: driver ${M_DRIVER[i]} not supported yet"
+			;;
+		esac
+	done
+}
+
+load_from_env() {
+	# shellcheck disable=SC1090
+	source <(tr -d '\r' < "${ENV_FILE}")
+
+	: "${PCCOM_BINDIR:=/usr/local/sbin}"
+	: "${PCCOM_PROFILE:=default}"
+	: "${PCCOM_LABEL:=pccom}"
+	: "${PCCOM_BAUD:=1200}"
+	: "${PCCOM_MODE:=ser12*}"
+	: "${PCCOM_STATE_DIR:=/var/run/pccom}"
+	: "${PCCOM_KISS_BRIDGE:=yes}"
+	ACTIVE_STATE="${PCCOM_STATE_DIR}/active.env"
+	init_modem_slots
+}
+
+if [[ -n "${CONFIG_SOURCE}" ]]; then
+	if [[ "${CONFIG_SOURCE}" == "ini" ]]; then
+		load_from_ini "${INI_FILE}"
+	else
+		load_from_env
+	fi
+fi
+
+: "${PCCOM_BINDIR:=/usr/local/sbin}"
+SETSERIAL_BIN=""
+
+resolve_tool() {
+	local name="$1" legacy=""
+
+	case "${name}" in
+	baycom_test) legacy=pccom_test ;;
+	baycom_sethdlc) legacy=pccom_sethdlc ;;
+	baycom_kissbridge) legacy=pccom_kissbridge ;;
+	baycom_kiss_serial) legacy="" ;;
+	esac
+
+	if [[ -x "${PCCOM_BINDIR}/${name}" ]]; then
+		echo "${PCCOM_BINDIR}/${name}"
+	elif [[ -n "${legacy}" && -x "${PCCOM_BINDIR}/${legacy}" ]]; then
+		echo "${PCCOM_BINDIR}/${legacy}"
+	elif [[ -x "${PCCOM_ROOT}/tools/${name}" ]]; then
+		echo "${PCCOM_ROOT}/tools/${name}"
+	elif [[ -n "${legacy}" && -x "${PCCOM_ROOT}/tools/${legacy}" ]]; then
+		echo "${PCCOM_ROOT}/tools/${legacy}"
+	else
+		echo "${PCCOM_ROOT}/tools/${name}"
+	fi
+}
+
+find_setserial() {
+	if command -v setserial >/dev/null; then
+		command -v setserial
+	elif [[ -x /sbin/setserial ]]; then
+		echo /sbin/setserial
+	fi
+}
+
+PCCOM_SETHDLC="$(resolve_tool baycom_sethdlc)"
+PCCOM_TEST="$(resolve_tool baycom_test)"
+PCCOM_BRIDGE="$(resolve_tool baycom_kissbridge)"
+PCCOM_KISS_SERIAL="$(resolve_tool baycom_kiss_serial)"
+SETSERIAL_BIN="$(find_setserial)"
+
+log() { printf 'baycom-pr-ctl: %s\n' "$*"; }
+die() { printf 'baycom-pr-ctl: ERROR: %s\n' "$*" >&2; exit 1; }
+
+need_root() {
+	[[ "$(id -u)" -eq 0 ]] || die "must run as root"
+}
+
+bridge_pid_file() {
+	echo "${PCCOM_STATE_DIR}/kissbridge-${1}.pid"
+}
+
+bridge_log_file() {
+	echo "${PCCOM_STATE_DIR}/kissbridge-${1}.log"
+}
+
+modem_is_kernel_ser12() {
+	[[ "${M_BACKEND[$1]:-}" == "kernel-ser12" ]]
+}
+
+modem_is_kernel_par() {
+	[[ "${M_BACKEND[$1]:-}" == "kernel-par96" ]]
+}
+
+modem_is_kernel() {
+	modem_is_kernel_ser12 "$1" || modem_is_kernel_par "$1"
+}
+
+count_kernel_ser12_modems() {
+	local i n=0
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel_ser12 "${i}" && n=$((n + 1))
+	done
+	echo "${n}"
+}
+
+count_kernel_par_modems() {
+	local i n=0
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel_par "${i}" && n=$((n + 1))
+	done
+	echo "${n}"
+}
+
+count_kernel_modems() {
+	local i n=0
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel "${i}" && n=$((n + 1))
+	done
+	echo "${n}"
+}
+
+bridge_key() {
+	local i="$1"
+	if modem_is_kernel "${i}"; then
+		echo "${M_IFACE[i]}"
+	else
+		echo "serial-${M_ID[i]}"
+	fi
+}
+
+save_active_state() {
+	local i
+
+	mkdir -p "${PCCOM_STATE_DIR}"
+	{
+		echo "PCCOM_PROFILE=${PCCOM_PROFILE}"
+		echo "PCCOM_MODEM_COUNT=${MODEM_COUNT}"
+		for ((i = 0; i < MODEM_COUNT; i++)); do
+			echo "PCCOM_MODEM${i}_ID=${M_ID[i]}"
+			printf 'PCCOM_MODEM%d_LABEL=%q\n' "${i}" "${M_LABEL[i]}"
+			echo "PCCOM_MODEM${i}_SERIAL=${M_SERIAL[i]}"
+			echo "PCCOM_MODEM${i}_IOBASE=${M_IOBASE[i]}"
+			echo "PCCOM_MODEM${i}_IRQ=${M_IRQ[i]}"
+			echo "PCCOM_MODEM${i}_IFACE=${M_IFACE[i]}"
+			echo "PCCOM_MODEM${i}_MODE=${M_MODE[i]}"
+			echo "PCCOM_MODEM${i}_BAUD=${M_BAUD[i]}"
+			echo "PCCOM_MODEM${i}_KISS=${M_KISS[i]}"
+			echo "PCCOM_MODEM${i}_BACKEND=${M_BACKEND[i]}"
+			echo "PCCOM_MODEM${i}_KISS_BAUD=${M_KISS_BAUD[i]}"
+		done
+	} >"${ACTIVE_STATE}"
+}
+
+load_active_state() {
+	if [[ ! -r "${ACTIVE_STATE}" ]]; then
+		return 1
+	fi
+	# shellcheck disable=SC1090
+	source <(tr -d '\r' < "${ACTIVE_STATE}")
+	init_modem_slots
+	return 0
+}
+
+baycom_ser_fdx_loaded() {
+	lsmod | awk '{print $1}' | grep -qx baycom_ser_fdx
+}
+
+baycom_par_loaded() {
+	lsmod | awk '{print $1}' | grep -qx baycom_par
+}
+
+baycom_loaded() {
+	baycom_ser_fdx_loaded || baycom_par_loaded
+}
+
+ensure_parport() {
+	if lsmod | awk '{print $1}' | grep -qx parport_pc; then
+		return 0
+	fi
+	if lsmod | awk '{print $1}' | grep -qx parport; then
+		return 0
+	fi
+	log "modprobe parport_pc (required for baycom_par)"
+	modprobe parport_pc 2>/dev/null || modprobe parport 2>/dev/null || true
+}
+
+iface_up() {
+	ip link show "$1" 2>/dev/null | grep -qE '<[^>]*UP|,UP,'
+}
+
+bridge_running() {
+	local pidf="$1"
+
+	if [[ -f "${pidf}" ]]; then
+		if kill -0 "$(cat "${pidf}")" 2>/dev/null; then
+			return 0
+		fi
+		rm -f "${pidf}"
+	fi
+	return 1
+}
+
+release_serial() {
+	local dev="$1"
+
+	if [[ -n "${SETSERIAL_BIN}" ]]; then
+		log "release ${dev} (uart none)"
+		"${SETSERIAL_BIN}" "${dev}" uart none
+	else
+		log "WARN: setserial missing — install if modprobe fails with I/O busy"
+	fi
+}
+
+restore_serial() {
+	local dev="$1"
+
+	if [[ -n "${SETSERIAL_BIN}" ]]; then
+		log "restore ${dev}"
+		"${SETSERIAL_BIN}" "${dev}" uart 16550A 2>/dev/null || true
+	fi
+}
+
+build_tools() {
+	local need_kiss_serial=0 i
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		[[ "${M_BACKEND[i]:-kernel-ser12}" == "kiss-serial" ]] && need_kiss_serial=1
+	done
+
+	if [[ -x "${PCCOM_SETHDLC}" && -x "${PCCOM_TEST}" ]]; then
+		if [[ "${PCCOM_KISS_BRIDGE}" != "yes" ]]; then
+			[[ "${need_kiss_serial}" -eq 0 || -x "${PCCOM_KISS_SERIAL}" ]] && return 0
+		elif [[ -x "${PCCOM_BRIDGE}" ]]; then
+			[[ "${need_kiss_serial}" -eq 0 || -x "${PCCOM_KISS_SERIAL}" ]] && return 0
+		fi
+	fi
+	log "building tools in ${PCCOM_ROOT}/tools"
+	make -C "${PCCOM_ROOT}/tools" baycom_sethdlc baycom_test baycom_kissbridge baycom_kiss_serial
+	PCCOM_SETHDLC="$(resolve_tool baycom_sethdlc)"
+	PCCOM_TEST="$(resolve_tool baycom_test)"
+	PCCOM_BRIDGE="$(resolve_tool baycom_kissbridge)"
+	PCCOM_KISS_SERIAL="$(resolve_tool baycom_kiss_serial)"
+}
+
+build_modprobe_ser_params() {
+	local i modes="" iobases="" irqs="" bauds="" ki=0
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel_ser12 "${i}" || continue
+		modes+="${M_MODE[i]},"
+		iobases+="${M_IOBASE[i]},"
+		irqs+="${M_IRQ[i]},"
+		bauds+="${M_BAUD[i]},"
+		ki=$((ki + 1))
+	done
+	SER_MODPROBE_MODE="${modes%,}"
+	SER_MODPROBE_IOBASE="${iobases%,}"
+	SER_MODPROBE_IRQ="${irqs%,}"
+	SER_MODPROBE_BAUD="${bauds%,}"
+	KERNEL_SER12_COUNT="${ki}"
+}
+
+build_modprobe_par_params() {
+	local i modes="" iobases="" ki=0
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel_par "${i}" || continue
+		modes+="${M_MODE[i]},"
+		iobases+="${M_IOBASE[i]},"
+		ki=$((ki + 1))
+	done
+	PAR_MODPROBE_MODE="${modes%,}"
+	PAR_MODPROBE_IOBASE="${iobases%,}"
+	KERNEL_PAR_COUNT="${ki}"
+}
+
+build_modprobe_params() {
+	build_modprobe_ser_params
+	build_modprobe_par_params
+	KERNEL_MODEM_COUNT=$(( ${KERNEL_SER12_COUNT:-0} + ${KERNEL_PAR_COUNT:-0} ))
+}
+
+run_modem_test() {
+	local i="$1"
+
+	if ! modem_is_kernel "${i}"; then
+		echo "== kiss-serial ${M_LABEL[i]} (${M_SERIAL[i]}) =="
+		if [[ ! -e "${M_SERIAL[i]}" ]]; then
+			log "FAIL: serial device missing: ${M_SERIAL[i]}"
+			return 1
+		fi
+		log "serial device present"
+		local key pidf
+		key="$(bridge_key "${i}")"
+		pidf="$(bridge_pid_file "${key}")"
+		if bridge_running "${pidf}"; then
+			log "kiss-serial bridge running (pid $(cat "${pidf}"))"
+		else
+			log "FAIL: kiss-serial bridge not running"
+			return 1
+		fi
+		return 0
+	fi
+
+	if modem_is_kernel_par "${i}"; then
+		BAYCOM_EXPECT_IOBASE="${M_IOBASE[i]}" \
+		BAYCOM_EXPECT_IRQ=-1 \
+		BAYCOM_EXPECT_DRIVER="${M_DRIVER[i]}" \
+		BAYCOM_SKIP_SERIAL=1 \
+			"${PCCOM_TEST}" -i "${M_IFACE[i]}" "${@:2}"
+		return $?
+	fi
+
+	BAYCOM_EXPECT_IOBASE="${M_IOBASE[i]}" BAYCOM_EXPECT_IRQ="${M_IRQ[i]}" \
+		BAYCOM_SERIAL="${M_SERIAL[i]}" \
+		BAYCOM_EXPECT_DRIVER="${M_DRIVER[i]}" \
+		"${PCCOM_TEST}" -i "${M_IFACE[i]}" -s "${M_SERIAL[i]}" "${@:2}"
+}
+
+start_modem_bridge() {
+	local i="$1"
+	local key pidf logf
+
+	if ! modem_is_kernel "${i}"; then
+		start_kiss_serial_bridge "${i}"
+		return
+	fi
+
+	key="$(bridge_key "${i}")"
+	pidf="$(bridge_pid_file "${key}")"
+	logf="$(bridge_log_file "${key}")"
+
+	if bridge_running "${pidf}"; then
+		log "kiss bridge ${key} already running (pid $(cat "${pidf}"))"
+		return 0
+	fi
+
+	log "start kiss bridge ${M_IFACE[i]} -> ${M_KISS[i]}"
+	nohup "${PCCOM_BRIDGE}" -i "${M_IFACE[i]}" -l "${M_KISS[i]}" >>"${logf}" 2>&1 &
+	echo $! >"${pidf}"
+}
+
+start_kiss_serial_bridge() {
+	local i="$1"
+	local key pidf logf
+
+	key="$(bridge_key "${i}")"
+	pidf="$(bridge_pid_file "${key}")"
+	logf="$(bridge_log_file "${key}")"
+
+	if bridge_running "${pidf}"; then
+		log "kiss-serial ${key} already running (pid $(cat "${pidf}"))"
+		return 0
+	fi
+
+	log "start kiss-serial ${M_SERIAL[i]} (${M_KISS_BAUD[i]} baud) -> ${M_KISS[i]}"
+	nohup "${PCCOM_KISS_SERIAL}" -s "${M_SERIAL[i]}" -b "${M_KISS_BAUD[i]}" \
+		-l "${M_KISS[i]}" >>"${logf}" 2>&1 &
+	echo $! >"${pidf}"
+}
+
+resolve_preflight() {
+	local f
+	if f="$(find_helper_script baycom_preflight.py)"; then
+		echo "${f}"
+		return 0
+	fi
+	return 1
+}
+
+irq_total() {
+	local want="$1"
+	awk -v want="${want}" '
+		$1 ~ /^[0-9]+:$/ {
+			n = $1
+			gsub(":", "", n)
+			if (n == want) {
+				s = 0
+				for (i = 2; i <= NF; i++)
+					if ($i ~ /^[0-9]+$/) s += $i
+				print s
+				exit
+			}
+		}
+	' /proc/interrupts
+}
+
+run_preflight() {
+	local pf ini="${INI_FILE:-/etc/baycom/baycom-pr.ini}"
+
+	if [[ "${BAYCOM_SKIP_PREFLIGHT:-}" == "1" ]]; then
+		log "preflight skipped (BAYCOM_SKIP_PREFLIGHT=1)"
+		return 0
+	fi
+	[[ -r "${ini}" ]] || die "INI not readable: ${ini}"
+	pf="$(resolve_preflight)" || die "baycom_preflight.py not found (make install)"
+	log "preflight ${ini}"
+	python3 "${pf}" "${ini}" || die "preflight failed — fix IRQ/UART/config before start"
+}
+
+resolve_axports() {
+	local f
+	if f="$(find_helper_script baycom_axports.py)"; then
+		echo "${f}"
+		return 0
+	fi
+	return 1
+}
+
+run_axports_apply() {
+	local ax ini="${INI_FILE:-/etc/baycom/baycom-pr.ini}"
+
+	[[ -r "${ini}" ]] || return 0
+	ax="$(resolve_axports)" || {
+		log "WARN: baycom_axports.py not found — skip axports apply"
+		return 0
+	}
+	log "axports apply ${ini}"
+	python3 "${ax}" "${ini}" apply || log "WARN: axports apply failed — check ax25_port/callsign in INI"
+}
+
+post_start_irq_watch() {
+	local only_idx="${1:-}"
+	local i irq a b delta rate dt=2 max_rate="${BAYCOM_MAX_IRQ_PER_SEC:-80000}"
+	declare -A seen_irq=()
+
+	sleep 1
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel_ser12 "${i}" || continue
+		[[ -n "${only_idx}" && "${i}" != "${only_idx}" ]] && continue
+		irq="${M_IRQ[i]}"
+		[[ -n "${seen_irq[${irq}]:-}" ]] && continue
+		seen_irq[${irq}]=1
+		a="$(irq_total "${irq}")"
+		sleep "${dt}"
+		b="$(irq_total "${irq}")"
+		delta=$((b - a))
+		rate=$((delta / dt))
+		log "IRQ ${irq} ~${rate}/s (${M_LABEL[i]})"
+		if [[ "${rate}" -gt "${max_rate}" ]]; then
+			log "ERROR: IRQ storm on ${irq} (~${rate}/s) — rolling back"
+			stop_baycom
+			die "IRQ storm — wrong IRQ or UART conflict; run 'baycom-pr-ctl recover'"
+		fi
+	done
+}
+
+STAGED_SER12_IFACE="bcsf0"
+STAGED_PAR_IFACE="bcp0"
+
+modprobe_ser_fdx_one() {
+	local i="$1" staged="${2:-0}"
+	local iface="${M_IFACE[i]}"
+
+	[[ "${staged}" == "1" ]] && iface="${STAGED_SER12_IFACE}"
+
+	log "modprobe baycom_ser_fdx mode=${M_MODE[i]} iobase=${M_IOBASE[i]} irq=${M_IRQ[i]}"
+	modprobe baycom_ser_fdx mode="${M_MODE[i]}" iobase="${M_IOBASE[i]}" \
+		irq="${M_IRQ[i]}" baud="${M_BAUD[i]}"
+	if ! iface_up "${iface}"; then
+		log "ip link set ${iface} up"
+		ip link set "${iface}" up
+	fi
+}
+
+modprobe_par_one() {
+	local i="$1" staged="${2:-0}"
+	local iface="${M_IFACE[i]}"
+
+	[[ "${staged}" == "1" ]] && iface="${STAGED_PAR_IFACE}"
+
+	ensure_parport
+	log "modprobe baycom_par mode=${M_MODE[i]} iobase=${M_IOBASE[i]}"
+	modprobe baycom_par mode="${M_MODE[i]}" iobase="${M_IOBASE[i]}"
+	if ! iface_up "${iface}"; then
+		log "ip link set ${iface} up"
+		ip link set "${iface}" up
+	fi
+}
+
+teardown_ser_fdx_one() {
+	local i="$1" staged="${2:-0}"
+	local iface="${M_IFACE[i]:-}"
+
+	[[ "${staged}" == "1" ]] && iface="${STAGED_SER12_IFACE}"
+
+	if modem_is_kernel_ser12 "${i}" && [[ -n "${iface}" ]] && iface_up "${iface}"; then
+		log "ip link set ${iface} down (staged probe)"
+		ip link set "${iface}" down
+	fi
+	if baycom_ser_fdx_loaded; then
+		log "modprobe -r baycom_ser_fdx (staged probe)"
+		modprobe -r baycom_ser_fdx 2>/dev/null || true
+	fi
+}
+
+teardown_par_one() {
+	local i="$1" staged="${2:-0}"
+	local iface="${M_IFACE[i]:-}"
+
+	[[ "${staged}" == "1" ]] && iface="${STAGED_PAR_IFACE}"
+
+	if modem_is_kernel_par "${i}" && [[ -n "${iface}" ]] && iface_up "${iface}"; then
+		log "ip link set ${iface} down (staged probe)"
+		ip link set "${iface}" down
+	fi
+	if baycom_par_loaded; then
+		log "modprobe -r baycom_par (staged probe)"
+		modprobe -r baycom_par 2>/dev/null || true
+	fi
+}
+
+teardown_kernel_one() {
+	local i="$1"
+
+	if modem_is_kernel_ser12 "${i}"; then
+		teardown_ser_fdx_one "${i}"
+	elif modem_is_kernel_par "${i}"; then
+		teardown_par_one "${i}"
+	fi
+}
+
+modprobe_kernel_one() {
+	local i="$1"
+
+	if modem_is_kernel_ser12 "${i}"; then
+		modprobe_ser_fdx_one "${i}"
+	elif modem_is_kernel_par "${i}"; then
+		modprobe_par_one "${i}"
+	fi
+}
+
+staged_dual_ser12_probe() {
+	local i staged="${BAYCOM_STAGED_START:-auto}"
+
+	[[ "${KERNEL_SER12_COUNT:-0}" -gt 1 ]] || return 0
+	[[ "${staged}" == "0" ]] && return 0
+
+	log "staged dual ser12 probe (one UART at a time — set BAYCOM_STAGED_START=0 to skip)"
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel_ser12 "${i}" || continue
+		log "staged probe: ${M_LABEL[i]} (${M_SERIAL[i]} IRQ ${M_IRQ[i]})"
+		if baycom_ser_fdx_loaded; then
+			modprobe -r baycom_ser_fdx 2>/dev/null || true
+		fi
+		modprobe_ser_fdx_one "${i}" 1
+		post_start_irq_watch "${i}"
+		teardown_ser_fdx_one "${i}" 1
+	done
+	log "staged ser12 probe OK — loading all kernel-ser12 modems"
+}
+
+staged_dual_par_probe() {
+	local i staged="${BAYCOM_STAGED_START:-auto}"
+
+	[[ "${KERNEL_PAR_COUNT:-0}" -gt 1 ]] || return 0
+	[[ "${staged}" == "0" ]] && return 0
+
+	log "staged dual par96 probe (one LPT port at a time — set BAYCOM_STAGED_START=0 to skip)"
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel_par "${i}" || continue
+		log "staged probe: ${M_LABEL[i]} (iobase ${M_IOBASE[i]})"
+		if baycom_par_loaded; then
+			modprobe -r baycom_par 2>/dev/null || true
+		fi
+		modprobe_par_one "${i}" 1
+		teardown_par_one "${i}" 1
+	done
+	log "staged par96 probe OK — loading all kernel-par96 modems"
+}
+
+staged_dual_modem_probe() {
+	staged_dual_ser12_probe
+	staged_dual_par_probe
+}
+
+start_baycom() {
+	local i
+
+	need_root
+	build_tools
+	init_modem_slots
+	run_preflight
+	run_axports_apply
+	mkdir -p "${PCCOM_STATE_DIR}"
+
+	if baycom_loaded; then
+		if [[ -r "${ACTIVE_STATE}" ]]; then
+			old_profile="$(grep '^PCCOM_PROFILE=' "${ACTIVE_STATE}" | cut -d= -f2- || true)"
+			if [[ "${old_profile}" != "${PCCOM_PROFILE}" ]]; then
+				log "profile change (${old_profile} -> ${PCCOM_PROFILE}) — stopping first"
+				stop_baycom
+			fi
+		elif [[ "${MODEM_COUNT}" -gt 1 ]]; then
+			log "baycom loaded without active state — stopping first"
+			stop_baycom
+		fi
+	fi
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		modem_is_kernel_ser12 "${i}" || continue
+		release_serial "${M_SERIAL[i]}"
+	done
+
+	build_modprobe_params
+	if [[ "${KERNEL_SER12_COUNT:-0}" -gt 0 ]]; then
+		if baycom_ser_fdx_loaded; then
+			log "baycom_ser_fdx already loaded"
+		else
+			staged_dual_modem_probe
+			log "modprobe baycom_ser_fdx mode=${SER_MODPROBE_MODE} iobase=${SER_MODPROBE_IOBASE} irq=${SER_MODPROBE_IRQ}"
+			modprobe baycom_ser_fdx mode="${SER_MODPROBE_MODE}" iobase="${SER_MODPROBE_IOBASE}" \
+				irq="${SER_MODPROBE_IRQ}" baud="${SER_MODPROBE_BAUD}"
+		fi
+
+		for ((i = 0; i < MODEM_COUNT; i++)); do
+			modem_is_kernel_ser12 "${i}" || continue
+			if ! iface_up "${M_IFACE[i]}"; then
+				log "ip link set ${M_IFACE[i]} up"
+				ip link set "${M_IFACE[i]}" up
+			fi
+			log "set ${M_IFACE[i]} tx_delay=${M_TXD[i]} (${M_TXD[i]}0 ms)"
+			"${PCCOM_SETHDLC}" "${M_IFACE[i]}" "${M_TXD[i]}"
+		done
+		post_start_irq_watch
+	fi
+
+	if [[ "${KERNEL_PAR_COUNT:-0}" -gt 0 ]]; then
+		if baycom_par_loaded; then
+			log "baycom_par already loaded"
+		else
+			staged_dual_modem_probe
+			ensure_parport
+			log "modprobe baycom_par mode=${PAR_MODPROBE_MODE} iobase=${PAR_MODPROBE_IOBASE}"
+			modprobe baycom_par mode="${PAR_MODPROBE_MODE}" iobase="${PAR_MODPROBE_IOBASE}"
+		fi
+
+		for ((i = 0; i < MODEM_COUNT; i++)); do
+			modem_is_kernel_par "${i}" || continue
+			if ! iface_up "${M_IFACE[i]}"; then
+				log "ip link set ${M_IFACE[i]} up"
+				ip link set "${M_IFACE[i]}" up
+			fi
+			log "set ${M_IFACE[i]} tx_delay=${M_TXD[i]} (${M_TXD[i]}0 ms)"
+			"${PCCOM_SETHDLC}" "${M_IFACE[i]}" "${M_TXD[i]}"
+		done
+	fi
+
+	if [[ "${KERNEL_MODEM_COUNT:-0}" -eq 0 ]]; then
+		log "no kernel modems in profile — kiss-serial / USB only"
+	fi
+
+	if [[ "${PCCOM_KISS_BRIDGE}" == "yes" ]]; then
+		for ((i = 0; i < MODEM_COUNT; i++)); do
+			start_modem_bridge "${i}"
+		done
+	fi
+
+	save_active_state
+	log "started (${PCCOM_LABEL})"
+}
+
+stop_baycom() {
+	local i key pidf
+
+	need_root
+
+	if load_active_state; then
+		:
+	else
+		init_modem_slots
+	fi
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		key="$(bridge_key "${i}")"
+		pidf="$(bridge_pid_file "${key}")"
+		if bridge_running "${pidf}"; then
+			log "stop kiss bridge ${key}"
+			kill "$(cat "${pidf}")" 2>/dev/null || true
+			rm -f "${pidf}" "${M_KISS[i]}"
+		fi
+		if modem_is_kernel "${i}" && iface_up "${M_IFACE[i]}"; then
+			log "ip link set ${M_IFACE[i]} down"
+			ip link set "${M_IFACE[i]}" down
+		fi
+		if modem_is_kernel_ser12 "${i}"; then
+			restore_serial "${M_SERIAL[i]}"
+		fi
+	done
+
+	if baycom_ser_fdx_loaded; then
+		log "modprobe -r baycom_ser_fdx"
+		modprobe -r baycom_ser_fdx 2>/dev/null || true
+	fi
+	if baycom_par_loaded; then
+		log "modprobe -r baycom_par"
+		modprobe -r baycom_par 2>/dev/null || true
+	fi
+
+	rm -f "${ACTIVE_STATE}"
+	log "stopped"
+}
+
+cmd_status() {
+	local i pidf
+
+	build_tools
+	init_modem_slots
+	echo "=== baycom-pr-ctl status ==="
+	echo "config=${CONFIG_SOURCE} profile=${PCCOM_PROFILE} modems=${MODEM_COUNT}"
+	[[ "${CONFIG_SOURCE}" == "ini" ]] && echo "ini=${INI_FILE}"
+	if [[ -r "${ACTIVE_STATE}" ]]; then
+		echo "active state: ${ACTIVE_STATE}"
+	fi
+	if baycom_ser_fdx_loaded; then echo "baycom_ser_fdx: loaded"; else echo "baycom_ser_fdx: not loaded"; fi
+	if baycom_par_loaded; then echo "baycom_par: loaded"; else echo "baycom_par: not loaded"; fi
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		echo "--- ${M_LABEL[i]} ---"
+		echo "backend=${M_BACKEND[i]:-kernel-ser12} catalog_driver=${M_DRIVER[i]}"
+		if modem_is_kernel_par "${i}"; then
+			echo "iobase=${M_IOBASE[i]} iface=${M_IFACE[i]} mode=${M_MODE[i]}"
+			[[ -n "${M_PARPORT[i]:-}" ]] && echo "parport=${M_PARPORT[i]}"
+			[[ -n "${M_OPTIONS[i]:-}" ]] && echo "options=${M_OPTIONS[i]}"
+		else
+			echo "serial=${M_SERIAL[i]} kiss_baud=${M_KISS_BAUD[i]:-9600}"
+		fi
+		if modem_is_kernel "${i}"; then
+			if modem_is_kernel_ser12 "${i}"; then
+				echo "iobase=${M_IOBASE[i]} irq=${M_IRQ[i]} iface=${M_IFACE[i]}"
+			fi
+			if iface_up "${M_IFACE[i]}"; then
+				echo "${M_IFACE[i]}: UP"
+			else
+				echo "${M_IFACE[i]}: DOWN"
+			fi
+		fi
+		if [[ "${PCCOM_KISS_BRIDGE}" == "yes" ]]; then
+			pidf="$(bridge_pid_file "$(bridge_key "${i}")")"
+			if bridge_running "${pidf}"; then
+				echo "kiss bridge: running pid $(cat "${pidf}")"
+			else
+				echo "kiss bridge: stopped"
+			fi
+			if [[ -L "${M_KISS[i]}" ]]; then
+				echo "kiss link: ${M_KISS[i]} -> $(readlink "${M_KISS[i]}")"
+			fi
+		fi
+		echo ""
+		run_modem_test "${i}" status || true
+	done
+}
+
+resolve_validate() {
+	local f
+	if f="$(find_helper_script baycom_validate_config.py)"; then
+		echo "${f}"
+	else
+		echo "${PCCOM_ROOT}/tools/baycom_validate_config.py"
+	fi
+}
+
+cmd_check() {
+	local i validate loader
+
+	init_modem_slots
+	validate="$(resolve_validate)"
+	echo "=== baycom-pr-ctl check (quick) ==="
+
+	if [[ "${CONFIG_SOURCE}" == "ini" && -n "${INI_FILE}" ]]; then
+		python3 "${validate}" "${INI_FILE}" || return 1
+	elif [[ -r /etc/baycom/baycom-pr.ini ]]; then
+		python3 "${validate}" /etc/baycom/baycom-pr.ini || return 1
+	else
+		log "WARN: no INI — skipping config validation"
+	fi
+
+	if [[ -n "${SETSERIAL_BIN}" ]]; then
+		for ((i = 0; i < MODEM_COUNT; i++)); do
+			modem_is_kernel_ser12 "${i}" || continue
+			echo "--- preflight ${M_LABEL[i]}: ${M_SERIAL[i]} ---"
+			"${SETSERIAL_BIN}" -g "${M_SERIAL[i]}" 2>/dev/null || log "WARN: setserial -g failed for ${M_SERIAL[i]}"
+		done
+	else
+		log "WARN: setserial missing"
+	fi
+
+	if ! baycom_loaded; then
+		log "stack not loaded — run 'baycom-pr-ctl start' then 'test' or 'selftest'"
+		return 0
+	fi
+
+	build_tools
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		echo "--- quick ${M_LABEL[i]} (${M_IFACE[i]}) ---"
+		run_modem_test "${i}" quick || return 1
+		if [[ "${PCCOM_KISS_BRIDGE}" == "yes" ]]; then
+			if [[ -L "${M_KISS[i]}" ]]; then
+				log "kiss: ${M_KISS[i]} -> $(readlink "${M_KISS[i]}")"
+			else
+				log "WARN: kiss link missing ${M_KISS[i]}"
+			fi
+		fi
+	done
+	log "check done"
+}
+
+cmd_selftest() {
+	local script=""
+
+	need_root
+	if [[ -f "${PCCOM_ROOT}/scripts/baycom-pr-selftest.sh" && -f "${PCCOM_ROOT}/tools/Makefile" ]]; then
+		script="${PCCOM_ROOT}/scripts/baycom-pr-selftest.sh"
+	elif [[ -f "${SELF_DIR}/baycom-pr-selftest.sh" ]]; then
+		script="${SELF_DIR}/baycom-pr-selftest.sh"
+	elif [[ -f /usr/local/sbin/baycom-pr-selftest.sh ]]; then
+		script="/usr/local/sbin/baycom-pr-selftest.sh"
+	fi
+	[[ -n "${script}" ]] || die "selftest script missing (run make install)"
+
+	export BAYCOM_CTL="${SELF}"
+	if [[ -f "${PCCOM_ROOT}/tools/Makefile" ]]; then
+		export BAYCOM_ROOT="${PCCOM_ROOT}"
+	fi
+	if [[ "${CONFIG_SOURCE}" == "ini" && -n "${INI_FILE}" ]]; then
+		export BAYCOM_INI="${INI_FILE}"
+	fi
+	exec bash "${script}"
+}
+
+cmd_setup() {
+	local ini="${INI_FILE:-/etc/baycom/baycom-pr.ini}" probe
+
+	need_root
+	init_modem_slots
+	[[ -r "${ini}" ]] || die "INI not readable: ${ini}"
+	probe="$(find_helper_script baycom_probe.py)" || die "baycom_probe.py not found (make install)"
+	log "setup: auto-fill missing fields in ${ini}"
+	python3 "${probe}" --apply "${ini}"
+	log "verify with preflight"
+	cmd_preflight
+	run_axports_apply
+}
+
+cmd_probe() {
+	local probe ini="${INI_FILE:-}"
+
+	probe="$(find_helper_script baycom_probe.py)" || die "baycom_probe.py not found"
+	if [[ "${BAYCOM_PROBE_APPLY:-}" == "1" && -n "${ini}" && -r "${ini}" ]]; then
+		python3 "${probe}" --apply "${ini}"
+	else
+		python3 "${probe}"
+	fi
+}
+
+cmd_doctor() {
+	local doc ini="${INI_FILE:-/etc/baycom/baycom-pr.ini}"
+
+	doc="$(find_helper_script baycom_doctor.py)" || die "baycom_doctor.py not found (make install)"
+	python3 "${doc}" "${ini}"
+}
+
+cmd_preflight() {
+	local pf ini="${INI_FILE:-/etc/baycom/baycom-pr.ini}"
+
+	init_modem_slots
+	[[ -r "${ini}" ]] || die "INI not readable: ${ini}"
+	pf="$(resolve_preflight)" || die "baycom_preflight.py not found"
+	python3 "${pf}" "${ini}"
+}
+
+cmd_recover() {
+	local i
+
+	need_root
+	if load_active_state; then
+		log "recover: using saved active state from last start"
+	else
+		init_modem_slots
+	fi
+	log "recover: stop bridges, unload driver, restore UARTs"
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		key="$(bridge_key "${i}")"
+		pidf="$(bridge_pid_file "${key}")"
+		if bridge_running "${pidf}"; then
+			kill "$(cat "${pidf}")" 2>/dev/null || true
+			rm -f "${pidf}" "${M_KISS[i]}"
+		fi
+		if modem_is_kernel "${i}" && iface_up "${M_IFACE[i]:-}"; then
+			ip link set "${M_IFACE[i]}" down 2>/dev/null || true
+		fi
+		if modem_is_kernel_ser12 "${i}"; then
+			restore_serial "${M_SERIAL[i]}"
+		fi
+	done
+
+	if baycom_ser_fdx_loaded; then
+		modprobe -r baycom_ser_fdx 2>/dev/null || true
+	fi
+	if baycom_par_loaded; then
+		modprobe -r baycom_par 2>/dev/null || true
+	fi
+	rm -f "${ACTIVE_STATE:-/var/run/baycom-pr/active.env}"
+	log "recover complete — verify with: baycom-pr-ctl preflight && baycom-pr-ctl start"
+}
+
+cmd_test() {
+	local i mode="all"
+
+	build_tools
+	init_modem_slots
+	if [[ "${BAYCOM_TEST_SAFE:-}" == "1" ]]; then
+		mode="quick"
+		log "safe test mode (quick only — set BAYCOM_TEST_FULL=1 for calibrate)"
+	fi
+	if [[ "${BAYCOM_TEST_FULL:-}" != "1" && "${MODEM_COUNT:-0}" -gt 1 ]]; then
+		mode="quick"
+		log "dual-modem: using quick tests only (set BAYCOM_TEST_FULL=1 to override)"
+	fi
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		echo "######## test modem ${i}: ${M_LABEL[i]} (${mode}) ########"
+		run_modem_test "${i}" "${mode}"
+		echo ""
+	done
+}
+
+find_minicom_config() {
+	local name="$1"
+	local f
+
+	for f in \
+		"/etc/baycom/minicom/minirc.${name}" \
+		"${PCCOM_ROOT}/config/minicom/minirc.${name}" \
+		"${SELF_DIR}/../config/minicom/minirc.${name}"; do
+		if [[ -r "${f}" ]]; then
+			echo "${f}"
+			return 0
+		fi
+	done
+	return 1
+}
+
+resolve_modem_index() {
+	local want="$1"
+	local i
+
+	if [[ -z "${want}" ]]; then
+		echo 0
+		return 0
+	fi
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		if [[ "${M_ID[i]}" == "${want}" || "${i}" == "${want}" ]]; then
+			echo "${i}"
+			return 0
+		fi
+	done
+
+	die "modem '${want}' not in profile (have: $(for ((i = 0; i < MODEM_COUNT; i++)); do printf '%s ' "${M_ID[i]}"; done))"
+}
+
+cmd_minicom() {
+	local idx want mode device baud minicom_bin cfg args=()
+
+	init_modem_slots
+	want="${MINICOM_MODEM:-${M_ID[0]:-0}}"
+	idx="$(resolve_modem_index "${want}")"
+
+	if ! command -v minicom >/dev/null 2>&1; then
+		die "minicom not found — install the minicom package"
+	fi
+	minicom_bin="$(command -v minicom)"
+
+	mode="${MINICOM_MODE}"
+	if [[ -z "${mode}" ]]; then
+		if baycom_loaded && iface_up "${M_IFACE[idx]}"; then
+			mode="kiss"
+		else
+			mode="serial"
+		fi
+	fi
+
+	case "${mode}" in
+	serial)
+		if modem_is_kernel_par "${idx}"; then
+			die "kernel-par96 has no serial device — use --kiss after start"
+		fi
+		if baycom_loaded; then
+			die "stack is running — run 'baycom-pr-ctl stop' before --serial minicom on ${M_SERIAL[idx]}"
+		fi
+		device="${M_SERIAL[idx]}"
+		baud="${M_BAUD[idx]}"
+		cfg="$(find_minicom_config baycom-serial || true)"
+		log "minicom serial ${device} (${M_LABEL[idx]}, ${baud} baud) — stack must stay stopped"
+		;;
+	kiss)
+		if ! baycom_loaded || ! iface_up "${M_IFACE[idx]}"; then
+			die "stack not running — run 'baycom-pr-ctl start' or use --serial"
+		fi
+		if [[ "${PCCOM_KISS_BRIDGE}" != "yes" ]]; then
+			die "kiss_bridge disabled in INI"
+		fi
+		if [[ ! -e "${M_KISS[idx]}" ]]; then
+			die "kiss link missing: ${M_KISS[idx]} (start stack first)"
+		fi
+		device="$(readlink -f "${M_KISS[idx]}" 2>/dev/null || echo "${M_KISS[idx]}")"
+		baud="9600"
+		cfg="$(find_minicom_config baycom-kiss || true)"
+		log "minicom KISS ${M_KISS[idx]} -> ${device} (${M_LABEL[idx]})"
+		log "tip: attach KISS clients to ${M_KISS[idx]}; use listen/call on axports for AX.25"
+		;;
+	*)
+		die "unknown minicom mode '${mode}' (use --serial or --kiss)"
+		;;
+	esac
+
+	args=("${minicom_bin}")
+	if [[ -n "${cfg}" ]]; then
+		args+=(-C "${cfg}")
+	fi
+	args+=(-D "${device}" -b "${baud}")
+	exec "${args[@]}"
+}
+
+resolve_axport_name() {
+	local want="$1" i
+
+	if [[ -z "${want}" ]]; then
+		for ((i = 0; i < MODEM_COUNT; i++)); do
+			if [[ -n "${M_PORT[i]:-}" ]]; then
+				echo "${M_PORT[i]}"
+				return 0
+			fi
+		done
+		die "no ax25_port in profile — set ax25_port in INI and run: baycom-pr-ctl axports apply"
+	fi
+
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		if [[ "${M_ID[i]}" == "${want}" || "${i}" == "${want}" ]]; then
+			[[ -n "${M_PORT[i]:-}" ]] || die "modem '${want}' has no ax25_port in INI"
+			echo "${M_PORT[i]}"
+			return 0
+		fi
+	done
+	for ((i = 0; i < MODEM_COUNT; i++)); do
+		if [[ "${M_PORT[i]:-}" == "${want}" ]]; then
+			echo "${want}"
+			return 0
+		fi
+	done
+	echo "${want}"
+}
+
+cmd_axports() {
+	local sub ax ini="${INI_FILE:-/etc/baycom/baycom-pr.ini}"
+
+	[[ -r "${ini}" ]] || die "INI not readable: ${ini}"
+	ax="$(resolve_axports)" || die "baycom_axports.py not found (make install)"
+	sub="${EXTRA_ARGS[0]:-show}"
+	case "${sub}" in
+	apply)
+		need_root
+		python3 "${ax}" "${ini}" apply "${EXTRA_ARGS[@]:1}"
+		;;
+	show)
+		python3 "${ax}" "${ini}" show "${EXTRA_ARGS[@]:1}"
+		;;
+	check)
+		python3 "${ax}" "${ini}" check "${EXTRA_ARGS[@]:1}"
+		;;
+	*)
+		die "usage: baycom-pr-ctl axports {apply|show|check}"
+		;;
+	esac
+}
+
+cmd_listen() {
+	local port listen_bin
+
+	init_modem_slots
+	if ! command -v listen >/dev/null 2>&1; then
+		die "listen not found — install ax25-tools package"
+	fi
+	listen_bin="$(command -v listen)"
+	port="$(resolve_axport_name "${EXTRA_ARGS[0]:-}")"
+	log "listen -a -c ${port}"
+	exec "${listen_bin}" -a -c "${port}" "${EXTRA_ARGS[@]:1}"
+}
+
+cmd_call() {
+	local port dest call_bin
+
+	init_modem_slots
+	if ! command -v call >/dev/null 2>&1; then
+		die "call not found — install ax25-tools package"
+	fi
+	call_bin="$(command -v call)"
+	if [[ ${#EXTRA_ARGS[@]} -eq 0 ]]; then
+		die "usage: baycom-pr-ctl call <port|modem> <dest> [via ...]"
+	fi
+	if [[ ${#EXTRA_ARGS[@]} -eq 1 ]]; then
+		port="$(resolve_axport_name "")"
+		dest="${EXTRA_ARGS[0]}"
+		log "call ${port} ${dest}"
+		exec "${call_bin}" "${port}" "${dest}"
+	fi
+	port="$(resolve_axport_name "${EXTRA_ARGS[0]}")"
+	dest="${EXTRA_ARGS[1]}"
+	log "call ${port} ${dest}"
+	exec "${call_bin}" "${port}" "${dest}" "${EXTRA_ARGS[@]:2}"
+}
+
+case "${CMD}" in
+start)   start_baycom ;;
+stop)    stop_baycom ;;
+restart) stop_baycom; start_baycom ;;
+status)  cmd_status ;;
+test)    cmd_test ;;
+check)   cmd_check ;;
+preflight) cmd_preflight ;;
+probe)   cmd_probe ;;
+doctor)  cmd_doctor ;;
+setup)   cmd_setup ;;
+recover) cmd_recover ;;
+selftest) cmd_selftest ;;
+minicom) cmd_minicom ;;
+axports) cmd_axports ;;
+listen)  cmd_listen ;;
+call)    cmd_call ;;
+*)
+	echo "Usage: $0 [-c baycom-pr.ini] {start|stop|restart|recover|preflight|probe|doctor|setup|status|test|check|selftest|minicom|axports|listen|call}" >&2
+	exit 2
+	;;
+esac

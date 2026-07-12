@@ -1,0 +1,22 @@
+; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary edge (PK-TNC2 / TNC-2)
+; Status: planned — adjust device/baud after hardware inventory
+
+[networks]
+ax25 = yes
+
+[transport.packet_radio1]
+enabled = yes
+tnc = tnc2
+protocol = kiss
+device_type = serial
+device = /dev/ttyUSB0
+baud = 9600
+serial_line = 8n1
+kiss_entry = auto
+radio_baud = 1200
+radio_band = cb
+radio_duplex = half
+circuit_host = main.example.com
+circuit_port = 7323
+link_id = max25-pktnc2
+link_password = changeme

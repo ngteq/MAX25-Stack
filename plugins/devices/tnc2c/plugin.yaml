@@ -1,0 +1,37 @@
+id: tnc2c
+type: device
+parent_stack: MainAX25-Stack (MAX25-Stack)
+hardware: tncs
+label: Landolt TNC2C
+status: active
+
+hybbx:
+  plugin: packet_radio
+  profile: tnc2c
+  protocol: kiss
+  serial_line: 8n1
+  rts_dtr: yes
+  kiss_entry: kiss_on
+
+serial:
+  default_device: /dev/ttyS4
+  default_baud: 19200
+  env_file: stacks/tncs/tnc2c-serial.env
+
+rf:
+  modem: tcm3105
+  radio_baud: 2400
+  band: cb
+
+scripts:
+  boot_wait: stacks/tncs/tnc2c-boot-wait.sh
+  health: stacks/tncs/tnc2c-health.sh
+  integration: stacks/tncs/tnc2c-integration-test.sh
+
+ini:
+  - stacks/tncs/hybbx-tnc2c.ini
+  - share/hybbx/tnc2c-edge.ini.example
+
+docs:
+  - stacks/tncs/docs/TNC2C-OPERATIONS.md
+  - stacks/tncs/docs/HYBBX-TNC2C.md

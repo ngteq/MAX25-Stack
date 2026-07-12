@@ -1,0 +1,13 @@
+# BayCom PR-Stack — raw UART (stack must be stopped)
+# Usage: baycom-pr-ctl minicom a --serial
+#        minicom baycom-serial -D /dev/ttyS0
+#
+# pu port is overridden by baycom-pr-ctl or minicom -D
+
+pu port              /dev/ttyS0
+pu baudrate          1200
+pu bits              8
+pu parity            None
+pu stopbits          1
+pu rtscts            No
+pu xonxoff           No

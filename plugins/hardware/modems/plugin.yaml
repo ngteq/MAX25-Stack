@@ -1,0 +1,30 @@
+id: modems
+type: hardware
+parent_stack: MainAX25-Stack (MAX25-Stack)
+label: Modems
+description: BayCom-compatible kernel modems (SER12, PAR96, KISS serial)
+
+stack_path: stacks/baycom-pr
+hybbx_plugin: baycom
+hybbx_doc: stacks/baycom-pr/docs/PLUGIN.md
+
+backends:
+  - kernel-ser12
+  - kernel-par96
+  - kiss-serial
+
+build:
+  makefile: stacks/baycom-pr/Makefile
+  targets: [all, test, verify]
+
+ctl: stacks/baycom-pr/scripts/baycom-pr-ctl
+
+runtime:
+  state_dir: /var/run/baycom-pr
+  config: /etc/baycom/baycom-pr.ini
+  kiss_default: /var/run/baycom-pr/kiss
+
+devices:
+  - baycom-ser12
+  - baycom-par96
+  - baycom-kiss

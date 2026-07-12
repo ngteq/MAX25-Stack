@@ -1,0 +1,28 @@
+id: tncs
+type: hardware
+parent_stack: MainAX25-Stack (MAX25-Stack)
+label: TNCs
+description: Serial/USB TNC hardware group — async host protocols (KISS, hostmode, 6PACK)
+
+stack_path: stacks/tncs
+hybbx_plugin: packet_radio
+hybbx_doc: ../../docs/HYBBX.md#packet_radio
+
+protocols:
+  - kiss
+  - hostmode
+  - sixpack
+
+build:
+  makefile: stacks/tncs/Makefile
+  targets: [all, test, integration, health, boot-wait]
+
+ctl:
+  health: stacks/tncs/tnc2c-health.sh
+  boot_wait: stacks/tncs/tnc2c-boot-wait.sh
+  integration: stacks/tncs/tnc2c-integration-test.sh
+  listen: stacks/tncs/tnc2c-listen.sh
+
+devices:
+  - tnc2c
+  - pktnc2
