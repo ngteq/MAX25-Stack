@@ -101,6 +101,7 @@ Installs:
 | Path | Content |
 |------|---------|
 | `/usr/local/bin/max25d` | Daemon |
+| `/usr/local/bin/kiss_bridge.py` | KISS serial helper (imported by `max25d`) |
 | `/usr/local/bin/max25-terminal` | Operator client |
 | `/usr/local/bin/max25-client` | Symlink → `max25-terminal` |
 | `/usr/local/bin/max25-ctl` | Stack control (legacy entry) |

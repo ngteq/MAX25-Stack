@@ -87,7 +87,7 @@ fi
 
 echo ""
 echo "== MAX25 installed to ${PREFIX} =="
-echo "  max25d, max25-terminal, max25-ctl -> ${PREFIX}/bin"
+echo "  max25d, kiss_bridge.py, max25-terminal, max25-ctl -> ${PREFIX}/bin"
 echo "  examples -> ${PREFIX}/share/max25/"
 echo ""
 echo "Next steps:"

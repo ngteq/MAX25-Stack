@@ -40,6 +40,8 @@ if(MAX25_BUILD_DAEMON)
     )
     install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/kiss_bridge.py"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
 
 install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25-ctl"

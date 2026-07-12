@@ -52,6 +52,12 @@ else
   fail "stacks/daemon/max25d not executable"
 fi
 
+if [[ -f stacks/daemon/kiss_bridge.py ]]; then
+  ok "stacks/daemon/kiss_bridge.py"
+else
+  fail "missing stacks/daemon/kiss_bridge.py"
+fi
+
 if [[ -f share/max25/max25d.ini.example ]]; then
   ok "share/max25/max25d.ini.example"
 else
