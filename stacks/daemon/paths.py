@@ -94,11 +94,16 @@ def default_ini_candidates(tree: Path, prefix: Path | None) -> list[Path]:
 
 def serial_env_candidates(device_id: str, tree: Path, prefix: Path | None) -> list[Path]:
     paths: list[Path] = [Path(f"/etc/max25/{device_id}-serial.env")]
+    env_root = os.environ.get("MAX25_ROOT", "").strip()
+    if env_root:
+        paths.append(Path(env_root) / "local" / f"{device_id}-serial.env")
+        paths.append(Path(env_root) / _STACKS / "tncs" / f"{device_id}-serial.env")
+    cwd = os.environ.get("PWD", "").strip()
+    if cwd:
+        paths.append(Path(cwd) / "local" / f"{device_id}-serial.env")
     if prefix is not None:
         paths.append(prefix / _SHARE_MAX25 / "serial" / f"{device_id}-serial.env")
         paths.append(prefix / _SHARE_MAX25 / _STACKS / "tncs" / f"{device_id}-serial.env")
-    env_root = os.environ.get("MAX25_ROOT", "").strip()
-    if env_root:
-        paths.append(Path(env_root) / _STACKS / "tncs" / f"{device_id}-serial.env")
+    paths.append(tree / "local" / f"{device_id}-serial.env")
     paths.append(tree / _STACKS / "tncs" / f"{device_id}-serial.env")
     return paths
