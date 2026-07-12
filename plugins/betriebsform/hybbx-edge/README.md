@@ -1,18 +1,19 @@
 # Operating mode: HyBBX Edge
 
-RF edge on a HyBBX **Secondary** node. MainAX25 (MAX25) prepares hardware; HyBBX opens KISS/serial and bridges AX.25 to Main over HBX.
+RF edge on a HyBBX **Secondary** node. MAX25 prepares hardware; HyBBX bridges AX.25 to Main over HBX.
 
-## TNC path (packet_radio)
+## Workflow
 
-1. Stop HyBBX and minicom
-2. `stacks/tncs/tnc2c-boot-wait.sh` → OK: HOST
-3. `stacks/tncs/tnc2c-integration-test.sh`
-4. Start HyBBX with `stacks/tncs/hybbx-tnc2c.ini` snippet
+1. MAX25 device prep (boot-wait, `baycom-pr-ctl start`, or `crdopc`)
+2. Merge `share/hybbx/*-edge.ini.example` into Secondary `hybbx.ini`
+3. Start HyBBX Secondary
 
-## BayCom path (baycom plugin)
+## Per device
 
-1. `sudo stacks/baycom-pr/scripts/baycom-pr-ctl preflight`
-2. `sudo stacks/baycom-pr/scripts/baycom-pr-ctl start`
-3. HyBBX `[transport.baycom1]` → KISS at `/var/run/baycom-pr/kiss`
+| Device | MAX25 prep | HyBBX plugin |
+|--------|------------|--------------|
+| TNC2C | `tnc2c-boot-wait.sh` | `packet_radio` |
+| BayCom SER12 | `baycom-pr-ctl start` | `baycom` |
+| CRDOP | `crdopc` running | `crdop` |
 
-Full contract: [docs/HYBBX.md](../../docs/HYBBX.md)
+Contract: [docs/HYBBX.md](../../docs/HYBBX.md)

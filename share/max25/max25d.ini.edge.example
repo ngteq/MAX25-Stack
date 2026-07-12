@@ -29,6 +29,12 @@ ax25_ui = yes
 ; Starts max25-ctl stack on daemon boot (TNC boot-wait, BayCom, crdopc)
 auto_start = yes
 
+; Optional multi-device (uncomment to enable — one KissBridge per id):
+; [devices]
+; default = tnc2c
+; tnc2c = /dev/ttyUSB0
+; pktnc2 = /dev/ttyUSB1
+
 ; Serial (TNC / KISS) is owned by max25d — typical USB paths:
 ;   /dev/ttyUSB0  /dev/ttyACM0  /dev/serial/by-id/...
-; Configure in stack-specific config (HyBBX INI, baycom-pr.ini, crdop) — not in terminal.
+; Per-device serial: [serial.<id>] in max25d.ini.example

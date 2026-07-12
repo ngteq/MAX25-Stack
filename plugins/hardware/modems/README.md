@@ -1,14 +1,10 @@
 # Hardware: Modems
 
-BayCom PR-Stack — kernel SER12/PAR96 and KISS serial. Merged from **baycom_pr-Stack** (`pc-com`).
-
-## Stack location
-
-`stacks/baycom-pr/` — `baycom-pr-ctl`, config templates, tools, docs.
+BayCom PR-Stack — kernel SER12/PAR96 and KISS serial (`stacks/baycom-pr/`).
 
 ## HyBBX
 
-Use HyBBX `baycom` plugin (`-DHYBBX_PLUGIN_BAYCOM=ON`). Stack must be **running** before HyBBX starts.
+`baycom` plugin (`-DHYBBX_PLUGIN_BAYCOM=ON`). Stack must be **running** before HyBBX starts.
 
 | Backend | HyBBX `backend` | HyBBX `mode` |
 |---------|-----------------|--------------|
@@ -26,5 +22,5 @@ sudo baycom-pr-ctl probe && sudo baycom-pr-ctl start
 
 ## Docs
 
-- `stacks/baycom-pr/docs/PLUGIN.md` — HyBBX contract
-- `stacks/baycom-pr/docs/GUIDE.md` — operator commands
+- [stacks/baycom-pr/docs/PLUGIN.md](../../stacks/baycom-pr/docs/PLUGIN.md)
+- [stacks/baycom-pr/docs/GETTING-STARTED.md](../../stacks/baycom-pr/docs/GETTING-STARTED.md)

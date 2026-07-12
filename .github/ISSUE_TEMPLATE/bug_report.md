@@ -32,6 +32,7 @@ labels: bug
 ## Documentation checked
 
 - [ ] [README.md](../../README.md)
+- [ ] [docs/README.md](../../docs/README.md)
 - [ ] [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md)
 - [ ] [docs/HYBBX.md](../../docs/HYBBX.md)
 - [ ] [docs/PLATFORMS.md](../../docs/PLATFORMS.md)

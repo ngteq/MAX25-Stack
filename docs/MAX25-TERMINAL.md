@@ -129,6 +129,7 @@ In **hybbx-edge** operating mode: `max25d` prepares hardware; HyBBX attaches via
 
 ## See also
 
+- [docs/README.md](README.md) — doc index
 - [PACKET-RADIO.md](PACKET-RADIO.md) — AX.25 / KISS technical reference
 - [MAX25-CLIENT.md](MAX25-CLIENT.md) — develop & connect the official client
 - [ARCHITECTURE.md](ARCHITECTURE.md) — stack layers

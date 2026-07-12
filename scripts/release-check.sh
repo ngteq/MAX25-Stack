@@ -33,7 +33,7 @@ else
 fi
 
 # --- required docs ---
-for doc in README.md CONTRIBUTING.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/LINUX-EDGE-SETUP.md docs/PACKET-RADIO.md; do
+for doc in README.md CONTRIBUTING.md docs/README.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/LINUX-EDGE-SETUP.md docs/PACKET-RADIO.md stacks/daemon/README.md; do
   [[ -f "$doc" ]] && ok "doc $doc" || fail "missing $doc"
 done
 

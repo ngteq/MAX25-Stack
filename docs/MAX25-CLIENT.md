@@ -359,10 +359,9 @@ Configuration: `share/max25/max25d.ini.example`, systemd: `share/max25/max25d.se
 
 Planned daemon extensions (do **not** change the text UI contract):
 
-- ~~Remote TCP authentication~~ — **v1:** plain-text `AUTH` on TCP (`tcp_password` in `max25d.ini`)
-- real modem RX lines as `RX …` instead of loopback echo
+- real modem RX lines as `RX …` instead of loopback echo (KISS bridge matures)
 
-**HyBBX:** Plugin lifecycle stays in HyBBX itself — `max25d` does not need a HyBBX plugin loader; MAX25 uses `max25-ctl` + plugin YAMLs as documentation/manifest only.
+**HyBBX:** Plugin lifecycle stays in HyBBX — `max25d` does not load HyBBX plugins.
 
 ---
 

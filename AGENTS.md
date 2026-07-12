@@ -4,7 +4,7 @@ Map for AI agents. Humans: [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTIN
 
 ## Purpose
 
-**Main AX.25 Stack** — unified Packet Radio / AX.25 standalone stack. HyBBX plugs in as application layer; MainAX25 prepares TNC/modem hardware and exposes KISS/AX.25 (or CRDOP TCP).
+**Main AX.25 Stack** — unified Packet Radio / AX.25 standalone stack. HyBBX plugs in as application layer; MAX25 prepares TNC/modem hardware and exposes KISS/AX.25 (or CRDOP TCP).
 
 **Standalone-first:** operator brings up radio path without HyBBX. HyBBX attaches via `share/hybbx/*.ini.example`.
 
@@ -23,19 +23,19 @@ Map for AI agents. Humans: [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTIN
 Operating mode (`betriebsform/`) → Hardware → Device
 ```
 
-Registry: `plugins/manifest.yaml`
+Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 
 ## Rules
 
 1. **Standalone-first** — MAX25 prepares hardware; HyBBX never replaces boot-wait or kernel modem lifecycle.
 2. **No personal/local paths** in docs or examples — use placeholders (`/dev/ttyUSB0`, `main.example.com`).
-3. **Linux daemon only** — `max25d` + BayCom + full stack on Linux; example edge setup — [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md); terminal cross-platform — [docs/PLATFORMS.md](docs/PLATFORMS.md).
+3. **Linux daemon only** — `max25d` + BayCom + full stack on Linux; edge setup — [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md); terminal — [docs/PLATFORMS.md](docs/PLATFORMS.md).
 4. **One official client** — `max25-terminal` / `max25-client` only; text + F10 menu; binding in [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md).
 5. **BayCom stays** — first-class on Linux daemon; not deprecated.
 6. **Minimal diffs** — link `stacks/*/` READMEs.
 7. **HyBBX external** — INI in `share/hybbx/` only.
 8. **Git** — only `ngteq <info@un1t.me>`; push via `~/.ssh/id_ed25519_ngteq`; commit/push when user asks.
-9. **English-only repo** — all shipped docs, UI, examples, and user-facing text in English; chat with user in German. Source comments may stay German until batch translation ([`.cursor/rules/english-only-project.mdc`](.cursor/rules/english-only-project.mdc)).
+9. **English-only repo** — all shipped docs, UI, examples, and user-facing text in English.
 
 ## Commands
 
@@ -49,20 +49,20 @@ Registry: `plugins/manifest.yaml`
 
 | File | Use |
 |------|-----|
+| [docs/README.md](docs/README.md) | **Doc index** |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Code rules, testing |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layers, plugins |
 | [docs/HYBBX.md](docs/HYBBX.md) | HyBBX contract |
-| [docs/PACKET-RADIO.md](docs/PACKET-RADIO.md) | AX.25, KISS, TNC, BayCom (MAX25 technical) |
+| [docs/PACKET-RADIO.md](docs/PACKET-RADIO.md) | AX.25, KISS, TNC, BayCom |
 | [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) | v1 scope |
-| [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md) | **Client dev & M25/1 binding** (sole client) |
+| [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md) | Client dev & M25/1 binding |
 | [docs/MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) | Operator UI (F10 menu) |
 | [include/max25/protocol.md](include/max25/protocol.md) | M25/1 protocol reference |
 
 ## Next work
 
-- `max25-terminal` — finish in-progress official client (`stacks/terminal/`) — [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md)
-- `max25d` hardware TX/RX bridge (KISS/serial) — server-side; M25/1 client contract stays stable
-- Remote TCP auth for `max25d` (optional, daemon-side)
+- `max25d` real modem RX as `RX …` (KISS bridge matures)
+- PK-TNC2 device activation when hardware delivered
 
 ## Pitfalls
 

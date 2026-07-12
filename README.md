@@ -1,133 +1,82 @@
 # MainAX25-Stack (MAX25-Stack)
 
-**Main AX.25 Stack** — unified Packet Radio / AX.25 standalone stack, fully **HyBBX-compatible**. HyBBX attaches as a plugin consumer; MainAX25 (MAX25) owns modem/TNC lifecycle, KISS, and AX.25 link preparation.
+**Main AX.25 Stack** — standalone Packet Radio / AX.25 hardware lifecycle. HyBBX attaches as an external consumer (`packet_radio`, `baycom`, `crdop`). MAX25 owns modem/TNC prep, KISS bridge, and M25/1 operator IPC.
 
-Merged from:
+**Version:** `1.0.0-rc1` (see `VERSION`) · Full doc map: [docs/README.md](docs/README.md)
 
-| Source | Location | Role |
-|--------|----------|------|
-| **TNCs-Stack** | `stacks/tncs/` | Serial TNC tools (TNC2C, PK-TNC2) |
-| **baycom_pr-Stack** | `stacks/baycom-pr/` | BayCom kernel modems (SER12, PAR96, KISS) |
-| **CRDOP** | `stacks/crdop/` | Sound-card ARDOP soft modem (`soft-crdop`) |
+## Architecture
+
+```
+Operator                    Linux host (max25d)
+┌─────────────────┐        ┌──────────────────────────────┐
+│ max25-terminal  │ M25/1  │ max25d · KISS bridge         │
+│ F10 · CALLERID  │ ─────► │ TNCs · BayCom · CRDOP        │
+└─────────────────┘ :7325  └──────────────▲───────────────┘
+                                           │ serial / kernel / TCP
+                              HyBBX Secondary (external)
+                              packet_radio · baycom · crdop
+```
+
+| Layer | Location | Role |
+|-------|----------|------|
+| Operator client | `stacks/terminal/` | Text + F10 menu — **only** official client |
+| Daemon | `stacks/daemon/` | Linux-only supervisor, M25/1, multi-device KISS |
+| Merged stacks | `stacks/tncs/`, `baycom-pr/`, `crdop/` | Device-specific tools and lifecycle |
+| Plugins | `plugins/` | Operating mode → hardware → device registry |
+| HyBBX attach | `share/hybbx/` | INI examples — HyBBX repo is external |
 
 ## Quick start
 
 ```bash
 ./scripts/build.sh
-./scripts/discover-plugins.sh
-./scripts/max25-ctl help
+./scripts/discover-plugins.sh --json
+./scripts/release-check.sh
 ```
 
-Build output: `build/bin/` (`tnc2c-probe`, `crdopc`, `max25-terminal`, …).  
-Stale CRDOP cache after moving the tree: `./scripts/clean.sh && ./scripts/build.sh`.
+Build output: `build/bin/` (`max25-terminal`, `tnc2c-probe`, `crdopc`, …).
 
-### Example Linux edge setup
-
-Use the example INI and install steps for a typical edge node (`max25d` + USB TNC/modem):
+### Linux edge (max25d + terminal)
 
 ```bash
 ./scripts/install-max25.sh --deps
 sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
 sudo max25d -c /etc/max25/max25d.ini
-max25-terminal -U /run/max25/modem.sock
+max25-terminal -U /run/max25/modem.sock --ax25-ui
 ```
 
-Setup guide: [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md).
+Guide: [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md).
 
-### TNC2C
+### Active devices (v1)
 
-```bash
-./scripts/max25-ctl start --hardware tncs --device tnc2c
-./scripts/max25-ctl test
-# HyBBX Secondary: share/hybbx/tnc2c-edge.ini.example
-```
-
-### BayCom SER12
-
-```bash
-./scripts/build.sh
-sudo make -C stacks/baycom-pr install
-./scripts/max25-ctl start --hardware modems --device baycom-ser12
-```
-
-### CRDOP soft modem (soft-crdop)
-
-```bash
-./scripts/build.sh
-./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
-# HyBBX Secondary with share/hybbx/crdop-edge.ini.example
-```
-
-## Platform
-
-**Daemon (`max25d`): Linux only** — full stack including **BayCom**, TNCs, CRDOP. IPC port **7325** (M25/1).
-
-**Terminal (`max25-terminal` / `max25-client`):** the **only** official operator client — text + F10 menu; connects to Linux `max25d` (TCP or unix socket). Develop & bind: [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md) · Operator: [docs/MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) · Platforms: [docs/PLATFORMS.md](docs/PLATFORMS.md).
-
-```bash
-# Linux host — daemon (hardware owner)
-./stacks/daemon/max25d -c share/max25/max25d.ini.example
-
-# Any platform — operator UI
-./stacks/terminal/max25-terminal --host <linux-host> --port 7325
-```
-
-## Plugin architecture
-
-```
-plugins/
-├── betriebsform/     Operating mode (Standalone, Service, HyBBX Edge)
-├── hardware/         Hardware group (TNCs, Modems, Soft Modems)
-└── devices/          Device-specific (tnc2c, pktnc2, baycom-ser12, soft-crdop, …)
-```
-
-Registry: `plugins/manifest.yaml` · Discovery: `./scripts/discover-plugins.sh`
-
-## HyBBX
-
-| MainAX25 hardware | HyBBX plugin | Docs |
-|----------------|--------------|------|
-| TNCs | `packet_radio` | [docs/HYBBX.md](docs/HYBBX.md) |
-| Modems | `baycom` | `stacks/baycom-pr/docs/PLUGIN.md` |
-| Soft modems | `crdop` | [docs/HYBBX.md](docs/HYBBX.md#crdop) |
-
-INI examples: `share/hybbx/`
-
-## v1.0.0 roadmap
-
-**Current version:** `1.0.0-rc1` (see `VERSION`)
-
-MainAX25 ships **standalone-first**: one operator brings up TNC or modem without HyBBX; HyBBX attaches later via INI examples in `share/hybbx/`.
-
-| v1.0.0 active | Standalone entry | HyBBX plugin |
-|---------------|------------------|--------------|
+| Device | Standalone | HyBBX plugin |
+|--------|------------|--------------|
 | **TNC2C** (`tnc2c`) | `max25-ctl start --hardware tncs --device tnc2c` | `packet_radio` |
 | **BayCom SER12** (`baycom-ser12`) | `baycom-pr-ctl start` | `baycom` |
 | **CRDOP** (`soft-crdop`) | `max25-ctl start --hardware soft-modems` | `crdop` |
 
-**Default operating mode:** `standalone` · **Deferred:** `pktnc2`, `baycom-par96`, `baycom-kiss`, minicom fork, *BSD port.
+Default operating mode: `standalone`. Deferred: `pktnc2`, `baycom-par96`, `baycom-kiss`.
 
-```bash
-./scripts/release-check.sh    # v1.0.0 offline gates
-```
+## Platform
 
-Full scope, acceptance tests, and release checklist: [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md).
+| Component | Platforms |
+|-----------|-----------|
+| **`max25d`** | **Linux only** — BayCom kernel, TNC boot-wait, CRDOP, multi-device KISS |
+| **`max25-terminal`** | Linux, *BSD, macOS, Windows, AmigaOS (reduced) — remote TCP to Linux `max25d` |
+
+Details: [docs/PLATFORMS.md](docs/PLATFORMS.md).
 
 ## Documentation
 
-| Doc | Content |
-|-----|---------|
-| [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) | v1.0.0 MVP scope, workflows, acceptance |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack layers, plugin hierarchy |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development rules, testing |
-| [docs/HYBBX.md](docs/HYBBX.md) | HyBBX integration contract |
-| [docs/PLATFORMS.md](docs/PLATFORMS.md) | Linux daemon; cross-platform terminal |
-| [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md) | Example edge install & `max25d.ini` |
-| [docs/MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) | Operator UI (F10 menu, CALLERID/CALLID) |
-| [docs/PACKET-RADIO.md](docs/PACKET-RADIO.md) | **AX.25, KISS, TNC, BayCom facts** |
-| [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md) | Client development & M25/1 binding |
-| [docs/MERGE-REPORT.md](docs/MERGE-REPORT.md) | Merge archive (one-time) |
+| Audience | Doc |
+|----------|-----|
+| **Index** | [docs/README.md](docs/README.md) |
+| Edge setup | [LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md) |
+| Terminal operator | [MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) |
+| Client / M25/1 | [MAX25-CLIENT.md](docs/MAX25-CLIENT.md) |
+| Packet radio facts | [PACKET-RADIO.md](docs/PACKET-RADIO.md) |
+| HyBBX attach | [HYBBX.md](docs/HYBBX.md) |
+| Architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Development | [DEVELOPMENT.md](docs/DEVELOPMENT.md) |
+| v1 scope | [V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) |
 
-## Contributing
-
-[CONTRIBUTING.md](CONTRIBUTING.md) · Agents: [AGENTS.md](AGENTS.md)
+Agents: [AGENTS.md](AGENTS.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)

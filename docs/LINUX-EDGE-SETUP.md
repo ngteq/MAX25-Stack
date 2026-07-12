@@ -139,6 +139,19 @@ sudo nano /etc/max25/max25d.ini
 
 Set `[modem] callerid` / `callid` to your callsigns. Terminals can override live via F10 menu.
 
+### Multi-device (optional)
+
+For multiple TNCs on one edge node, add `[devices]` (see `share/max25/max25d.ini.example`):
+
+```ini
+[devices]
+default = tnc2c
+tnc2c = /dev/ttyUSB0
+pktnc2 = /dev/ttyUSB1
+```
+
+M25/1: `SET DEVICE <id>`, `GET DEVICES`, `RX device=<id> …` — [MAX25-CLIENT.md](MAX25-CLIENT.md).
+
 ---
 
 ## Run max25d

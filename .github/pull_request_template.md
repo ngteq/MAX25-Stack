@@ -13,8 +13,6 @@
 
 ## Testing
 
-<!-- How did you verify? e.g. ./scripts/test.sh, ./scripts/release-check.sh -->
-
 - [ ] `./scripts/build.sh` succeeds
 - [ ] `./scripts/test.sh` succeeds (offline)
 - [ ] `./scripts/release-check.sh` succeeds
@@ -23,6 +21,7 @@
 ## Documentation
 
 - [ ] Updated `plugins/manifest.yaml` and/or `plugins/**/plugin.yaml` (if plugin changed)
+- [ ] Updated [docs/README.md](../docs/README.md) index (if docs added/removed)
 - [ ] Updated [docs/HYBBX.md](../docs/HYBBX.md) and/or `share/hybbx/*.ini.example` (if HyBBX attach changed)
 - [ ] Updated [docs/PLATFORMS.md](../docs/PLATFORMS.md) (if platform limits changed)
 - [ ] Updated [docs/V1.0.0-SCOPE.md](../docs/V1.0.0-SCOPE.md) (if v1 scope changed)

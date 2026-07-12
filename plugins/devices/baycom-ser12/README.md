@@ -1,8 +1,8 @@
 # Device: BayCom SER12
 
-Kernel bit-banged UART modem (PC-COM, classic BayCom on COM port).
+Kernel bit-banged UART modem (PC-COM). **Not async USB serial** — use HyBBX `baycom` plugin, not `packet_radio`.
 
-**Not async serial** — do not use `packet_radio` for native SER12; use HyBBX `baycom` plugin or stack KISS bridge.
+**Status:** Active (v1).
 
 ```bash
 sudo stacks/baycom-pr/scripts/baycom-pr-ctl probe
@@ -10,4 +10,4 @@ sudo stacks/baycom-pr/scripts/baycom-pr-ctl setup
 sudo stacks/baycom-pr/scripts/baycom-pr-ctl start
 ```
 
-KISS PTY: `/var/run/baycom-pr/kiss`
+KISS PTY: `/var/run/baycom-pr/kiss` · HyBBX INI: `share/hybbx/baycom-ser12-edge.ini.example`
