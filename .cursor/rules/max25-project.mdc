@@ -1,0 +1,39 @@
+---
+description: MainAX25-Stack project conventions for all work in this repo
+alwaysApply: true
+---
+
+# MainAX25-Stack (MAX25) project rules
+
+Read [AGENTS.md](../../AGENTS.md) and [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md).
+
+## Product
+
+**Main AX.25 Stack** — standalone Packet Radio / AX.25 hardware lifecycle. HyBBX attaches as external consumer (`packet_radio`, `baycom`, `crdop`). **v1.0.0-rc1**.
+
+Plugin hierarchy: Betriebsform → Hardware → Device. Registry: `plugins/manifest.yaml`.
+
+## Code & scripts
+
+- Bash/shell for operator tooling; C for merged stack binaries
+- Plugin IDs and scripts: English; operator docs may use German (**Betriebsform**)
+- Minimal scope; link to `stacks/*/` — do not duplicate stack READMEs
+- MAX25 owns modem/TNC prep; HyBBX owns sessions — no session logic in MAX25
+
+## Platform
+
+- **Linux-primary** development and operator docs (`/dev/ttyS*`, kernel BayCom, `systemctl`)
+- *BSD supported in principle; porting **much later** — [docs/PLATFORMS.md](../../docs/PLATFORMS.md)
+- BayCom kernel path and kernel AX.25 are Linux-only
+
+## Docs
+
+- Operator / HyBBX INI → [docs/HYBBX.md](../../docs/HYBBX.md) + `share/hybbx/*.ini.example`
+- Architecture → [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)
+- Platforms → [docs/PLATFORMS.md](../../docs/PLATFORMS.md)
+- v1 scope / release → [docs/V1.0.0-SCOPE.md](../../docs/V1.0.0-SCOPE.md) (intentional planning doc for this repo)
+- [docs/MERGE-REPORT.md](../../docs/MERGE-REPORT.md) — archive only, do not extend
+
+## Git
+
+No commit/push unless the user asks.

@@ -44,7 +44,7 @@ make -C stacks/crdop all
 
 ## Platform
 
-**Linux-primary** development. *BSD support is planned later — see [docs/FREEBSD-AX25.md](docs/FREEBSD-AX25.md).
+**Linux-primary** development. *BSD supported in principle; porting **much later** — see [docs/PLATFORMS.md](docs/PLATFORMS.md).
 
 ## Plugin architecture
 
@@ -93,10 +93,11 @@ Full scope, acceptance tests, and release checklist: [docs/V1.0.0-SCOPE.md](docs
 |-----|---------|
 | [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) | v1.0.0 MVP scope, workflows, acceptance |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack layers, plugin hierarchy |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development rules, testing |
 | [docs/HYBBX.md](docs/HYBBX.md) | HyBBX integration contract |
-| [docs/FREEBSD-AX25.md](docs/FREEBSD-AX25.md) | BSD platform stance and AX.25 limits |
-| [docs/MERGE-REPORT.md](docs/MERGE-REPORT.md) | What was merged and how |
+| [docs/PLATFORMS.md](docs/PLATFORMS.md) | Linux primary, *BSD later |
+| [docs/MERGE-REPORT.md](docs/MERGE-REPORT.md) | Merge archive (one-time) |
 
-## For agents
+## Contributing
 
-[AGENTS.md](AGENTS.md)
+[CONTRIBUTING.md](CONTRIBUTING.md) · Agents: [AGENTS.md](AGENTS.md)

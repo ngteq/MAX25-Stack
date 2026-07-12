@@ -33,7 +33,7 @@ else
 fi
 
 # --- required docs ---
-for doc in README.md docs/ARCHITECTURE.md docs/HYBBX.md docs/V1.0.0-SCOPE.md docs/MERGE-REPORT.md; do
+for doc in README.md CONTRIBUTING.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/MERGE-REPORT.md; do
   [[ -f "$doc" ]] && ok "doc $doc" || fail "missing $doc"
 done
 
@@ -112,6 +112,9 @@ if bash scripts/discover-plugins.sh --json >/dev/null 2>&1; then
 else
   fail "discover-plugins --json"
 fi
+
+# --- CI workflow ---
+[[ -f .github/workflows/ci.yml ]] && ok "ci workflow" || fail "missing .github/workflows/ci.yml"
 
 # --- tncs probe (warn without hardware) ---
 if stacks/tncs/tnc2c-probe >/dev/null 2>&1; then

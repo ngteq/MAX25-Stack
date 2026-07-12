@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main, preview-source-tree]
+  pull_request:
+    branches: [main, preview-source-tree]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libasound2-dev pkg-config
+
+      - name: Build merged stacks
+        run: make all
+
+      - name: Offline tests
+        run: make test
+
+      - name: Release gates
+        run: make release-check

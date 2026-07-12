@@ -43,7 +43,7 @@ MainAX25-Stack (MAX25-Stack)/
 | **Hardware** | `hardware/*` | Stack path, build targets, HyBBX plugin name |
 | **Device** | `devices/*` | Concrete profile — serial params, INI, scripts |
 
-**Soft modems** (`hardware/soft-modems`) are sound-card programs without kernel drivers — e.g. `soft-crdrop` (CRDOP/ARDOP). They complement AX.25 hardware stacks; see [FREEBSD-AX25.md](FREEBSD-AX25.md) for platform limits.
+**Soft modems** (`hardware/soft-modems`) are sound-card programs without kernel drivers — e.g. `soft-crdrop` (CRDOP/ARDOP). They complement AX.25 hardware stacks; see [PLATFORMS.md](PLATFORMS.md) for platform limits.
 
 ## Discovery & automation
 
@@ -55,7 +55,7 @@ MainAX25-Stack (MAX25-Stack)/
 
 ## Platform
 
-Development targets **Linux** first. *BSD family support is planned later; kernel AX.25 and BayCom paths are Linux-specific today. See [FREEBSD-AX25.md](FREEBSD-AX25.md).
+Development targets **Linux** first. *BSD family support is planned later; kernel AX.25 and BayCom paths are Linux-specific today. See [PLATFORMS.md](PLATFORMS.md).
 
 Future: generate `devices/*/plugin.yaml` from `stacks/baycom-pr/config/modems.ini` catalog.
 
