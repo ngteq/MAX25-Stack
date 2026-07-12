@@ -3,11 +3,22 @@
 Standards: [AGENTS.md](AGENTS.md), [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ```bash
-git clone https://github.com/ngteq/MAX25-Stack.git && cd MAX25-Stack
+git clone git@github.com:ngteq/MAX25-Stack.git && cd MAX25-Stack
 make all
 make release-check
 ./scripts/max25-ctl help
 ```
+
+## Git identity
+
+**Only** this identity — no alternatives:
+
+```
+user.name  = ngteq
+user.email = info@un1t.me
+```
+
+Local `.git/config`. Push **only** via SSH `~/.ssh/id_ed25519_ngteq` to `git@github.com:ngteq/MAX25-Stack.git`.
 
 ## Pull requests
 

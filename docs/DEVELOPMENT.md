@@ -54,6 +54,12 @@ make release-check         # v1.0.0 gates (no root, no serial required)
 
 Hardware tests (TNC2C RF, BayCom SER12) are manual — see [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md).
 
+## Git
+
+- **Only** `ngteq <info@un1t.me>` — author and committer (`.git/config`)
+- **Only** SSH push: `~/.ssh/id_ed25519_ngteq` → `git@github.com:ngteq/MAX25-Stack.git`
+- Agents: commit/push only when the user asks
+
 ## Doc duty
 
 | Change | Update |

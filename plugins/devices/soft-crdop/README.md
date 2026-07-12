@@ -1,8 +1,8 @@
-# Device: soft-crdrop (CRDOP)
+# Device: soft-crdop (CRDOP)
 
 **Status:** Scaffold — built, not live RF verified.
 
-Sound-card ARDOP modem from merged [CRDOP](https://github.com/ngteq/CRDOP) stack (`stacks/crdop/`). Plugin id `soft-crdrop`; upstream project and binary remain **CRDOP** / `crdopc`.
+Sound-card ARDOP modem from merged [CRDOP](https://github.com/ngteq/CRDOP) stack (`stacks/crdop/`). Plugin id `soft-crdop`; upstream project and binary remain **CRDOP** / `crdopc`.
 
 ## What it does
 
@@ -16,7 +16,7 @@ ARDOP over CB — separate from AX.25/KISS. Use alongside TNC or BayCom stacks f
 
 ```bash
 make -C stacks/crdop all
-./scripts/max25-ctl start --hardware soft-modems --device soft-crdrop
+./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 # HyBBX Secondary: share/hybbx/crdop-edge.ini.example
 ```
 

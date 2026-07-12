@@ -4,7 +4,7 @@ Sound-card software modems managed by MainAX25 — no serial TNC or kernel BayCo
 
 | Device | Stack | HyBBX plugin | Protocol |
 |--------|-------|--------------|----------|
-| `soft-crdrop` | `stacks/crdop` | `crdop` | ARDOP (CB-first) |
+| `soft-crdop` | `stacks/crdop` | `crdop` | ARDOP (CB-first) |
 
 ## Build
 
@@ -16,7 +16,7 @@ make -C stacks/crdop all
 ## Start (operator)
 
 ```bash
-./scripts/max25-ctl start --hardware soft-modems --device soft-crdrop
+./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 
 Then attach HyBBX with `share/hybbx/crdop-edge.ini.example`.

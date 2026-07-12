@@ -24,7 +24,7 @@ Map for AI agents. Humans: [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTIN
 | `/home/akb/Code/TNCs-Stack` | `stacks/tncs/` | TNC2C tools, HyBBX INI, docs |
 | `/home/akb/Code/pc-com` (baycom_pr-Stack) | `stacks/baycom-pr/` | `baycom-pr-ctl`, config, tools |
 | `/home/akb/Code/hyBBX` | external | Consumer — `packet_radio` + `baycom` + `crdop` |
-| `/home/akb/Code/CRDOP` | `stacks/crdop/` | CRDOP soft modem (plugin `soft-crdrop`) |
+| `/home/akb/Code/CRDOP` | `stacks/crdop/` | CRDOP soft modem (plugin `soft-crdop`) |
 
 `baycom_pr-Stack` is **`pc-com`** on disk (GitHub: ngteq/BayCom_PR-Stack).
 
@@ -36,7 +36,7 @@ Betriebsform → Hardware → Device
 
 - **Betriebsform:** `standalone`, `service`, `hybbx-edge`
 - **Hardware:** `tncs` (→ HyBBX `packet_radio`), `modems` (→ HyBBX `baycom`), `soft-modems` (→ HyBBX `crdop`)
-- **Device:** `tnc2c`, `pktnc2`, `baycom-ser12`, `soft-crdrop`, …
+- **Device:** `tnc2c`, `pktnc2`, `baycom-ser12`, `soft-crdop`, …
 
 Registry: `plugins/manifest.yaml` · Each plugin dir has `plugin.yaml` + `README.md`.
 
@@ -49,7 +49,7 @@ Registry: `plugins/manifest.yaml` · Each plugin dir has `plugin.yaml` + `README
 5. **No HyBBX vendoring** — INI examples in `share/hybbx/` only.
 6. **Planning docs OK here** — `docs/V1.0.0-SCOPE.md` is intentional (unlike HyBBX core).
 7. **Version** — `VERSION` file + `plugins/manifest.yaml` version field; release gates in `scripts/release-check.sh`.
-8. **Git** — no commit/push unless the user asks.
+8. **Git** — no commit/push unless the user asks. **Only** `ngteq <info@un1t.me>` for author/committer (`.git/config`). Push **only** via `~/.ssh/id_ed25519_ngteq`.
 
 Aligned with HyBBX agent rules where applicable: [hyBBX/AGENTS.md](/home/akb/Code/hyBBX/AGENTS.md), [hyBBX/docs/DEVELOPMENT.md](/home/akb/Code/hyBBX/docs/DEVELOPMENT.md).
 
@@ -82,7 +82,7 @@ make all | test | release-check | discover | plugins
 ## Next work
 
 - Flesh out `baycom-par96`, `baycom-kiss` device plugins after hardware test
-- Live RF verify `soft-crdrop` (CRDOP) with HyBBX `crdop` plugin
+- Live RF verify `soft-crdop` (CRDOP) with HyBBX `crdop` plugin
 - Auto-generate device plugins from `stacks/baycom-pr/config/modems.ini` catalog
 - BSD porting (*deutlich später*) — see `docs/PLATFORMS.md`
 - CI: `.github/workflows/ci.yml` (`make test` + `release-check`)

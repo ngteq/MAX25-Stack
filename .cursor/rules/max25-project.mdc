@@ -36,4 +36,6 @@ Plugin hierarchy: Betriebsform → Hardware → Device. Registry: `plugins/manif
 
 ## Git
 
-No commit/push unless the user asks.
+- **Identity only:** `ngteq <info@un1t.me>` — no other author name or email in this repo (`.git/config`: `user.name`, `user.email`)
+- **Push only:** SSH `~/.ssh/id_ed25519_ngteq` → `git@github.com:ngteq/MAX25-Stack.git`
+- No commit/push unless the user asks

@@ -1,6 +1,6 @@
-; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary edge (CRDOP / soft-crdrop)
+; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary edge (CRDOP / soft-crdop)
 ; Merge into HyBBX hybbx.ini on Secondary node.
-; Prerequisite: crdopc running (max25-ctl start --hardware soft-modems --device soft-crdrop)
+; Prerequisite: crdopc running (max25-ctl start --hardware soft-modems --device soft-crdop)
 
 [networks]
 crdop = yes

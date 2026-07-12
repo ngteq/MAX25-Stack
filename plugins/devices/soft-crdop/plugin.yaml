@@ -1,4 +1,4 @@
-id: soft-crdrop
+id: soft-crdop
 type: device
 parent_stack: MainAX25-Stack (MAX25-Stack)
 hardware: soft-modems
@@ -9,7 +9,7 @@ upstream:
   project: CRDOP
   repo: https://github.com/ngteq/CRDOP
   binary: crdopc
-  note: Plugin id soft-crdrop wraps upstream CRDOP (no separate crdrop repo)
+  note: Plugin id soft-crdop wraps upstream CRDOP stack
 
 hybbx:
   plugin: crdop

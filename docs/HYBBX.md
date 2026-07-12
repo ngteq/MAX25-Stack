@@ -108,7 +108,7 @@ Those remain MainAX25 (MAX25) / merged stack responsibilities.
 
 ```bash
 make -C stacks/crdop all
-./scripts/max25-ctl start --hardware soft-modems --device soft-crdrop
+./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 
 `crdopc` listens on TCP **8515** (control) / **8516** (data). Start modem **before** HyBBX.

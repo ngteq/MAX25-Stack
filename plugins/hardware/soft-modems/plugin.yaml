@@ -21,4 +21,4 @@ ctl:
   install: stacks/crdop/scripts/install-crdop.sh
 
 devices:
-  - soft-crdrop
+  - soft-crdop

@@ -55,7 +55,7 @@ else
 fi
 
 # --- v1 active devices in manifest ---
-for dev in tnc2c baycom-ser12 soft-crdrop; do
+for dev in tnc2c baycom-ser12 soft-crdop; do
   if grep -A6 "id: ${dev}" plugins/manifest.yaml | grep -q 'status: active'; then
     ok "device ${dev} status: active"
   else

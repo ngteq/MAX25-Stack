@@ -8,7 +8,7 @@ Merged from:
 |--------|----------|------|
 | **TNCs-Stack** | `stacks/tncs/` | Serial TNC tools (TNC2C, PK-TNC2) |
 | **baycom_pr-Stack** (`pc-com`) | `stacks/baycom-pr/` | BayCom kernel modems (SER12, PAR96, KISS) |
-| **CRDOP** | `stacks/crdop/` | Sound-card ARDOP soft modem (`soft-crdrop`) |
+| **CRDOP** | `stacks/crdop/` | Sound-card ARDOP soft modem (`soft-crdop`) |
 
 ## Quick start
 
@@ -34,11 +34,11 @@ sudo make -C stacks/baycom-pr install
 ./scripts/max25-ctl start --hardware modems --device baycom-ser12
 ```
 
-### CRDOP soft modem (soft-crdrop)
+### CRDOP soft modem (soft-crdop)
 
 ```bash
 make -C stacks/crdop all
-./scripts/max25-ctl start --hardware soft-modems --device soft-crdrop
+./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 # HyBBX Secondary with share/hybbx/crdop-edge.ini.example
 ```
 
@@ -52,7 +52,7 @@ make -C stacks/crdop all
 plugins/
 ├── betriebsform/     Operating mode (Standalone, Service, HyBBX Edge)
 ├── hardware/         Hardware group (TNCs, Modems, Soft Modems)
-└── devices/          Device-specific (tnc2c, pktnc2, baycom-ser12, soft-crdrop, …)
+└── devices/          Device-specific (tnc2c, pktnc2, baycom-ser12, soft-crdop, …)
 ```
 
 Registry: `plugins/manifest.yaml` · Discovery: `./scripts/discover-plugins.sh`
@@ -77,7 +77,7 @@ MainAX25 ships **standalone-first**: one operator brings up TNC or modem without
 |---------------|------------------|--------------|
 | **TNC2C** (`tnc2c`) | `max25-ctl start --hardware tncs --device tnc2c` | `packet_radio` |
 | **BayCom SER12** (`baycom-ser12`) | `baycom-pr-ctl start` | `baycom` |
-| **CRDOP** (`soft-crdrop`) | `max25-ctl start --hardware soft-modems` | `crdop` |
+| **CRDOP** (`soft-crdop`) | `max25-ctl start --hardware soft-modems` | `crdop` |
 
 **Default Betriebsform:** `standalone` · **Deferred:** `pktnc2`, `baycom-par96`, `baycom-kiss`, minicom fork, *BSD port.
 

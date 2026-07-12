@@ -26,7 +26,7 @@ Serial TNC paths: `/dev/ttyS*`, `/dev/ttyUSB*`, `/dev/ttyACM*`.
 |----------------|-------|
 | `hardware/tncs` (TNC2C, PK-TNC2) | Serial KISS, boot-wait, kernel/userspace AX.25 |
 | `hardware/modems` (BayCom) | Kernel `baycom_ser_fdx`, `hdlcdrv`, KISS PTY |
-| `hardware/soft-modems` (`soft-crdrop`) | CRDOP + ALSA, TCP :8515 |
+| `hardware/soft-modems` (`soft-crdop`) | CRDOP + ALSA, TCP :8515 |
 | HyBBX `packet_radio` / `baycom` / `crdop` | After MAX25 prep — see [HYBBX.md](HYBBX.md) |
 
 CI: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
@@ -50,7 +50,7 @@ Research summary for FreeBSD 15.x (applies broadly to *BSD for AX.25 limits):
 |----------------|--------------|
 | `hardware/tncs` | Serial prep OK; AX.25 needs userspace (e.g. Direwolf bridge) |
 | `hardware/modems` (BayCom) | **Not viable** — no BayCom kernel driver |
-| `hardware/soft-modems` (`soft-crdrop`) | CRDOP builds; HyBBX `crdop` over TCP — no kernel dependency |
+| `hardware/soft-modems` (`soft-crdop`) | CRDOP builds; HyBBX `crdop` over TCP — no kernel dependency |
 | HyBBX `packet_radio` | Needs alternate AX.25 (not kernel) |
 | HyBBX `baycom` | **Unsupported on BSD** |
 
@@ -58,7 +58,7 @@ Research summary for FreeBSD 15.x (applies broadly to *BSD for AX.25 limits):
 
 1. **Direwolf** — sound-card TNC, KISS TCP/PTY.
 2. **HyBBX** — attach to Direwolf KISS endpoint instead of kernel `ax25` or BayCom.
-3. **CRDOP** (`soft-crdrop`) — ARDOP side channel; BSD-buildable, TCP host unchanged.
+3. **CRDOP** (`soft-crdop`) — ARDOP side channel; BSD-buildable, TCP host unchanged.
 
 BayCom SER12/PAR96 and `axports` workflows from `stacks/baycom-pr/` remain **Linux-only**.
 

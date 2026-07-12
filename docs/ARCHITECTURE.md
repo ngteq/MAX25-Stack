@@ -13,7 +13,7 @@
 ├─────────────────────────────────────────────────────────┤
 │  MainAX25 Hardware — tncs | modems | soft-modems             │
 ├─────────────────────────────────────────────────────────┤
-│  MainAX25 Device — tnc2c | pktnc2 | baycom-ser12 | soft-crdrop | … │
+│  MainAX25 Device — tnc2c | pktnc2 | baycom-ser12 | soft-crdop | … │
 ├─────────────────────────────────────────────────────────┤
 │  Protocol — KISS | hostmode | kernel hdlcdrv | AX.25 | ARDOP │
 ├─────────────────────────────────────────────────────────┤
@@ -43,7 +43,7 @@ MainAX25-Stack (MAX25-Stack)/
 | **Hardware** | `hardware/*` | Stack path, build targets, HyBBX plugin name |
 | **Device** | `devices/*` | Concrete profile — serial params, INI, scripts |
 
-**Soft modems** (`hardware/soft-modems`) are sound-card programs without kernel drivers — e.g. `soft-crdrop` (CRDOP/ARDOP). They complement AX.25 hardware stacks; see [PLATFORMS.md](PLATFORMS.md) for platform limits.
+**Soft modems** (`hardware/soft-modems`) are sound-card programs without kernel drivers — e.g. `soft-crdop` (CRDOP/ARDOP). They complement AX.25 hardware stacks; see [PLATFORMS.md](PLATFORMS.md) for platform limits.
 
 ## Discovery & automation
 
@@ -88,7 +88,7 @@ See [HYBBX.md](HYBBX.md).
 ### `stacks/crdop` (CRDOP)
 
 - Sound-card ARDOP modem (`crdopc`) — CB-first profiles
-- Device plugin `soft-crdrop`; HyBBX `crdop` transport over TCP
+- Device plugin `soft-crdop`; HyBBX `crdop` transport over TCP
 - Builds on Linux and *BSD (ALSA); not AX.25/KISS
 
 ## Betriebsform matrix

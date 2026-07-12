@@ -67,8 +67,8 @@ devices:
     hardware: modems
     hybbx_backend: kiss
     status: scaffold
-  - id: soft-crdrop
-    path: devices/soft-crdrop
+  - id: soft-crdop
+    path: devices/soft-crdop
     hardware: soft-modems
     hybbx_plugin: crdop
     status: active
