@@ -27,7 +27,7 @@ make release-check
 ## Layout
 
 ```
-plugins/          Betriebsform / hardware / device metadata (plugin.yaml)
+plugins/          operating mode / hardware / device metadata (plugin.yaml)
 stacks/           Merged source trees (tncs, baycom-pr, crdop, daemon, terminal)
 scripts/          max25-ctl, discover-plugins.sh, release-check.sh
 share/max25/      max25d.ini, systemd example
@@ -44,13 +44,12 @@ HyBBX (external) → packet_radio | baycom | crdop plugins (after MAX25 prep)
 
 - **Standalone-first:** MAX25 owns boot-wait, kernel load, KISS PTY, `crdopc` lifecycle.
 - **HyBBX-ready:** INI in `share/hybbx/`; HyBBX does not vendor MAX25.
-- **Plugin hierarchy:** Betriebsform → Hardware → Device — registry in `plugins/manifest.yaml`.
+- **Plugin hierarchy:** operating mode (`betriebsform/`) → Hardware → Device — registry in `plugins/manifest.yaml`.
 - **Linux-primary:** kernel BayCom and AX.25 paths are Linux-only today.
 
 ## Conventions
 
-- Plugin IDs, scripts, code: **English**
-- Operator-facing docs: German terms OK (**Betriebsform**, **Betrieb**)
+- Plugin IDs, scripts, code, and **shipped docs**: **English**
 - Minimal diffs; link to `stacks/*/` READMEs — do not duplicate stack docs
 - Do not add personal paths, hostnames, or callsigns in docs — use placeholders.
 - HyBBX is external — reference `share/hybbx/*.ini.example` only

@@ -1,135 +1,150 @@
-# MAX25 Client — Entwicklung & Anbindung an max25d
+# MAX25 Client — Development & Connection to max25d
 
-Dieses Dokument beschreibt, **wie der offizielle MAX25-Terminal-Client** (`max25-terminal`, Symlink `max25-client`) entwickelt, getestet und an **`max25d`** angebunden wird.
+This document describes **how the official MAX25 terminal client** (`max25-terminal`, symlink `max25-client`) is developed, tested, and connected to **`max25d`**.
 
-## Der eine offizielle Client
+## The one official client
 
-MAX25 hat **genau einen** Operator-Client:
+MAX25 has **exactly one** operator client:
 
 | Binary | Symlink | Status |
 |--------|---------|--------|
-| `max25-terminal` | `max25-client` | **v1 ready** (Linux/*BSD/macOS/Windows) |
+| `max25-terminal` | `max25-client` | **v1 ready** (Linux/*BSD/macOS/Windows/AmigaOS reduced) |
 
-Es ist **kein zweiter Client** vorgesehen — weder GUI, noch Web, noch ein alternatives TTY-Programm. Der Client bleibt auf absehbare Zeit:
+There is **no second client** planned — no GUI, no web UI, no alternative TTY program. For the foreseeable future the client stays:
 
-- **rein textbasiert** (TTY / ncurses / ANSI-Fallback)
-- **F10-Menü** mit Zifferntasten `0`–`9`
+- **text-only** (TTY / ncurses / ANSI fallback)
+- **F10 menu** with number keys `0`–`9`
 - **live CALLERID / CALLID**
 - optional **`--ax25-ui`**
+- optional **TCP auth** (`-P` / `MAX25_TCP_PASSWORD`)
 
-Änderungen am Client betreffen **dieses eine Programm** in `stacks/terminal/`. Das M25/1-Protokoll zu `max25d` ist der stabile Anbindungsvertrag.
+All client changes go into **this one program** in `stacks/terminal/`. The M25/1 protocol to `max25d` is the stable binding contract.
 
-Operator-Dokumentation (Bedienung, Menü): [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
+Operator documentation (usage, menu): [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
 
 ---
 
-## Rollenverteilung
+## Role split
 
 ```
 Operator
    │
    ▼
-max25-terminal / max25-client     ← UI, Eingabe, Anzeige (alle Plattformen)
-   │  M25/1 (TCP oder Unix)
+max25-terminal / max25-client     ← UI, input, display (all platforms)
+   │  M25/1 (TCP or Unix)
    ▼
-max25d                            ← Config, Plugins, Hardware (nur Linux)
+max25d                            ← config, plugins, hardware (Linux only)
    │
    ▼
 TNC / BayCom / CRDOP
 ```
 
-| Verantwortung | `max25-terminal` | `max25d` |
-|---------------|------------------|----------|
-| Seriellport / KISS / Kernel-Modem | **nein** | **ja** |
-| Plugin-Lifecycle (boot-wait, BayCom, crdopc) | **nein** | **ja** |
-| Operator-Eingabe & RX-Anzeige | **ja** | **nein** |
-| CALLERID / CALLID (live, Session) | sendet `SET …` | speichert & nutzt für TX |
-| AX.25-UI-Modus | `--ax25-ui` → `SET AX25_UI` | formatiert/weiterleitet TX |
-| Konfiguration INI | nur Verbindungsziel (Host/Port) | `max25d.ini` |
+| Responsibility | `max25-terminal` | `max25d` |
+|----------------|------------------|----------|
+| Serial / KISS / kernel modem | **no** | **yes** |
+| Plugin lifecycle (boot-wait, BayCom, crdopc) | **no** | **yes** |
+| Operator input & RX display | **yes** | **no** |
+| CALLERID / CALLID (live, session) | sends `SET …` | stores & uses for TX |
+| AX.25 UI mode | `--ax25-ui` → `SET AX25_UI` | formats/forwards TX |
+| INI configuration | connection target only (host/port/password) | `max25d.ini` |
 
-Der Client **öffnet niemals** `/dev/tty*` oder Soundkarten direkt. Alles Modem-bezogene läuft über `max25d`.
+The client **never** opens `/dev/tty*` or sound cards directly. All modem-related work goes through `max25d`.
 
 ---
 
-## Transport & Verbindungsaufbau
+## Transport & connection setup
 
-### Endpunkte (Standard)
+### Endpoints (defaults)
 
-| Transport | Adresse | Wann |
+| Transport | Address | When |
 |-----------|---------|------|
-| **TCP** | `Host:7325` | Remote (Windows, macOS, *BSD, Linux) |
-| **Unix** | `/run/max25/modem.sock` | Lokaler Linux-Terminal (bevorzugt, wenn vorhanden) |
+| **TCP** | `Host:7325` | Remote (Windows, macOS, *BSD, Linux, AmigaOS) |
+| **Unix** | `/run/max25/modem.sock` | Local Linux terminal (preferred when available) |
 
-Ohne root-Rechte fällt `max25d` auf `/tmp/max25/modem.sock` zurück.
+Without root, `max25d` falls back to `/tmp/max25/modem.sock`.
 
-### Umgebungsvariablen
+### Environment variables
 
-| Variable | Bedeutung | Default |
-|----------|-----------|---------|
-| `MAX25_HOST` | TCP-Zielhost | `127.0.0.1` |
-| `MAX25_PORT` | TCP-Port | `7325` |
-| `MAX25_UNIX` | Unix-Socket-Pfad | `/run/max25/modem.sock` |
+| Variable | Meaning | Default |
+|----------|---------|---------|
+| `MAX25_HOST` | TCP target host | `127.0.0.1` |
+| `MAX25_PORT` | TCP port | `7325` |
+| `MAX25_UNIX` | Unix socket path | `/run/max25/modem.sock` |
+| `MAX25_TCP_PASSWORD` | Plain-text TCP auth password | (empty) |
 
-### CLI (Referenzimplementierung)
+### CLI (reference implementation)
 
 ```bash
 max25-terminal -H 192.168.1.10 -p 7325
+max25-terminal -T -H raspberrypi.local -p 7325 -P changeme
 max25-terminal -U /run/max25/modem.sock
 max25-terminal --ax25-ui -v
+max25-terminal --probe -T -H 127.0.0.1 -p 7325
 ```
 
-**Verbindungsreihenfolge:** zuerst Unix-Socket versuchen (wenn `-U` gesetzt), sonst TCP.
+**Connection order:** try Unix socket first (unless `--tcp-only` / `-T`), then TCP.
 
-### Handshake beim Connect
+### Handshake on connect
 
-Nach `accept()` sendet `max25d` **ohne Client-Anfrage** zwei Zeilen:
+When `tcp_password` is set, **TCP clients** receive `AUTH required` first; Unix socket clients skip auth.
+
+Without auth:
 
 ```
 OK
 STATUS hardware=tncs device=tnc2c mode=standalone callerid=CB-0 callid=QST ax25_ui=on connected=no stack=running
 ```
 
-Der Client muss:
+With TCP auth:
 
-1. beide Zeilen lesen (mit **Zeilenpuffer** — mehrere `\n` können in einem `read()` ankommen)
-2. `STATUS` parsen und Header-Zeile aktualisieren
-3. optional `CONNECT` senden, bevor `SEND` erlaubt ist
+```
+AUTH required
+AUTH <password>
+OK
+STATUS hardware=…
+```
+
+The client must:
+
+1. read handshake lines with a **line buffer** (multiple `\n` may arrive in one `read()`)
+2. parse `STATUS` and update the header line
+3. optionally send `CONNECT` before `SEND` is allowed
+
+Full reference: [`include/max25/protocol.md`](../include/max25/protocol.md).
 
 ---
 
-## M25/1-Protokoll
+## M25/1 protocol
 
-Vollständige Referenz: [`include/max25/protocol.md`](../include/max25/protocol.md).
+Short overview: **line-oriented UTF-8**, one command per line, terminated with `\n`. No JSON, no binary framing.
 
-Kurzüberblick: **zeilenorientiertes UTF-8**, eine Anweisung pro Zeile, mit `\n` abgeschlossen. Kein JSON, kein Binary-Framing.
+### Client → daemon
 
-### Client → Daemon
-
-| Befehl | Wirkung |
-|--------|---------|
+| Command | Effect |
+|---------|--------|
 | `PING` | Keepalive → `OK` |
-| `GET STATUS` | → `STATUS …` dann `OK` |
-| `SET CALLERID <id>` | Live-Quellrufzeichen (uppercase) |
-| `SET CALLID <id>` | Live-Zielrufzeichen |
-| `SET AX25_UI on\|off` | AX.25-UI-Modus |
-| `CONNECT` | Session an → `EVENT connected`, `OK` |
-| `DISCONNECT` | Session aus → `EVENT disconnected`, `OK` |
-| `SEND <text>` | Zeile senden (Rest der Zeile nach `SEND `) |
-| `MONITOR on\|off` | Nur RX (kein `SEND`) |
+| `GET STATUS` | → `STATUS …` then `OK` |
+| `SET CALLERID <id>` | Live source callsign (uppercase) |
+| `SET CALLID <id>` | Live destination callsign |
+| `SET AX25_UI on\|off` | AX.25 UI mode |
+| `CONNECT` | Attach session → `EVENT connected`, `OK` |
+| `DISCONNECT` | Detach session → `EVENT disconnected`, `OK` |
+| `SEND <text>` | Send line (remainder of line after `SEND `) |
+| `MONITOR on\|off` | RX only (no `SEND`) |
 
-### Daemon → Client
+### Daemon → client
 
-| Zeile | Bedeutung |
-|-------|-----------|
-| `OK` | Befehl erfolgreich |
-| `ERR <msg>` | Fehler (Befehl abgelehnt) |
-| `STATUS hardware=… device=… mode=… callerid=… callid=… ax25_ui=on\|off connected=yes\|no stack=…` | Zustand |
-| `RX <text>` | Empfangene Zeile zur Anzeige |
-| `EVENT connected` / `EVENT disconnected` | Session-Events |
+| Line | Meaning |
+|------|---------|
+| `OK` | Command succeeded |
+| `ERR <msg>` | Command rejected |
+| `STATUS hardware=… device=… mode=… callerid=… callid=… ax25_ui=on\|off connected=yes\|no stack=…` | State snapshot |
+| `RX <text>` | Received line for display |
+| `EVENT connected` / `EVENT disconnected` | Session events |
 
-### Typische Dialoge
+### Typical dialogues
 
-**Status abfragen:**
+**Query status:**
 
 ```
 C: GET STATUS
@@ -137,68 +152,70 @@ D: STATUS hardware=tncs device=tnc2c mode=standalone callerid=CB-0 callid=QST ax
 D: OK
 ```
 
-**Live-ID ändern:**
+**Change live ID:**
 
 ```
 C: SET CALLERID DG1ABC
 D: OK
 ```
 
-**Senden (nach CONNECT):**
+**Send (after CONNECT):**
 
 ```
-C: SEND 73 an alle
-D: RX [AX25 UI DG1ABC>QST] 73 an alle    ← Echo an sendenden Client
+C: SEND 73 to all
+D: RX [AX25 UI DG1ABC>QST] 73 to all    ← echo to sending client
 D: OK
 ```
 
-Andere verbundene Clients erhalten dieselbe `RX`-Zeile (ohne doppeltes Echo beim Sender).
+Other connected clients receive the same `RX` line.
 
-**Fehler:**
+**Error:**
 
 ```
 C: SEND test
 D: ERR not connected
 ```
 
-### CALLSIGN-Validierung
+### CALLSIGN validation
 
-Entspricht AX.25-Adressregeln (siehe [PACKET-RADIO.md](PACKET-RADIO.md)):
+Matches AX.25 address rules (see [PACKET-RADIO.md](PACKET-RADIO.md)):
 
-- Rufzeichen-Körper: **1–6** Zeichen `A–Z`, `0–9`
-- SSID optional: **`-0` … `-15`**
-- Eingabe wird **uppercase** normalisiert
+- Call body: **1–6** characters `A–Z`, `0–9`
+- Optional SSID: **`-0` … `-15`**
+- Input is normalized to **uppercase**
 
-Ungültige `SET CALLERID` / `SET CALLID` → `ERR invalid CALLERID` bzw. `ERR invalid CALLID`; alter Wert bleibt.
+Invalid `SET CALLERID` / `SET CALLID` → `ERR invalid CALLERID` / `ERR invalid CALLID`; previous value is kept.
 
-### Implementierungshinweise (wichtig)
+### Implementation notes (important)
 
-1. **Zeilenpuffer:** Niemals ein `read()` = eine Protokollzeile annehmen. Referenz: `LineReader` in `stacks/daemon/test_proto.py`, Byte-für-Byte-Lesen in `stacks/terminal/max25_proto.c`.
+1. **Line buffer:** Never assume one `read()` equals one protocol line. Reference: `LineReader` in `stacks/daemon/test_proto.py`, byte-by-byte read in `stacks/terminal/max25_proto.c`.
 
-2. **Ein Leser pro Socket:** Entweder ein Event-Loop liest alle Zeilen, oder synchrone `command()`-Aufrufe — **nicht** parallel zwei Stellen auf demselben FD lesen.
+2. **One reader per socket:** Either one event loop reads all lines, or synchronous `command()` calls — **do not** read from the same FD in two places in parallel.
 
-3. **`RX` während `command()`:** `max25_client_command()` ignoriert Zwischenzeilen `RX …` und `EVENT …` bis `OK`/`ERR` kommt.
+3. **`RX` during `command()`:** `max25_client_command()` ignores interim `RX …` and `EVENT …` lines until `OK`/`ERR`.
 
-4. **`SEND`-Reihenfolge:** Daemon antwortet auf `SEND` mit `RX …` **vor** `OK`. Tests und Client müssen beide Zeilen erwarten.
+4. **`SEND` order:** Daemon responds to `SEND` with `RX …` **before** `OK`. Tests and clients must expect both lines.
 
-5. **`connected` ist Session-State:** Ohne `CONNECT` schlägt `SEND` fehl. Referenz-Client ruft `CONNECT` beim Start automatisch auf.
+5. **`connected` is session state:** Without `CONNECT`, `SEND` fails. The reference client calls `CONNECT` automatically on start.
 
 ---
 
-## Quellcode-Layout (`stacks/terminal/`)
+## Source layout (`stacks/terminal/`)
 
-| Datei | Aufgabe |
-|-------|---------|
-| `max25_terminal.c` | `main`, CLI, Session-Loop, Menü-Aktionen |
-| `max25_proto.c` / `.h` | Socket-Connect, M25/1-Befehle, STATUS-Parser |
-| `max25_ui.c` / `.h` | ncurses-Menü, HyBBX-Palette, Prompts |
-| `Makefile` | Build, `max25-client`-Symlink |
+| File | Role |
+|------|------|
+| `max25_terminal.c` | `main`, CLI, session loop, menu actions |
+| `max25_proto.c` / `.h` | Socket connect, M25/1 commands, STATUS parser, TCP auth |
+| `max25_ui.c` / `.h` | ncurses menu, HyBBX palette, prompts |
+| `amiga/` | Reduced AmigaOS TCP client (no ncurses menu) |
+| `Makefile` | Build, `max25-client` symlink |
 
-### Referenz-API (`max25_proto.h`)
+### Reference API (`max25_proto.h`)
 
 ```c
 int max25_client_connect(const char *host, unsigned port, const char *unix_path,
-                         max25_client_t **out);
+                         int tcp_only, const char *tcp_password,
+                         max25_client_t **out, max25_status_t *initial_status);
 int max25_client_command(max25_client_t *client, const char *cmd,
                          char *reply, size_t reply_sz);
 int max25_client_read_line(max25_client_t *client, char *line, size_t line_sz);
@@ -206,75 +223,83 @@ int max25_client_parse_status(const char *line, max25_status_t *status);
 int max25_valid_callsign(const char *value);
 ```
 
-Session-Loop in `max25_terminal.c`:
+Session loop in `max25_terminal.c`:
 
-- `poll()` auf STDIN + Daemon-Socket
-- Daemon-Zeilen: `RX …` → Anzeige
-- TTY: Zeilen eingeben → `SEND …`
-- **F10** → Menü ein/aus (ncurses: `KEY_F(10)`)
+- `poll()` on STDIN + daemon socket
+- daemon lines: `RX …` → display
+- TTY: type lines → `SEND …`
+- **F10** → toggle menu (ncurses: `KEY_F(10)`)
 
 ---
 
-## UI-Vertrag (langfristig stabil)
+## UI contract (long-term stable)
 
-Diese Vorgaben ändern sich **nicht** auf absehbare Zeit:
+These rules do **not** change for the foreseeable future:
 
-| Element | Vorgabe |
-|---------|---------|
-| Darstellung | Text only — ncurses wenn TTY, sonst ANSI/plain stdout |
-| Palette | Schwarz + hellgrau (`\033[37;40m`) — HyBBX-konform |
-| Menü-Taste | **F10** öffnet/schließt |
-| Menü-Auswahl | **Ziffern 0–9**, keine weiteren Funktionstasten |
+| Element | Rule |
+|---------|------|
+| Display | Text only — ncurses when TTY, otherwise ANSI/plain stdout |
+| Palette | Black + light gray (`\033[37;40m`) — HyBBX-aligned |
+| Menu key | **F10** opens/closes |
+| Menu selection | **Digits 0–9**, no other function keys |
 | Header | `MAX25 Terminal  CALLERID: …  CALLID: …` |
-| Menüeinträge | siehe [MAX25-TERMINAL.md](MAX25-TERMINAL.md#f10-menu) |
-| Farb-Themes / GUI / Web | **out of scope** |
-| Raw-Serial im Client | **verboten** |
+| Menu entries | see [MAX25-TERMINAL.md](MAX25-TERMINAL.md#f10-menu) |
+| Color themes / GUI / web | **out of scope** |
+| Raw serial in client | **forbidden** |
 
-Menü-Inhalte und Nummern sind Teil des Produkts — neue Features gehören ins bestehende F10-Menü, nicht in parallele UIs.
+Menu contents and numbers are part of the product — new features belong in the existing F10 menu, not in parallel UIs.
 
 ---
 
-## Entwicklungsworkflow
+## Development workflow
 
-### Bauen
+### Build
 
 ```bash
 make -C stacks/terminal all
-# Erzeugt: stacks/terminal/max25-terminal
+# Produces: stacks/terminal/max25-terminal
 # Symlink: stacks/terminal/max25-client -> max25-terminal
 ```
 
-Abhängigkeit Linux: `libncurses-dev` (oder ncurses via pkg-config).
+Linux dependency: `libncurses-dev` (or ncurses via pkg-config).
 
-### Daemon für Tests starten
+AmigaOS cross-build:
 
 ```bash
-# Ohne Hardware (nur Protokoll):
+make amiga-terminal
+# or: scripts/build-amiga-terminal.sh  (SDK: /opt/amiga)
+```
+
+### Start daemon for tests
+
+```bash
+# Without hardware (protocol only):
 ./stacks/daemon/max25d --no-stack -c share/max25/max25d.ini.example
 
-# Mit Stack-Auto-Start:
+# With stack auto-start:
 ./stacks/daemon/max25d -c share/max25/max25d.ini.example
 ```
 
-### Terminal anbinden
+### Connect terminal
 
 ```bash
 ./stacks/terminal/max25-terminal -H 127.0.0.1 -p 7325 --ax25-ui -v
+./stacks/terminal/max25-terminal -T -H 127.0.0.1 -p 7325 -P changeme --probe
 ```
 
-### Automatische Protokoll-Tests
+### Automated protocol tests
 
 ```bash
-make -C stacks/daemon smoke    # test_proto.py — M25/1 ohne Terminal-UI
-make -C stacks/terminal test   # Binary + Symlink vorhanden
-make release-check             # Gesamt-Gates inkl. beider Stacks
+make -C stacks/daemon smoke    # test_proto.py + test_auth.py
+make -C stacks/terminal test   # binary + TCP probe
+make release-check             # full gates including both stacks
 ```
 
-### Manueller Protokoll-Test (z. B. mit netcat)
+### Manual protocol test (e.g. with netcat)
 
 ```bash
 nc 127.0.0.1 7325
-# OK und STATUS kommen automatisch
+# OK and STATUS arrive automatically (or AUTH required if tcp_password set)
 GET STATUS
 SET CALLERID CB-0
 CONNECT
@@ -284,60 +309,61 @@ DISCONNECT
 
 ---
 
-## Checkliste für Client-Entwickler
+## Checklist for client developers
 
-Vor Merge / Release des Terminals:
+Before merge / release of the terminal:
 
-- [ ] Handshake: `OK` + `STATUS` nach Connect korrekt gepuffert gelesen
-- [ ] `CONNECT` vor erstem `SEND`
-- [ ] `SET CALLERID` / `SET CALLID` mit Validierung; Header live aktualisiert
-- [ ] F10-Menü: Einträge 0–6 wie spezifiziert
-- [ ] `RX`-Zeilen werden angezeigt; `poll`/Event-Loop blockiert nicht
-- [ ] Remote-TCP und lokaler Unix-Socket getestet
-- [ ] `--ax25-ui` setzt `SET AX25_UI on` am Daemon
-- [ ] Kein direkter Hardware-Zugriff im Client
-- [ ] `make release-check` grün
-
----
-
-## Was nicht zu bauen ist
-
-| Nicht gewünscht | Stattdessen |
-|-----------------|-------------|
-| Zweiter Client (GUI, Web, minicom-Fork) | `max25-terminal` erweitern |
-| Eigenes Serial/KISS im Client | `max25d` + M25/1 |
-| Paralleles Protokoll | Nur M25/1 — Erweiterungen versioniert dokumentieren |
-| Funktionstasten-Menü (F1–F9) | Zifferntasten im F10-Menü |
+- [ ] Handshake: `OK` + `STATUS` (or `AUTH` flow) read with correct buffering
+- [ ] `CONNECT` before first `SEND`
+- [ ] `SET CALLERID` / `SET CALLID` with validation; header updated live
+- [ ] F10 menu: entries 0–6 as specified
+- [ ] `RX` lines displayed; `poll`/event loop does not block
+- [ ] Remote TCP and local Unix socket tested
+- [ ] TCP auth tested when `tcp_password` is set
+- [ ] `--ax25-ui` sets `SET AX25_UI on` on the daemon
+- [ ] No direct hardware access in the client
+- [ ] `make release-check` green
 
 ---
 
-## Daemon-Seite (Anbindung aus Sicht max25d)
+## What not to build
 
-`max25d` (`stacks/daemon/max25d`) implementiert den Server:
-
-- lauscht TCP (`max25d.ini` → `[network] tcp_port`) und optional Unix
-- ein Thread pro Client (`client_thread`)
-- gemeinsamer `DaemonState` (CALLERID/CALLID global für alle Clients)
-
-Konfiguration: `share/max25/max25d.ini.example`, systemd: `share/max25/max25d.service.example`.
-
-**Hinweis:** Hardware-TX/RX-Brücke (KISS/Serial) wird serverseitig ausgebaut; der Client-Vertrag (`SEND` / `RX`) bleibt dabei stabil.
-
-Geplante Daemon-Erweiterungen (ändern **nicht** den Text-UI-Vertrag):
-
-- ~~Authentifizierung für Remote-TCP~~ — **v1:** plain-text `AUTH` auf TCP (`tcp_password` in `max25d.ini`)
-- echte Modem-RX-Zeilen als `RX …` statt Loopback-Echo
-
-**HyBBX:** Plugin-Lifecycle bleibt in HyBBX selbst — `max25d` braucht keinen HyBBX-Plugin-Loader; MAX25 nutzt `max25-ctl` + eigene Plugin-YAMLs nur als Dokumentation/Manifest.
+| Not wanted | Instead |
+|------------|---------|
+| Second client (GUI, web, minicom fork) | extend `max25-terminal` |
+| Own serial/KISS in client | `max25d` + M25/1 |
+| Parallel protocol | M25/1 only — document extensions with version |
+| Function-key menu (F1–F9) | digit keys in F10 menu |
 
 ---
 
-## Siehe auch
+## Daemon side (connection from max25d’s view)
+
+`max25d` (`stacks/daemon/max25d`) implements the server:
+
+- listens on TCP (`max25d.ini` → `[network] tcp_port`) and optional Unix
+- one thread per client (`client_thread`)
+- shared `DaemonState` (CALLERID/CALLID global for all clients)
+- plain-text TCP auth when `tcp_password` is set
+
+Configuration: `share/max25/max25d.ini.example`, systemd: `share/max25/max25d.service.example`.
+
+**Note:** Hardware TX/RX bridge (KISS/serial) is being built server-side; the client contract (`SEND` / `RX`) stays stable.
+
+Planned daemon extensions (do **not** change the text UI contract):
+
+- ~~Remote TCP authentication~~ — **v1:** plain-text `AUTH` on TCP (`tcp_password` in `max25d.ini`)
+- real modem RX lines as `RX …` instead of loopback echo
+
+**HyBBX:** Plugin lifecycle stays in HyBBX itself — `max25d` does not need a HyBBX plugin loader; MAX25 uses `max25-ctl` + plugin YAMLs as documentation/manifest only.
+
+---
+
+## See also
 
 - [PACKET-RADIO.md](PACKET-RADIO.md) — AX.25 / KISS / TNC / BayCom
-- [MAX25-TERMINAL.md](MAX25-TERMINAL.md) — Operator-Ansicht, Menü, Bedienung
-- [PACKET-RADIO.md](PACKET-RADIO.md) — AX.25, KISS, TNC, BayCom
-- [include/max25/protocol.md](../include/max25/protocol.md) — M25/1-Protokollreferenz
-- [PLATFORMS.md](PLATFORMS.md) — Linux-only Daemon, Client cross-platform
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Schichtenmodell
-- [DEVELOPMENT.md](DEVELOPMENT.md) — Toolchain & Repo-Konventionen
+- [MAX25-TERMINAL.md](MAX25-TERMINAL.md) — operator view, menu, usage
+- [include/max25/protocol.md](../include/max25/protocol.md) — M25/1 protocol reference
+- [PLATFORMS.md](PLATFORMS.md) — Linux-only daemon, cross-platform client
+- [ARCHITECTURE.md](ARCHITECTURE.md) — layer model
+- [DEVELOPMENT.md](DEVELOPMENT.md) — toolchain & repo conventions

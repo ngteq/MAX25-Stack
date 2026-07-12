@@ -15,7 +15,7 @@
 │  HyBBX (external) — sessions, HBX, BBS, users          │
 │  Plugins: packet_radio | baycom | crdop                 │
 ├─────────────────────────────────────────────────────────┤
-│  MainAX25 Betriebsform — standalone | service | hybbx-edge │
+│  MainAX25 operating mode — standalone | service | hybbx-edge │
 ├─────────────────────────────────────────────────────────┤
 │  MainAX25 Hardware — tncs | modems | soft-modems             │
 ├─────────────────────────────────────────────────────────┤
@@ -33,7 +33,7 @@
 
 ```
 MainAX25-Stack (MAX25-Stack)/
-├── plugins/           Plugin registry + Betriebsform/Hardware/Device metadata
+├── plugins/           Plugin registry + operating mode / hardware / device metadata
 ├── stacks/
 │   ├── tncs/          Merged TNCs-Stack (serial TNC operator tools)
 │   ├── baycom-pr/     Merged baycom_pr-Stack (kernel modem lifecycle)
@@ -51,7 +51,7 @@ MainAX25-Stack (MAX25-Stack)/
 
 | Type | ID prefix | Responsibility |
 |------|-----------|----------------|
-| **Betriebsform** | `betriebsform/*` | How many radios, 24/7 vs operator, HyBBX edge role |
+| **Operating mode** | `betriebsform/*` | How many radios, 24/7 vs operator, HyBBX edge role |
 | **Hardware** | `hardware/*` | Stack path, build targets, HyBBX plugin name |
 | **Device** | `devices/*` | Concrete profile — serial params, INI, scripts |
 
@@ -103,7 +103,7 @@ See [HYBBX.md](HYBBX.md).
 - Device plugin `soft-crdop`; HyBBX `crdop` transport over TCP
 - Builds on Linux and *BSD (ALSA); not AX.25/KISS
 
-## Betriebsform matrix
+## Operating mode matrix
 
 | Mode | Radios | Typical MainAX25 path | HyBBX role |
 |------|--------|-------------------|------------|

@@ -14,7 +14,7 @@ HyBBX is **not** vendored — external consumer at ngteq/hyBBX.
 
 ## Added in umbrella repo
 
-- `plugins/` — Betriebsform / hardware / device registry
+- `plugins/` — operating mode / hardware / device registry
 - `scripts/` — `max25-ctl`, `discover-plugins.sh`, `release-check.sh`
 - `share/hybbx/` — HyBBX INI examples
 - `docs/` — architecture, HyBBX contract, platforms, v1 scope

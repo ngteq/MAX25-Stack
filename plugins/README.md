@@ -5,14 +5,14 @@ Packet Radio / AX.25 plugins for the standalone **Main AX.25 Stack**. HyBBX conn
 ## Hierarchy
 
 ```
-Betriebsform (operating mode)
+Operating mode (`betriebsform/`)
   └── Hardware group (TNCs, Modems)
         └── Device (TNC2C, PK-TNC2, BayCom SER12, …)
 ```
 
 | Layer | Directory | Purpose |
 |-------|-----------|---------|
-| **Betriebsform** | `betriebsform/` | How the station runs (standalone, service, HyBBX edge) |
+| **Operating mode** | `betriebsform/` | How the station runs (standalone, service, HyBBX edge) |
 | **Hardware** | `hardware/` | Device family — serial TNCs, BayCom modems, soft modems |
 | **Device** | `devices/` | Concrete hardware profile and HyBBX INI mapping |
 

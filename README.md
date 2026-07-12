@@ -102,7 +102,7 @@ MainAX25 ships **standalone-first**: one operator brings up TNC or modem without
 | **BayCom SER12** (`baycom-ser12`) | `baycom-pr-ctl start` | `baycom` |
 | **CRDOP** (`soft-crdop`) | `max25-ctl start --hardware soft-modems` | `crdop` |
 
-**Default Betriebsform:** `standalone` · **Deferred:** `pktnc2`, `baycom-par96`, `baycom-kiss`, minicom fork, *BSD port.
+**Default operating mode:** `standalone` · **Deferred:** `pktnc2`, `baycom-par96`, `baycom-kiss`, minicom fork, *BSD port.
 
 ```bash
 make release-check    # v1.0.0 offline gates

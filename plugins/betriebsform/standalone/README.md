@@ -1,4 +1,4 @@
-# Betriebsform: Standalone
+# Operating mode: Standalone
 
 Single-operator packet radio. One TNC or one BayCom modem online.
 

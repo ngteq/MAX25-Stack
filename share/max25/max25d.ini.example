@@ -2,7 +2,7 @@
 ; Copy to /etc/max25/max25d.ini or pass MAX25D_INI=
 
 [daemon]
-; Betriebsform: standalone | service | hybbx-edge
+; Operating mode: standalone | service | hybbx-edge
 mode = standalone
 ; Plugin device id from plugins/manifest.yaml
 hardware = tncs

@@ -79,7 +79,7 @@ Full contract: `stacks/baycom-pr/docs/PLUGIN.md`
 - Never open raw `/dev/ttyS*` while `baycom_ser_fdx` loaded
 - Root/capabilities for kernel autoload if used
 
-## Betriebsform: hybbx-edge
+## Operating mode: hybbx-edge
 
 Recommended flow for Secondary nodes:
 

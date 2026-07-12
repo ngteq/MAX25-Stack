@@ -1,4 +1,4 @@
-# Betriebsform: HyBBX Edge
+# Operating mode: HyBBX Edge
 
 RF edge on a HyBBX **Secondary** node. MainAX25 (MAX25) prepares hardware; HyBBX opens KISS/serial and bridges AX.25 to Main over HBX.
 

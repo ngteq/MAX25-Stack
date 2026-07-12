@@ -20,7 +20,7 @@ Map for AI agents. Humans: [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTIN
 ## Plugin hierarchy
 
 ```
-Betriebsform → Hardware → Device
+Operating mode (`betriebsform/`) → Hardware → Device
 ```
 
 Registry: `plugins/manifest.yaml`

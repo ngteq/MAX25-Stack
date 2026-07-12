@@ -11,12 +11,12 @@ Read [AGENTS.md](../../AGENTS.md) and [docs/DEVELOPMENT.md](../../docs/DEVELOPME
 
 **Main AX.25 Stack** — standalone Packet Radio / AX.25 hardware lifecycle. HyBBX attaches as external consumer (`packet_radio`, `baycom`, `crdop`). **v1.0.0-rc1**.
 
-Plugin hierarchy: Betriebsform → Hardware → Device. Registry: `plugins/manifest.yaml`.
+Plugin hierarchy: operating mode (`betriebsform/`) → Hardware → Device. Registry: `plugins/manifest.yaml`.
 
 ## Code & scripts
 
 - Bash/shell for operator tooling; C for merged stack binaries
-- Plugin IDs and scripts: English; operator docs may use German (**Betriebsform**)
+- Plugin IDs, scripts, and shipped docs: **English**
 - Minimal scope; link to `stacks/*/` — do not duplicate stack READMEs
 - MAX25 owns modem/TNC prep; HyBBX owns sessions — no session logic in MAX25
 

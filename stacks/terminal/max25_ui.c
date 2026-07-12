@@ -208,15 +208,15 @@ static void draw_menu_plain(const max25_status_t *status)
     printf("│ CALLERID: %-9s CALLID: %-9s │\n",
            status->callerid, status->callid);
     puts("├─────────────────────────────────────┤");
-    puts("│ 1  CALLERID ändern (live)           │");
-    puts("│ 2  CALLID ändern (live)             │");
+    puts("│ 1  Change CALLERID (live)           │");
+    puts("│ 2  Change CALLID (live)             │");
     puts("│ 3  Status                           │");
-    puts("│ 4  Zeile senden                     │");
-    puts("│ 5  Nur RX (Monitor)                 │");
-    puts("│ 6  Verbindung an/aus                │");
-    puts("│ 0  Client beenden                   │");
+    puts("│ 4  Send line                        │");
+    puts("│ 5  RX only (Monitor)                │");
+    puts("│ 6  Connection on/off                │");
+    puts("│ 0  Quit client                      │");
     puts("└─────────────────────────────────────┘");
-    puts("Ziffer wählen · F10 schließt");
+    puts("Pick a number · F10 closes");
     fflush(stdout);
 }
 
@@ -236,15 +236,15 @@ void max25_ui_show_menu(max25_ui_t *ui, const max25_status_t *status)
         mvprintw(y0 + 1, 0, "│ CALLERID: %-9s CALLID: %-9s │",
                  status->callerid, status->callid);
         mvprintw(y0 + 2, 0, "├─────────────────────────────────────┤");
-        mvprintw(y0 + 3, 0, "│ 1  CALLERID ändern (live)           │");
-        mvprintw(y0 + 4, 0, "│ 2  CALLID ändern (live)             │");
+        mvprintw(y0 + 3, 0, "│ 1  Change CALLERID (live)           │");
+        mvprintw(y0 + 4, 0, "│ 2  Change CALLID (live)             │");
         mvprintw(y0 + 5, 0, "│ 3  Status                           │");
-        mvprintw(y0 + 6, 0, "│ 4  Zeile senden                     │");
-        mvprintw(y0 + 7, 0, "│ 5  Nur RX (Monitor)                 │");
-        mvprintw(y0 + 8, 0, "│ 6  Verbindung an/aus                │");
-        mvprintw(y0 + 9, 0, "│ 0  Client beenden                   │");
+        mvprintw(y0 + 6, 0, "│ 4  Send line                        │");
+        mvprintw(y0 + 7, 0, "│ 5  RX only (Monitor)                │");
+        mvprintw(y0 + 8, 0, "│ 6  Connection on/off                │");
+        mvprintw(y0 + 9, 0, "│ 0  Quit client                      │");
         mvprintw(y0 + 10, 0, "└─────────────────────────────────────┘");
-        mvprintw(y0 + 11, 0, "Ziffer wählen · F10 schließt");
+        mvprintw(y0 + 11, 0, "Pick a number · F10 closes");
         attroff(COLOR_PAIR(1));
         refresh();
         return;

@@ -20,7 +20,7 @@ labels: bug
 - MainAX25 version / commit:
 - OS:
 - Hardware: TNC2C / BayCom SER12 / CRDOP / other
-- Betriebsform: standalone / hybbx-edge / service
+- Operating mode: standalone / hybbx-edge / service
 - Config (relevant paths or INI sections only, no secrets):
 
 ## Logs / output

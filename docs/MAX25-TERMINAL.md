@@ -1,6 +1,8 @@
 # MAX25 Terminal
 
-**[MAX25-CLIENT.md](MAX25-CLIENT.md)** · Protokoll: [`include/max25/protocol.md`](../include/max25/protocol.md)
+**The official MAX25 operator client** — text-based with an F10 menu. There is no second client; this UI concept stays unchanged for the foreseeable future.
+
+Development and connection to `max25d`: **[MAX25-CLIENT.md](MAX25-CLIENT.md)** · Protocol: [`include/max25/protocol.md`](../include/max25/protocol.md)
 
 Standalone client for direct modem interaction. HyBBX-compatible look and behaviour; configuration and hardware lifecycle stay in **`max25d`**.
 
@@ -11,7 +13,7 @@ Standalone client for direct modem interaction. HyBBX-compatible look and behavi
 | `max25d` | — | **Linux only** — config, plugins, boot-wait, BayCom, KISS/PTY, device owner |
 | `max25-terminal` | `max25-client` | **v1 ready** — operator UI; connects to `max25d` on Linux |
 
-Operator talks to the **modem** through the terminal; **`max25d` on Linux** owns hardware and BayCom.
+The operator talks to the **modem** through the terminal; **`max25d` on Linux** owns hardware and BayCom.
 
 ## Platform split
 
@@ -22,14 +24,14 @@ Operator talks to the **modem** through the terminal; **`max25d` on Linux** owns
 
 Transport: TCP to Linux host (default port **7325**), not raw serial on the client machine. Unix socket optional for local Linux terminal only (`/run/max25/modem.sock`).
 
-**AmigaOS:** deferred — same text client later, reduced ncurses if needed.
+**AmigaOS:** reduced text client in `stacks/terminal/amiga/` — TCP-only, no F10/ncurses menu parity.
 
 ## UI stability (long-term)
 
 - Text-only (TTY / ncurses / ANSI fallback) — **no GUI, no web UI**
 - **F10** menu, number keys **0–9** — no function-key navigation beyond F10
 - HyBBX palette only (light gray on black)
-- See [MAX25-CLIENT.md](MAX25-CLIENT.md#ui-vertrag-langfristig-stabil) for the binding contract
+- See [MAX25-CLIENT.md](MAX25-CLIENT.md#ui-contract-long-term-stable) for the binding contract
 
 ## Visual style (HyBBX-aligned)
 
@@ -55,21 +57,21 @@ Traffic pacing and line width follow HyBBX `client_display` conventions.
 
 **`F10`** — open menu (overlay). **`F10`** or **`Esc`** — close, return to modem session.
 
-Menu points are chosen with **number keys** `0`–`9`, not function keys.
+Menu items are chosen with **number keys** `0`–`9`, not function keys.
 
 ```
 ┌─ MAX25 Terminal ────────────────────┐
 │ CALLERID: CB-0    CALLID: QST       │
 ├─────────────────────────────────────┤
-│ 1  CALLERID ändern (live)           │
-│ 2  CALLID ändern (live)             │
+│ 1  Change CALLERID (live)           │
+│ 2  Change CALLID (live)             │
 │ 3  Status                           │
-│ 4  Zeile senden                     │
-│ 5  Nur RX (Monitor)                 │
-│ 6  Verbindung an/aus                │
-│ 0  Client beenden                   │
+│ 4  Send line                        │
+│ 5  RX only (Monitor)                │
+│ 6  Connection on/off                │
+│ 0  Quit client                      │
 └─────────────────────────────────────┘
-Ziffer wählen · F10 schließt
+Pick a number · F10 closes
 ```
 
 ### Live IDs
@@ -116,7 +118,7 @@ TNC / BayCom / CRDOP
 | Palette / text UI | `hybbx/terminal.h` | shared convention |
 | Hardware prep | `packet_radio` plugin | `max25d` + stacks |
 
-In **hybbx-edge** Betriebsform: `max25d` prepares hardware; HyBBX attaches via `share/hybbx/*.ini.example`. MAX25 Terminal remains for local modem debug and live ID changes.
+In **hybbx-edge** operating mode: `max25d` prepares hardware; HyBBX attaches via `share/hybbx/*.ini.example`. MAX25 Terminal remains for local modem debug and live ID changes.
 
 ## Out of scope (terminal — long-term)
 

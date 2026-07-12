@@ -14,7 +14,7 @@ labels: enhancement
 ## Fits MainAX25 model?
 
 - [ ] Standalone-first stack; HyBBX attaches after prep ([docs/HYBBX.md](../../docs/HYBBX.md))
-- [ ] Plugin fits Betriebsform → Hardware → Device hierarchy ([docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md))
+- [ ] Plugin fits operating mode → Hardware → Device hierarchy ([docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md))
 - [ ] Linux-primary / BSD-later platform stance ([docs/PLATFORMS.md](../../docs/PLATFORMS.md))
 
 ## Documentation

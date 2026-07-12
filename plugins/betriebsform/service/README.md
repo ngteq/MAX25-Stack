@@ -1,4 +1,4 @@
-# Betriebsform: Service
+# Operating mode: Service
 
 Continuous operation with one or two radios. Intended for HyBBX Secondary, digipeater, or unattended packet service.
 
