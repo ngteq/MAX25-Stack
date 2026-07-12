@@ -1,0 +1,32 @@
+---
+description: MAX25-Stack repo content is English-only; chat with user stays German
+alwaysApply: true
+---
+
+# Language — English project, German chat
+
+## Repository (MAX25-Stack)
+
+**All shipped project content is English.** When editing this repo, write and fix:
+
+| English required | Examples |
+|------------------|----------|
+| Documentation | `docs/`, `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `include/**/*.md` |
+| User-facing strings | Terminal UI, CLI help, error messages shown to operators |
+| Config templates | `share/**/*.example`, `share/**/*.ini.example` comments |
+| Plugin metadata docs | `plugins/**/README.md`, `plugin.yaml` labels/descriptions |
+| Scripts (user output) | `scripts/*.sh` usage text, echoed next steps |
+| Issue/PR templates | `.github/**` |
+| Cursor rules | `.cursor/rules/*.mdc` |
+
+**Exception (temporary):** inline **source code comments** in `.c`, `.h`, `.py`, `.sh` implementation files may remain German until a dedicated pass translates them. Do not add new German comments when touching those files — prefer English for new comments.
+
+**Not in repo:** private research → `/home/akb/Code/0-RESEARCHES/` only ([research-storage.mdc](research-storage.mdc)).
+
+## Chat with the user
+
+Respond in **German** in conversation. The project language rule does not apply to chat replies.
+
+## When you find German in shipped files
+
+Translate to English in the same change. Do not recommend specific hardware platforms unless the user asked — prefer **settings/setup examples** (see [LINUX-EDGE-SETUP.md](../../docs/LINUX-EDGE-SETUP.md)).

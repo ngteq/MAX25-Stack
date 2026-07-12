@@ -29,12 +29,13 @@ Registry: `plugins/manifest.yaml`
 
 1. **Standalone-first** — MAX25 prepares hardware; HyBBX never replaces boot-wait or kernel modem lifecycle.
 2. **No personal/local paths** in docs or examples — use placeholders (`/dev/ttyUSB0`, `main.example.com`).
-3. **Linux daemon only** — `max25d` + BayCom + full stack on Linux; **Raspberry Pi primary edge** — [docs/RASPBERRY-PI.md](docs/RASPBERRY-PI.md); terminal cross-platform — [docs/PLATFORMS.md](docs/PLATFORMS.md).
+3. **Linux daemon only** — `max25d` + BayCom + full stack on Linux; example edge setup — [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md); terminal cross-platform — [docs/PLATFORMS.md](docs/PLATFORMS.md).
 4. **One official client** — `max25-terminal` / `max25-client` only; text + F10 menu; binding in [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md).
 5. **BayCom stays** — first-class on Linux daemon; not deprecated.
 6. **Minimal diffs** — link `stacks/*/` READMEs.
 7. **HyBBX external** — INI in `share/hybbx/` only.
 8. **Git** — only `ngteq <info@un1t.me>`; push via `~/.ssh/id_ed25519_ngteq`; commit/push when user asks.
+9. **English-only repo** — all shipped docs, UI, examples, and user-facing text in English; chat with user in German. Source comments may stay German until batch translation ([`.cursor/rules/english-only-project.mdc`](.cursor/rules/english-only-project.mdc)).
 
 ## Commands
 

@@ -1,6 +1,6 @@
 # MainAX25-Stack (MAX25-Stack) — unified Packet Radio / AX.25 build
 
-.PHONY: help all clean test discover build plugins release-check daemon terminal amiga-terminal install pi-install
+.PHONY: help all clean test discover build plugins release-check daemon terminal amiga-terminal install edge-install
 
 ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PREFIX ?= /usr/local
@@ -16,7 +16,7 @@ help:
 	@echo "  make discover   List plugins"
 	@echo "  make plugins    Validate plugin scaffolding"
 	@echo "  make install      Install max25d, terminal, max25-ctl (PREFIX=/usr/local)"
-	@echo "  make pi-install   Same as: scripts/install-max25.sh --deps"
+	@echo "  make edge-install Same as: scripts/install-max25.sh --deps (see LINUX-EDGE-SETUP.md)"
 	@echo "  make clean      Clean built binaries"
 	@echo ""
 	@echo "  ./scripts/max25-ctl help"
@@ -66,12 +66,14 @@ install:
 	$(MAKE) -C stacks/terminal install PREFIX=$(PREFIX)
 	install -d "$(DESTDIR)$(PREFIX)/bin" "$(DESTDIR)$(PREFIX)/share/max25"
 	install -m 755 scripts/max25-ctl "$(DESTDIR)$(PREFIX)/bin/max25-ctl"
-	install -m 644 share/max25/max25d.ini.example share/max25/max25d.ini.pi.example "$(DESTDIR)$(PREFIX)/share/max25/"
+	install -m 644 share/max25/max25d.ini.example share/max25/max25d.ini.edge.example "$(DESTDIR)$(PREFIX)/share/max25/"
 	@if [ -f share/max25/max25d.service.example ]; then \
 		install -m 644 share/max25/max25d.service.example "$(DESTDIR)$(PREFIX)/share/max25/"; \
 	fi
 
-pi-install:
+edge-install:
 	bash scripts/install-max25.sh --deps
+
+pi-install: edge-install
 
 build: all discover

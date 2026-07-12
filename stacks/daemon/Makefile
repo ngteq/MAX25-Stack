@@ -13,7 +13,7 @@ install:
 	install -d "$(DESTDIR)$(PREFIX)/bin" "$(DESTDIR)$(PREFIX)/share/max25"
 	install -m 755 "$(ROOT)max25d" "$(DESTDIR)$(PREFIX)/bin/max25d"
 	install -m 644 "$(REPO)/share/max25/max25d.ini.example" "$(DESTDIR)$(PREFIX)/share/max25/"
-	install -m 644 "$(REPO)/share/max25/max25d.ini.pi.example" "$(DESTDIR)$(PREFIX)/share/max25/"
+	install -m 644 "$(REPO)/share/max25/max25d.ini.edge.example" "$(DESTDIR)$(PREFIX)/share/max25/"
 	install -m 644 "$(REPO)/share/max25/max25d.service.example" "$(DESTDIR)$(PREFIX)/share/max25/"
 
 test smoke:

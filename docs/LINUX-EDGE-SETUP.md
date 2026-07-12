@@ -1,31 +1,33 @@
-# Raspberry Pi — Build, Install, max25d
+# Linux edge setup example
 
-**Raspberry Pi is a primary deployment target** for MAX25: many operators attach TNCs, BayCom modems, or USB sound cards (CRDOP) directly to the Pi. The full Linux stack — **`max25d`**, BayCom, TNCs, CRDOP — runs natively on Pi OS.
+Example **settings and install steps** for running **`max25d`** on a small Linux edge node with a USB TNC, BayCom modem, or sound-card modem. MAX25 does not recommend specific hardware platforms — use this as a configuration template.
 
-Supported Pi OS: **Raspberry Pi OS** (Debian Bookworm base), **32-bit (armhf)** and **64-bit (aarch64)**. Other ARM SBCs with stock Debian/Ubuntu often work the same way.
+Example INI: `share/max25/max25d.ini.edge.example`
 
-## What runs on the Pi
+---
 
-| Component | On Pi | Notes |
-|-----------|-------|-------|
+## What runs on the edge node
+
+| Component | On Linux edge | Notes |
+|-----------|---------------|-------|
 | **`max25d`** | Yes | Python 3 — no x86-only code |
 | **`max25-terminal`** | Yes | Local UI via Unix socket or `127.0.0.1:7325` |
 | **TNC2C / USB TNC** | Yes | `/dev/ttyUSB*`, `/dev/ttyACM*` |
-| **BayCom SER12** | Yes | GPIO UART or USB-serial; kernel modules need headers |
-| **CRDOP (`soft-crdop`)** | Yes | ALSA; Pi Zero / Zero 2 W tested upstream in CRDOP/ardopcf |
+| **BayCom SER12** | Yes | UART or USB-serial; kernel modules need headers |
+| **CRDOP (`soft-crdop`)** | Yes | ALSA sound device |
 | **HyBBX attach** | Yes | After MAX25 prep — [HYBBX.md](HYBBX.md) |
 
-Remote phones/laptops use **`max25-terminal`** over Wi‑Fi/Ethernet to the Pi’s `max25d` (TCP port **7325**).
+Remote operators use **`max25-terminal`** over the network to this host’s `max25d` (TCP port **7325**).
 
 ---
 
 ## Hardware checklist
 
-| Attachment | Typical device | Pi notes |
-|------------|----------------|----------|
-| USB TNC (TNC2C, KISS) | `/dev/ttyUSB0` | Powered USB hub recommended for RF-heavy setups |
+| Attachment | Typical device | Notes |
+|------------|----------------|-------|
+| USB TNC (TNC2C, KISS) | `/dev/ttyUSB0` | Powered USB hub may help RF-heavy setups |
 | USB serial BayCom / KISS | `/dev/ttyUSB0` | User in group `dialout` |
-| GPIO UART (SER12) | `/dev/ttyAMA0` / `serial0` | Enable UART in `raspi-config`; no console on serial |
+| UART (SER12) | `/dev/ttyS*` / `ttyAMA0` | Disable serial console if UART is shared |
 | USB sound (CRDOP) | ALSA `plughw:…` | 12 kHz path — see `stacks/crdop` docs |
 
 ```bash
@@ -38,7 +40,7 @@ ls -l /dev/ttyUSB* /dev/ttyACM* /dev/serial/by-id/ 2>/dev/null
 
 ---
 
-## Dependencies (Pi OS)
+## Dependencies (Debian / Ubuntu)
 
 ```bash
 sudo apt-get update
@@ -52,9 +54,7 @@ sudo apt-get install -y \
 **BayCom kernel stack** additionally needs kernel headers matching the running kernel:
 
 ```bash
-sudo apt-get install -y raspberrypi-kernel-headers
-# or on generic Debian ARM:
-# sudo apt-get install -y linux-headers-$(uname -r)
+sudo apt-get install -y linux-headers-$(uname -r)
 ```
 
 Or use the repo helper:
@@ -78,15 +78,11 @@ make test
 make release-check   # optional offline gates
 ```
 
-Native build on the Pi (no cross-compile required). CRDOP also supports `aarch64-linux-gnu` cross-build from x86 CI — not needed on-device.
-
-**Memory:** Pi 3/4/5 and Zero 2 W are comfortable for `max25d` + one modem path. Pi Zero (512 MB) works for CRDOP per upstream ardopcf notes; avoid running heavy desktop + multiple stacks simultaneously.
+On **ARM** Linux (`armhf`, `aarch64`), native on-device build is supported.
 
 ---
 
 ## Install
-
-### One-shot (recommended on Pi)
 
 ```bash
 ./scripts/install-max25.sh --deps    # apt packages + build + install
@@ -121,17 +117,17 @@ See `stacks/baycom-pr/docs/GETTING-STARTED.md`.
 
 ---
 
-## Configure max25d on the Pi
+## Configure max25d
 
 Copy and edit site config:
 
 ```bash
 sudo mkdir -p /etc/max25
-sudo cp share/max25/max25d.ini.pi.example /etc/max25/max25d.ini
+sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
 sudo nano /etc/max25/max25d.ini
 ```
 
-**Pi example** (`share/max25/max25d.ini.pi.example`) defaults to USB TNC (`tnc2c`). Switch `[daemon]` section for your hardware:
+**Edge example** (`share/max25/max25d.ini.edge.example`) defaults to USB TNC (`tnc2c`). Switch `[daemon]` for your hardware:
 
 | Hardware | `hardware=` | `device=` |
 |----------|-------------|-----------|
@@ -157,7 +153,7 @@ sudo max25d -c /etc/max25/max25d.ini
 
 `sudo` may be required when `auto_start=yes` launches BayCom kernel paths or binds `/run/max25/modem.sock`. Without root, Unix socket falls back to `/tmp/max25/modem.sock`; TCP **7325** still works.
 
-### systemd (24/7 on Pi)
+### systemd (24/7)
 
 ```bash
 sudo cp /usr/local/share/max25/max25d.service.example /etc/systemd/system/max25d.service
@@ -172,9 +168,9 @@ journalctl -u max25d -f
 
 ---
 
-## Operator terminal on the Pi
+## Operator terminal
 
-**Local** (same Pi, keyboard + monitor or SSH with TTY):
+**Local** (same host, keyboard + monitor or SSH with TTY):
 
 ```bash
 max25-terminal -U /run/max25/modem.sock --ax25-ui
@@ -182,30 +178,29 @@ max25-terminal -U /run/max25/modem.sock --ax25-ui
 max25-terminal -H 127.0.0.1 -p 7325 --ax25-ui
 ```
 
-**Remote** (phone/laptop on LAN):
+**Remote** (another machine on LAN):
 
 ```bash
-max25-terminal -H raspberrypi.local -p 7325 --ax25-ui
+max25-terminal -T -H linux-host.local -p 7325 -P changeme --ax25-ui
 ```
 
 F10 menu, CALLERID/CALLID: [MAX25-TERMINAL.md](MAX25-TERMINAL.md). Client binding: [MAX25-CLIENT.md](MAX25-CLIENT.md).
 
 ---
 
-## Typical Pi workflows
+## Example workflows
 
 ### USB TNC2C
 
 ```bash
 # /etc/max25/max25d.ini → hardware=tncs device=tnc2c
 sudo max25d -c /etc/max25/max25d.ini
-# Power-cycle TNC during boot-wait if using auto_start
 max25-terminal -U /run/max25/modem.sock
 ```
 
 HyBBX later: `share/hybbx/tnc2c-edge.ini.example`.
 
-### BayCom on GPIO or USB
+### BayCom on UART or USB
 
 ```bash
 sudo baycom-pr-ctl probe
@@ -225,7 +220,7 @@ sudo max25d -c /etc/max25/max25d.ini
 
 ---
 
-## Troubleshooting (Pi)
+## Troubleshooting
 
 | Symptom | Check |
 |---------|--------|
@@ -235,7 +230,7 @@ sudo max25d -c /etc/max25/max25d.ini
 | CRDOP no audio | `aplay -l`, `arecord -l`; ALSA device name in crdop config |
 | `max25d` bind error on 7325 | `ss -tlnp \| grep 7325`; stop duplicate instance |
 | Unix socket EACCES | Run as root, use systemd unit, or use TCP localhost |
-| Kernel module build fails | `uname -r` vs installed headers; `raspberrypi-kernel-headers` |
+| Kernel module build fails | `uname -r` vs installed `linux-headers-$(uname -r)` |
 
 Offline smoke (no hardware):
 

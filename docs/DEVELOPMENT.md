@@ -4,13 +4,13 @@
 
 ## Toolchain
 
-Linux primary. **Raspberry Pi** is the main edge target for `max25d` + modems/TNCs — [RASPBERRY-PI.md](RASPBERRY-PI.md). GCC or Clang, make, bash. CRDOP needs CMake 3.16+ and ALSA dev headers.
+Linux primary. GCC or Clang, make, bash. CRDOP needs CMake 3.16+ and ALSA dev headers. Example edge setup: [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md).
 
 ```bash
 make all
 make test
 make release-check
-# Pi: ./scripts/install-max25.sh --deps
+# Pi: ./scripts/install-max25.sh --deps  (see docs/LINUX-EDGE-SETUP.md)
 ```
 
 *BSD porting is deferred — daemon stays Linux; see [PLATFORMS.md](PLATFORMS.md).
@@ -49,7 +49,9 @@ HyBBX (external) → packet_radio | baycom | crdop plugins (after MAX25 prep)
 
 ## Conventions
 
-- Plugin IDs, scripts, code, and **shipped docs**: **English**
+- Plugin IDs, scripts, code identifiers: **English**
+- **Shipped content English-only:** `docs/`, README, UI strings, `share/*` examples, plugin READMEs, user-facing script output — see [`.cursor/rules/english-only-project.mdc`](../.cursor/rules/english-only-project.mdc)
+- **Source comments:** may remain German temporarily; write **new** comments in English until a batch translation pass
 - Minimal diffs; link to `stacks/*/` READMEs — do not duplicate stack docs
 - Do not add personal paths, hostnames, or callsigns in docs — use placeholders.
 - HyBBX is external — reference `share/hybbx/*.ini.example` only

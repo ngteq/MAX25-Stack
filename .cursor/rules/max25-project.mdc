@@ -16,6 +16,8 @@ Plugin hierarchy: operating mode (`betriebsform/`) → Hardware → Device. Regi
 ## Code & scripts
 
 - Bash/shell for operator tooling; C for merged stack binaries
+- **Language:** entire repo **English** — docs, UI strings, examples, user-facing script output ([english-only-project.mdc](english-only-project.mdc))
+- Source code comments may stay German temporarily; new comments in English
 - Plugin IDs, scripts, and shipped docs: **English**
 - Minimal scope; link to `stacks/*/` — do not duplicate stack READMEs
 - MAX25 owns modem/TNC prep; HyBBX owns sessions — no session logic in MAX25

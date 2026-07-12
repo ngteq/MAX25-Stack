@@ -287,7 +287,7 @@ Reference algorithms: HyBBX `plugins/packet_radio/ax25.c`, `kiss.c`, `tnc.c` (up
 
 - [MAX25-CLIENT.md](MAX25-CLIENT.md) — M25/1 binding
 - [MAX25-TERMINAL.md](MAX25-TERMINAL.md) — operator UI
-- [RASPBERRY-PI.md](RASPBERRY-PI.md) — Pi + USB TNC deployment
+- [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md) — example edge install & USB TNC setup
 - [HYBBX.md](HYBBX.md) — attach after prep (minimal)
 - [include/max25/packet-radio.md](../include/max25/packet-radio.md) — constants cheat sheet
 - `stacks/tncs/`, `stacks/baycom-pr/docs/`, `share/hybbx/*.ini.example`

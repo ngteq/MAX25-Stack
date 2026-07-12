@@ -80,7 +80,7 @@ static void usage(const char *prog)
             "      --probe           Connect, print STATUS, exit (CI)\n"
             "  -h, --help            Show help\n\n"
             "Remote example:\n"
-            "  %s -T -H raspberrypi.local -p 7325\n\n"
+            "  %s -T -H linux-host.local -p 7325\n\n"
             "Environment: MAX25_HOST, MAX25_PORT, MAX25_UNIX, MAX25_TCP_PASSWORD\n"
             "Symlink: max25-client -> max25-terminal\n\n",
             prog, MAX25_DEFAULT_PORT, MAX25_DEFAULT_UNIX, prog);

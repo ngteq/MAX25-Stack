@@ -18,18 +18,18 @@ make all
 ./scripts/max25-ctl help
 ```
 
-### Raspberry Pi (recommended edge host)
+### Example Linux edge setup
 
-Many operators run **max25d** on a Pi with USB TNC, BayCom, or sound-card modem:
+Use the example INI and install steps for a typical edge node (`max25d` + USB TNC/modem):
 
 ```bash
 ./scripts/install-max25.sh --deps
-sudo cp share/max25/max25d.ini.pi.example /etc/max25/max25d.ini
+sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
 sudo max25d -c /etc/max25/max25d.ini
 max25-terminal -U /run/max25/modem.sock
 ```
 
-Full guide: [docs/RASPBERRY-PI.md](docs/RASPBERRY-PI.md).
+Setup guide: [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md).
 
 ### TNC2C
 
@@ -119,7 +119,7 @@ Full scope, acceptance tests, and release checklist: [docs/V1.0.0-SCOPE.md](docs
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development rules, testing |
 | [docs/HYBBX.md](docs/HYBBX.md) | HyBBX integration contract |
 | [docs/PLATFORMS.md](docs/PLATFORMS.md) | Linux daemon; cross-platform terminal |
-| [docs/RASPBERRY-PI.md](docs/RASPBERRY-PI.md) | **Pi — build, install, max25d** |
+| [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md) | Example edge install & `max25d.ini` |
 | [docs/MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) | Operator UI (F10 menu, CALLERID/CALLID) |
 | [docs/PACKET-RADIO.md](docs/PACKET-RADIO.md) | **AX.25, KISS, TNC, BayCom facts** |
 | [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md) | Client development & M25/1 binding |

@@ -76,7 +76,7 @@ Without root, `max25d` falls back to `/tmp/max25/modem.sock`.
 
 ```bash
 max25-terminal -H 192.168.1.10 -p 7325
-max25-terminal -T -H raspberrypi.local -p 7325 -P changeme
+max25-terminal -T -H linux-host.local -p 7325 -P changeme
 max25-terminal -U /run/max25/modem.sock
 max25-terminal --ax25-ui -v
 max25-terminal --probe -T -H 127.0.0.1 -p 7325

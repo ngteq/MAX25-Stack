@@ -26,12 +26,10 @@ See [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
 
 ## Linux — daemon + terminal (supported now)
 
-**Primary deployment: Raspberry Pi** and other Linux boards — TNC/modem on USB or GPIO UART. Full guide: **[RASPBERRY-PI.md](RASPBERRY-PI.md)**.
-
-**Only platform where `max25d` runs.** Full MainAX25 stack.
+**Only platform where `max25d` runs.** Full MainAX25 stack. Example edge settings: **[LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md)**.
 
 ```bash
-# Raspberry Pi / Debian / Ubuntu
+# Debian / Ubuntu
 ./scripts/install-max25.sh --deps
 # or: make all && sudo make install
 ```
@@ -42,10 +40,10 @@ See [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
 | `libncurses-dev` | `max25-terminal` |
 | `python3` | `max25d` |
 | `libasound2-dev` | CRDOP |
-| `raspberrypi-kernel-headers` (Pi) | BayCom kernel modules |
+| `linux-headers-$(uname -r)` | BayCom kernel modules (when building in-tree) |
 | Root / `sudo` | BayCom kernel modules (`stacks/baycom-pr`) |
 
-**ARM:** Raspberry Pi OS **armhf** and **aarch64** — native build, no cross-compile required on-device.
+**ARM Linux** (`armhf`, `aarch64`): native on-device build supported.
 
 Serial: `/dev/ttyS*`, `/dev/ttyUSB*`, `/dev/ttyACM*`.
 
@@ -56,7 +54,7 @@ Serial: `/dev/ttyS*`, `/dev/ttyUSB*`, `/dev/ttyACM*`.
 | `hardware/soft-modems` (`soft-crdop`) | CRDOP + ALSA |
 | HyBBX attach | After MAX25 prep — [HYBBX.md](HYBBX.md) |
 
-Current control: `max25d` + `scripts/max25-ctl`. Pi install: [RASPBERRY-PI.md](RASPBERRY-PI.md).
+Current control: `max25d` + `scripts/max25-ctl`. Example edge setup: [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md).
 
 CI: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
@@ -106,4 +104,4 @@ No local `max25d`. Connect to **Linux `max25d`** remotely.
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [MAX25-TERMINAL.md](MAX25-TERMINAL.md)
 - [HYBBX.md](HYBBX.md)
-- [RASPBERRY-PI.md](RASPBERRY-PI.md) — **Pi build, install, max25d**
+- [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md) — example edge install & `max25d.ini`
