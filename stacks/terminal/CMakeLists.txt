@@ -31,8 +31,8 @@ add_custom_command(TARGET max25-terminal POST_BUILD
 install(TARGETS max25-terminal RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
 install(CODE "
-    set(_dst \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/max25-client\")
-    set(_src \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/max25-terminal\")
+    set(_dst \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/max25-client\")
+    set(_src \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/max25-terminal\")
     if(EXISTS \"\${_dst}\")
         file(REMOVE \"\${_dst}\")
     endif()

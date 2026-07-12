@@ -195,7 +195,11 @@ def test_five_mock_backends() -> None:
     state = mod.DaemonState(cfg=cfg)
     mod.init_device_runtimes(state)
 
-    with patch.object(mod, "create_backend", side_effect=lambda c, r, rx, log: CountingBackend(c, r, rx, log)):
+    with patch.object(
+        mod,
+        "create_backend",
+        side_effect=lambda c, r, rx, log, prefix=None: CountingBackend(c, r, rx, log),
+    ):
         assert mod.attach_all_sessions(state)
         assert len(opened) == 5
         assert set(opened) == {f"d{i}" for i in range(1, 6)}

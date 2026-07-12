@@ -283,6 +283,7 @@ def open_backend(state: DaemonState, dev_id: str) -> bool:
         str(ROOT),
         lambda line, d=dev_id: on_backend_rx(state, d, line),
         log,
+        prefix=str(PREFIX) if PREFIX else None,
     )
     if not backend.open():
         rt.backend = backend

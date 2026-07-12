@@ -122,10 +122,12 @@ class KissSerialBackend(DeviceBackend):
         root: str,
         on_rx: RxFn,
         log: Optional[LogFn] = None,
+        prefix: Optional[str] = None,
     ) -> None:
         self.device_id = cfg.device_id
         self._cfg = cfg
         self._root = root
+        self._prefix = prefix
         self._on_rx = on_rx
         self._log = log or (lambda _m: None)
         self._bridge: Optional[KissBridge] = None
@@ -150,6 +152,7 @@ class KissSerialBackend(DeviceBackend):
             self.device_id,
             self._root,
             self._ini_overrides(),
+            prefix=self._prefix,
         )
         bridge = KissBridge(profile, self._on_rx, self._log)
         if not bridge.open():
@@ -628,17 +631,18 @@ def create_backend(
     root: str,
     on_rx: RxFn,
     log: Optional[LogFn] = None,
+    prefix: Optional[str] = None,
 ) -> DeviceBackend:
     kind = dev_cfg.backend_type or registry_backend(dev_cfg.device_id)
     if kind == "kiss-serial":
-        return KissSerialBackend(dev_cfg, root, on_rx, log)
+        return KissSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix)
     if kind == "baycom-kiss":
         return BayComKissBackend(dev_cfg, on_rx, log)
     if kind == "kiss-raw-serial":
         return KissRawSerialBackend(dev_cfg, root, on_rx, log)
     if kind == "crdop-tcp":
         return CrdopTcpBackend(dev_cfg, on_rx, log)
-    return KissSerialBackend(dev_cfg, root, on_rx, log)
+    return KissSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix)
 
 
 def backend_needs_stack(kind: str) -> bool:
