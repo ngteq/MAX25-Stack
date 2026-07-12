@@ -109,18 +109,29 @@ for ini in share/hybbx/tnc2c-edge.ini.example \
   [[ -f "$ini" ]] && ok "ini $ini" || fail "missing $ini"
 done
 
-# --- build artifacts ---
-make -C stacks/tncs all >/dev/null 2>&1 \
-  && [[ -x stacks/tncs/tnc2c-probe ]] && ok "tnc2c-probe built" \
-  || fail "tnc2c-probe build"
-
-make -C stacks/baycom-pr all >/dev/null 2>&1 && ok "baycom-pr build" || fail "baycom-pr build"
-
-if [[ -x stacks/crdop/build/crdopc ]]; then
-  ok "crdopc binary"
+# --- build artifacts (CMake primary) ---
+if [[ -f CMakeLists.txt ]]; then
+  cmake -B build -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1 \
+    && cmake --build build -j"$(nproc 2>/dev/null || echo 2)" >/dev/null 2>&1 \
+    && ok "cmake build (build/bin/)" \
+    || fail "cmake build"
+  [[ -x build/bin/tnc2c-probe ]] && ok "tnc2c-probe built" || fail "tnc2c-probe build"
+  [[ -x build/bin/baycom_test ]] && ok "baycom-pr tools built" || fail "baycom-pr build"
+  [[ -x build/bin/crdopc ]] && ok "crdopc built" || fail "crdopc missing"
+  [[ -x build/bin/max25-terminal ]] && ok "max25-terminal built" || fail "max25-terminal build"
 else
-  make -C stacks/crdop all >/dev/null 2>&1
-  [[ -x stacks/crdop/build/crdopc ]] && ok "crdopc built" || fail "crdopc missing"
+  make -C stacks/tncs all >/dev/null 2>&1 \
+    && [[ -x stacks/tncs/tnc2c-probe ]] && ok "tnc2c-probe built" \
+    || fail "tnc2c-probe build"
+
+  make -C stacks/baycom-pr all >/dev/null 2>&1 && ok "baycom-pr build" || fail "baycom-pr build"
+
+  if [[ -x stacks/crdop/build/crdopc ]]; then
+    ok "crdopc binary"
+  else
+    make -C stacks/crdop all >/dev/null 2>&1
+    [[ -x stacks/crdop/build/crdopc ]] && ok "crdopc built" || fail "crdopc missing"
+  fi
 fi
 
 # --- offline tests ---
@@ -145,11 +156,22 @@ fi
 
 # --- max25d + terminal ---
 make -C stacks/daemon all >/dev/null 2>&1 && ok "max25d ready" || fail "max25d"
-make -C stacks/terminal all >/dev/null 2>&1 \
+if [[ -x build/bin/max25-terminal ]]; then
+  ok "max25-terminal built (cmake)"
+  if [[ -L build/bin/max25-client ]] || [[ -x build/bin/max25-client ]]; then
+    ok "max25-client symlink"
+  else
+    warn "max25-client symlink missing until cmake --install"
+  fi
+elif make -C stacks/terminal all >/dev/null 2>&1 \
   && [[ -x stacks/terminal/max25-terminal ]] && ok "max25-terminal built" \
-  && [[ -L stacks/terminal/max25-client ]] && ok "max25-client symlink" \
-  || fail "max25-terminal build"
-if make -C stacks/terminal test >/dev/null 2>&1; then
+  && [[ -L stacks/terminal/max25-client ]] && ok "max25-client symlink"; then
+  :
+else
+  fail "max25-terminal build"
+fi
+if MAX25_TERMINAL="${PWD}/build/bin/max25-terminal" \
+   make -C stacks/terminal test >/dev/null 2>&1; then
   ok "max25-terminal TCP probe"
 else
   fail "max25-terminal TCP probe"
@@ -183,6 +205,8 @@ fi
 
 # --- tncs probe (warn without hardware) ---
 if stacks/tncs/tnc2c-probe >/dev/null 2>&1; then
+  ok "tnc2c-probe (serial found)"
+elif [[ -x build/bin/tnc2c-probe ]] && build/bin/tnc2c-probe >/dev/null 2>&1; then
   ok "tnc2c-probe (serial found)"
 else
   warn "tnc2c-probe: no serial devices (OK for CI without hardware)"

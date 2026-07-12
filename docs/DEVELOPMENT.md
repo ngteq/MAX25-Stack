@@ -7,10 +7,12 @@
 Linux primary. GCC or Clang, make, bash. CRDOP needs CMake 3.16+ and ALSA dev headers. Example edge setup: [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md).
 
 ```bash
-make all
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+cmake --install build --prefix /usr/local
+# or: make all && make install
 make test
 make release-check
-# Pi: ./scripts/install-max25.sh --deps  (see docs/LINUX-EDGE-SETUP.md)
 ```
 
 *BSD porting is deferred — daemon stays Linux; see [PLATFORMS.md](PLATFORMS.md).

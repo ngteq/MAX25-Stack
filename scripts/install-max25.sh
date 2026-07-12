@@ -69,8 +69,9 @@ if [[ "$INSTALL_DEPS" -eq 1 ]]; then
 fi
 
 cd "$ROOT"
-echo "-- build"
-make all
+echo "-- build (CMake)"
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j"$(nproc 2>/dev/null || echo 2)"
 
 if [[ "$BUILD_ONLY" -eq 1 ]]; then
   echo "== build done (no install) =="
@@ -79,9 +80,9 @@ fi
 
 echo "-- install to ${PREFIX}"
 if [[ "$(id -u)" -eq 0 ]]; then
-  make install PREFIX="$PREFIX"
+  cmake --install build --prefix "$PREFIX"
 else
-  sudo make install PREFIX="$PREFIX"
+  sudo cmake --install build --prefix "$PREFIX"
 fi
 
 echo ""

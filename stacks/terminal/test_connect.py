@@ -8,8 +8,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DAEMON = ROOT / "stacks/daemon/max25d"
-TERMINAL = ROOT / "stacks/terminal/max25-terminal"
 INI = ROOT / "share/max25/max25d.ini.example"
+
+
+def terminal_binary() -> Path:
+    import os
+
+    env = os.environ.get("MAX25_TERMINAL")
+    if env:
+        return Path(env)
+    for candidate in (
+        ROOT / "build/bin/max25-terminal",
+        ROOT / "stacks/terminal/max25-terminal",
+    ):
+        if candidate.is_file():
+            return candidate
+    return ROOT / "build/bin/max25-terminal"
 
 
 def free_port() -> int:
@@ -21,8 +35,13 @@ def free_port() -> int:
 
 
 def main() -> int:
-    if not TERMINAL.is_file():
-        print("FAIL: max25-terminal missing — run make -C stacks/terminal", file=sys.stderr)
+    terminal = terminal_binary()
+    if not terminal.is_file():
+        print(
+            f"FAIL: max25-terminal missing — run cmake --build build --target max25-terminal "
+            f"(looked for {terminal})",
+            file=sys.stderr,
+        )
         return 1
 
     port = free_port()
@@ -34,7 +53,7 @@ def main() -> int:
     time.sleep(0.6)
     try:
         out = subprocess.check_output(
-            [str(TERMINAL), "-T", "-H", "127.0.0.1", "-p", str(port), "--probe"],
+            [str(terminal), "-T", "-H", "127.0.0.1", "-p", str(port), "--probe"],
             text=True,
             timeout=10,
         )

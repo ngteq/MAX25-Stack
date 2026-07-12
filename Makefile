@@ -1,47 +1,55 @@
 # MainAX25-Stack (MAX25-Stack) — unified Packet Radio / AX.25 build
 
-.PHONY: help all clean test discover build plugins release-check daemon terminal amiga-terminal install edge-install
-
-ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+BUILD_DIR ?= build
+JOBS ?= $(shell nproc 2>/dev/null || echo 2)
+CMAKE ?= cmake
 PREFIX ?= /usr/local
+BUILD_TYPE ?= Release
+
+.PHONY: help all clean test discover build plugins release-check daemon terminal amiga-terminal install edge-install configure
 
 help:
 	@echo "MainAX25-Stack (MAX25-Stack) — Packet Radio / AX.25 (HyBBX-compatible)"
 	@echo ""
-	@echo "  make all        Build stacks + max25d + max25-terminal"
-	@echo "  make test       Offline tests"
-	@echo "  make daemon     Build max25d (Linux)"
-	@echo "  make terminal   Build max25-terminal / max25-client"
-	@echo "  make amiga-terminal  Cross-build AmigaOS max25-terminal (/opt/amiga)"
-	@echo "  make discover   List plugins"
-	@echo "  make plugins    Validate plugin scaffolding"
-	@echo "  make install      Install max25d, terminal, max25-ctl (PREFIX=/usr/local)"
-	@echo "  make edge-install Same as: scripts/install-max25.sh --deps (see LINUX-EDGE-SETUP.md)"
-	@echo "  make clean      Clean built binaries"
+	@echo "  make all            Configure + build (CMake → $(BUILD_DIR)/bin/)"
+	@echo "  make configure      cmake -B $(BUILD_DIR) only"
+	@echo "  make test           Offline tests (CMake targets + stack checks)"
+	@echo "  make install        cmake --install $(BUILD_DIR)"
+	@echo "  make daemon         max25d (Python, no compile)"
+	@echo "  make terminal       Build max25-terminal only"
+	@echo "  make amiga-terminal Cross-build AmigaOS max25-terminal (/opt/amiga)"
+	@echo "  make discover       List plugins"
+	@echo "  make plugins        Validate plugin scaffolding"
+	@echo "  make edge-install   scripts/install-max25.sh --deps"
+	@echo "  make clean          Remove $(BUILD_DIR)/ and legacy artifacts"
+	@echo "  make release-check  Offline release gates"
 	@echo ""
 	@echo "  ./scripts/max25-ctl help"
+	@echo ""
+	@echo "Direct CMake:"
+	@echo "  cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)"
+	@echo "  cmake --build $(BUILD_DIR) -j$(JOBS)"
+	@echo "  cmake --install $(BUILD_DIR) --prefix $(PREFIX)"
 
-all:
-	$(MAKE) -C stacks/tncs all
-	$(MAKE) -C stacks/baycom-pr all
-	$(MAKE) -C stacks/crdop all
-	$(MAKE) -C stacks/daemon all
-	$(MAKE) -C stacks/terminal all
+configure:
+	$(CMAKE) -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+
+all: configure
+	$(CMAKE) --build $(BUILD_DIR) -j$(JOBS)
 
 daemon:
-	$(MAKE) -C stacks/daemon all
+	@test -x stacks/daemon/max25d || chmod +x stacks/daemon/max25d
+	@echo "max25d ready: stacks/daemon/max25d"
 
-terminal:
-	$(MAKE) -C stacks/terminal all
+terminal: configure
+	$(CMAKE) --build $(BUILD_DIR) -j$(JOBS) --target max25-terminal
 
 amiga-terminal:
 	bash scripts/build-amiga-terminal.sh
 
-test:
+test: all
+	$(CMAKE) --build $(BUILD_DIR) --target max25_test
 	$(MAKE) -C stacks/baycom-pr test
-	-$(MAKE) -C stacks/tncs test
-	$(MAKE) -C stacks/daemon smoke
-	$(MAKE) -C stacks/terminal test
 
 discover:
 	bash scripts/discover-plugins.sh
@@ -52,24 +60,18 @@ plugins:
 	bash scripts/discover-plugins.sh
 
 clean:
-	$(MAKE) -C stacks/tncs clean
-	$(MAKE) -C stacks/baycom-pr clean
-	$(MAKE) -C stacks/crdop clean
-	$(MAKE) -C stacks/daemon clean
-	$(MAKE) -C stacks/terminal clean
+	rm -rf $(BUILD_DIR)
+	-$(MAKE) -C stacks/tncs clean
+	-$(MAKE) -C stacks/baycom-pr clean
+	-$(MAKE) -C stacks/crdop clean
+	-$(MAKE) -C stacks/daemon clean
+	-$(MAKE) -C stacks/terminal clean
 
 release-check:
 	bash scripts/release-check.sh
 
-install:
-	$(MAKE) -C stacks/daemon install PREFIX=$(PREFIX)
-	$(MAKE) -C stacks/terminal install PREFIX=$(PREFIX)
-	install -d "$(DESTDIR)$(PREFIX)/bin" "$(DESTDIR)$(PREFIX)/share/max25"
-	install -m 755 scripts/max25-ctl "$(DESTDIR)$(PREFIX)/bin/max25-ctl"
-	install -m 644 share/max25/max25d.ini.example share/max25/max25d.ini.edge.example "$(DESTDIR)$(PREFIX)/share/max25/"
-	@if [ -f share/max25/max25d.service.example ]; then \
-		install -m 644 share/max25/max25d.service.example "$(DESTDIR)$(PREFIX)/share/max25/"; \
-	fi
+install: all
+	$(CMAKE) --install $(BUILD_DIR) --prefix $(PREFIX)
 
 edge-install:
 	bash scripts/install-max25.sh --deps

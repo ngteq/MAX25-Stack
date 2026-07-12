@@ -65,20 +65,21 @@ Or use the repo helper:
 
 ---
 
-## Build
-
-From a clone of MAX25-Stack:
+## Build (CMake)
 
 ```bash
-git clone git@github.com:ngteq/MAX25-Stack.git
-cd MAX25-Stack
-
-make all          # tncs + baycom-pr + crdop + max25d + max25-terminal
-make test
-make release-check   # optional offline gates
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+# Binaries: build/bin/crdopc, max25-terminal, tnc2c-probe, …
+cmake --install build --prefix /usr/local
 ```
 
-On **ARM** Linux (`armhf`, `aarch64`), native on-device build is supported.
+If the tree was moved (e.g. copied to `/tmp/max25-stack`), remove stale caches first:
+
+```bash
+rm -rf build stacks/crdop/build
+cmake -B build && cmake --build build -j$(nproc)
+```
 
 ---
 

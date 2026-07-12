@@ -9,6 +9,14 @@ TOOLCHAIN="${CRDOP_TOOLCHAIN:-}"
 BUILD_TESTS="${CRDOP_BUILD_TESTS:-OFF}"
 RUN_TESTS="${CRDOP_RUN_TESTS:-OFF}"
 
+if [[ -f "${BUILD}/CMakeCache.txt" ]]; then
+    cached_home="$(grep -m1 '^CMAKE_HOME_DIRECTORY:INTERNAL=' "${BUILD}/CMakeCache.txt" 2>/dev/null | cut -d= -f2- || true)"
+    if [[ -n "${cached_home}" && "${cached_home}" != "${ROOT}" ]]; then
+        echo "CRDOP: removing stale CMake cache (was ${cached_home}, now ${ROOT})" >&2
+        rm -rf "${BUILD}"
+    fi
+fi
+
 "${ROOT}/scripts/import-ardopcf.sh"
 
 CMAKE_ARGS=(-B "${BUILD}" -DCMAKE_BUILD_TYPE="${TYPE}" -DCRDOP_BUILD_TESTS="${BUILD_TESTS}")

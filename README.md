@@ -18,6 +18,9 @@ make all
 ./scripts/max25-ctl help
 ```
 
+Build output: `build/bin/` (`tnc2c-probe`, `crdopc`, `max25-terminal`, …).  
+Stale CRDOP cache after moving the tree: `rm -rf build stacks/crdop/build && make all`.
+
 ### Example Linux edge setup
 
 Use the example INI and install steps for a typical edge node (`max25d` + USB TNC/modem):

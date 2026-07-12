@@ -1,0 +1,89 @@
+cmake_minimum_required(VERSION 3.16)
+project(MainAX25Stack VERSION 1.0.0 LANGUAGES C)
+
+include(GNUInstallDirs)
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+option(MAX25_BUILD_TNCS "Build stacks/tncs tools" ON)
+option(MAX25_BUILD_BAYCOM "Build stacks/baycom-pr tools" ON)
+option(MAX25_BUILD_CRDOP "Build stacks/crdop (crdopc)" ON)
+option(MAX25_BUILD_TERMINAL "Build max25-terminal / max25-client" ON)
+option(MAX25_BUILD_DAEMON "Install max25d" ON)
+
+if(MAX25_BUILD_TNCS)
+    add_subdirectory(stacks/tncs)
+endif()
+
+if(MAX25_BUILD_BAYCOM)
+    add_subdirectory(stacks/baycom-pr/tools)
+endif()
+
+if(MAX25_BUILD_CRDOP)
+    add_subdirectory(stacks/crdop "${CMAKE_BINARY_DIR}/crdop")
+endif()
+
+if(MAX25_BUILD_TERMINAL)
+    add_subdirectory(stacks/terminal)
+endif()
+
+if(MAX25_BUILD_DAEMON)
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif()
+
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25-ctl"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
+install(FILES
+    "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.example"
+    "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.edge.example"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/max25"
+)
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/share/max25/max25d.service.example")
+    install(FILES "${CMAKE_SOURCE_DIR}/share/max25/max25d.service.example"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/max25")
+endif()
+
+add_custom_target(max25_release_check
+    COMMAND "${CMAKE_SOURCE_DIR}/scripts/release-check.sh"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    USES_TERMINAL
+    COMMENT "Run offline release-check gates"
+)
+
+add_custom_target(max25_smoke
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH= "${CMAKE_SOURCE_DIR}/stacks/daemon/test_proto.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH= "${CMAKE_SOURCE_DIR}/stacks/daemon/test_auth.py"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "max25d M25/1 smoke tests"
+)
+
+if(TARGET max25-terminal)
+    add_custom_target(max25_terminal_test
+        COMMAND "${CMAKE_BINARY_DIR}/bin/max25-terminal" --help
+        COMMAND "${CMAKE_COMMAND}" -E env
+            MAX25_TERMINAL="${CMAKE_BINARY_DIR}/bin/max25-terminal"
+            "${CMAKE_SOURCE_DIR}/stacks/terminal/test_connect.py"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/stacks/terminal"
+        DEPENDS max25-terminal
+        COMMENT "max25-terminal TCP probe"
+    )
+endif()
+
+add_custom_target(max25_test
+    DEPENDS max25_smoke
+)
+
+if(TARGET max25-terminal)
+    add_dependencies(max25_test max25_terminal_test)
+endif()
+
+message(STATUS "MainAX25-Stack → ${CMAKE_BINARY_DIR}/bin (install prefix: ${CMAKE_INSTALL_PREFIX})")
