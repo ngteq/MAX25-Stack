@@ -4,16 +4,21 @@
 [daemon]
 ; Operating mode: standalone | service | hybbx-edge
 mode = standalone
-; Default hardware stack (per-device override in [serial.<id>] if needed)
+; Default hardware when per-device hardware= is omitted
 hardware = tncs
 ; Legacy single-device id (used when [devices] is absent)
 device = tnc2c
 
 [devices]
-; Multi-device: one KissBridge per id (5+ supported). Serial path or empty = env default.
+; Multi-device: one backend per id (5+ supported).
+; Serial path, baycom:<modem>, or crdop:<profile>
 default = tnc2c
 tnc2c = /dev/ttyS4
 pktnc2 = /dev/ttyS5
+; baycom-ser12 = baycom:a
+; baycom-par96 = baycom:a
+; baycom-kiss = /dev/ttyUSB0
+; soft-crdop = crdop:default
 ; enabled = tnc2c,pktnc2   ; optional — omit to enable all listed ids
 
 [network]
@@ -28,11 +33,11 @@ tcp_password =
 ; Default IDs — terminal may override live (session scope)
 callerid = CB-0
 callid = QST
-; Send lines as AX.25 UI when yes
+; Send lines as AX.25 UI when yes (CRDOP uses ARDOP FEC display when ax25_ui=yes)
 ax25_ui = yes
 
 [stack]
-; Auto-start hardware on daemon start (boot-wait per enabled device)
+; Auto-start hardware on daemon start (boot-wait / baycom-pr-ctl / crdopc per device)
 auto_start = yes
 
 [serial]
@@ -56,3 +61,22 @@ auto_start = yes
 ; line = 8n1
 ; dtr_rts = no
 ; kiss_entry = auto
+
+; --- BayCom kernel modem (SER12 / PAR96) ---
+; [device.baycom-ser12]
+; kiss_link = /var/run/baycom-pr/kiss
+; modem = a
+; baycom_ini = /etc/baycom/baycom-pr.ini
+
+; --- USB/async BayCom KISS serial ---
+; [serial.baycom-kiss]
+; baud = 9600
+; line = 8n1
+; dtr_rts = no
+
+; --- CRDOP sound-card modem ---
+; [device.soft-crdop]
+; host = 127.0.0.1
+; port = 8515
+; fecmode = 4FSK.500.100S
+; listen = yes

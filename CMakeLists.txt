@@ -42,6 +42,24 @@ if(MAX25_BUILD_DAEMON)
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/kiss_bridge.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/device_backends.py"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/paths.py"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    set(_MAX25_STACK_SCRIPTS
+        stacks/tncs/tnc2c-boot-wait.sh
+        stacks/tncs/tnc2c-boot-wait.py
+        stacks/tncs/pktnc2-boot-wait.sh
+        stacks/tncs/tnc2c-serial.env
+        stacks/tncs/pktnc2-serial.env
+        stacks/crdop/scripts/crdopc
+    )
+    foreach(_script IN LISTS _MAX25_STACK_SCRIPTS)
+        get_filename_component(_dir "${_script}" DIRECTORY)
+        string(REPLACE "stacks/" "" _rel "${_dir}")
+        install(PROGRAMS "${CMAKE_SOURCE_DIR}/${_script}"
+                DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/stacks/${_rel}")
+    endforeach()
 endif()
 
 install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25-ctl"
@@ -82,6 +100,8 @@ if(TARGET crdopc)
 endif()
 
 add_custom_target(max25_daemon_smoke
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_paths.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_proto.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=

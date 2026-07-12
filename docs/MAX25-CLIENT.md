@@ -348,7 +348,7 @@ Before merge / release of the terminal:
 - listens on TCP (`max25d.ini` → `[network] tcp_port`) and optional Unix
 - one thread per client (`client_thread`)
 - shared `DaemonState` (CALLERID/CALLID global for all clients)
-- one `KissBridge` per enabled `[devices]` id (5+ supported)
+- one device backend per enabled `[devices]` id (5+ supported): `kiss-serial`, `baycom-kiss`, `kiss-raw-serial`, `crdop-tcp`
 - plain-text TCP auth when `tcp_password` is set
 
 Configuration: `share/max25/max25d.ini.example`, systemd: `share/max25/max25d.service.example`.

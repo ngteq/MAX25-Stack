@@ -2,7 +2,61 @@
 # MainAX25-Stack (MAX25-Stack) — unified control entry point for Packet Radio / AX.25 stacks.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PREFIX=""
+ROOT=""
+
+if [[ -f "${SCRIPT_DIR}/../plugins/manifest.yaml" ]]; then
+  ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+elif [[ -d "${SCRIPT_DIR}/../share/max25" ]]; then
+  PREFIX="$(cd "${SCRIPT_DIR}/.." && pwd)"
+  ROOT="${MAX25_ROOT:-${PREFIX}}"
+else
+  ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
+
+stack_script() {
+  local rel="$1"
+  if [[ -f "${ROOT}/stacks/${rel}" ]]; then
+    echo "${ROOT}/stacks/${rel}"
+    return 0
+  fi
+  if [[ -n "${PREFIX}" && -f "${PREFIX}/share/max25/stacks/${rel}" ]]; then
+    echo "${PREFIX}/share/max25/stacks/${rel}"
+    return 0
+  fi
+  return 1
+}
+
+resolve_crdop_bin() {
+  if [[ -n "${CRDOP_BIN:-}" && -x "${CRDOP_BIN}" ]]; then
+    echo "${CRDOP_BIN}"
+    return 0
+  fi
+  if command -v crdopc >/dev/null 2>&1; then
+    command -v crdopc
+    return 0
+  fi
+  if [[ -x "${ROOT}/build/bin/crdopc" ]]; then
+    echo "${ROOT}/build/bin/crdopc"
+    return 0
+  fi
+  return 1
+}
+
+resolve_baycom_ctl() {
+  local ctl=""
+  ctl="$(stack_script "baycom-pr/scripts/baycom-pr-ctl" 2>/dev/null || true)"
+  if [[ -n "${ctl}" && -x "${ctl}" ]]; then
+    echo "${ctl}"
+    return 0
+  fi
+  if command -v baycom-pr-ctl >/dev/null 2>&1; then
+    command -v baycom-pr-ctl
+    return 0
+  fi
+  return 1
+}
 
 MODE="${MAX25_MODE:-standalone}"
 HARDWARE=""
@@ -57,10 +111,18 @@ parse_opts() {
 }
 
 cmd_discover() {
+  if [[ ! -f "${ROOT}/scripts/discover-plugins.sh" ]]; then
+    echo "discover: source checkout required (set MAX25_ROOT)" >&2
+    exit 1
+  fi
   bash "${ROOT}/scripts/discover-plugins.sh" "$@"
 }
 
 cmd_build() {
+  if [[ ! -f "${ROOT}/scripts/build.sh" ]]; then
+    echo "build: source checkout required (set MAX25_ROOT)" >&2
+    exit 1
+  fi
   bash "${ROOT}/scripts/build.sh"
 }
 
@@ -69,25 +131,51 @@ cmd_start() {
   case "$HARDWARE" in
     tncs)
       case "$DEVICE" in
-        tnc2c|"") echo "TNC2C boot-wait: power-cycle TNC while script runs"; exec "${ROOT}/stacks/tncs/tnc2c-boot-wait.sh" ;;
-        pktnc2) exec "${ROOT}/stacks/tncs/pktnc2-boot-wait.sh" ;;
+        tnc2c|"")
+          local boot=""
+          boot="$(stack_script "tncs/tnc2c-boot-wait.sh")"
+          echo "TNC2C boot-wait: power-cycle TNC while script runs"
+          exec "${boot}"
+          ;;
+        pktnc2)
+          exec "$(stack_script "tncs/pktnc2-boot-wait.sh")"
+          ;;
         *) echo "Unknown TNC device: $DEVICE" >&2; exit 1 ;;
       esac
       ;;
     modems)
+      local baycom_ctl=""
+      baycom_ctl="$(resolve_baycom_ctl)" || {
+        echo "baycom-pr-ctl not found (install BayCom PR stack)" >&2
+        exit 1
+      }
       echo "BayCom PR-Stack start (root required)"
-      exec sudo "${ROOT}/stacks/baycom-pr/scripts/baycom-pr-ctl" preflight
-      sudo "${ROOT}/stacks/baycom-pr/scripts/baycom-pr-ctl" start
+      sudo "${baycom_ctl}" preflight
+      exec sudo "${baycom_ctl}" start
       ;;
     soft-modems)
       case "$DEVICE" in
         soft-crdop|"")
-          if [[ ! -x "${ROOT}/build/bin/crdopc" ]]; then
-            echo "Building CRDOP..."
-            bash "${ROOT}/scripts/build.sh"
+          local crdop_bin=""
+          crdop_bin="$(resolve_crdop_bin)" || {
+            if [[ -f "${ROOT}/scripts/build.sh" ]]; then
+              echo "Building CRDOP..."
+              bash "${ROOT}/scripts/build.sh"
+              crdop_bin="$(resolve_crdop_bin)" || true
+            fi
+          }
+          if [[ -z "${crdop_bin}" ]]; then
+            echo "crdopc not found in PATH or build/bin" >&2
+            exit 1
+          fi
+          local launcher=""
+          launcher="$(stack_script "crdop/scripts/crdopc" 2>/dev/null || true)"
+          if [[ -z "${launcher}" ]]; then
+            echo "Starting crdopc (HyBBX crdop plugin attaches to TCP :8515)"
+            exec env CRDOP_BIN="${crdop_bin}" crdopc
           fi
           echo "Starting crdopc (HyBBX crdop plugin attaches to TCP :8515)"
-          CRDOP_BIN="${ROOT}/build/bin/crdopc" exec "${ROOT}/stacks/crdop/scripts/crdopc"
+          CRDOP_BIN="${crdop_bin}" exec "${launcher}"
           ;;
         *)
           echo "Unknown soft-modem device: $DEVICE" >&2
@@ -109,7 +197,11 @@ cmd_start() {
 cmd_stop() {
   parse_opts "$@"
   if [[ "$HARDWARE" == "modems" || -z "$HARDWARE" ]]; then
-    sudo "${ROOT}/stacks/baycom-pr/scripts/baycom-pr-ctl" stop 2>/dev/null || true
+    local baycom_ctl=""
+    baycom_ctl="$(resolve_baycom_ctl 2>/dev/null || true)"
+    if [[ -n "${baycom_ctl}" ]]; then
+      sudo "${baycom_ctl}" stop 2>/dev/null || true
+    fi
   fi
   echo "TNC serial: release port (stop HyBBX/minicom on device)"
 }
@@ -117,14 +209,24 @@ cmd_stop() {
 cmd_status() {
   parse_opts "$@"
   echo "MainAX25 mode: $MODE"
-  bash "${ROOT}/scripts/discover-plugins.sh" --type device
-  if [[ -x "${ROOT}/stacks/baycom-pr/scripts/baycom-pr-ctl" ]]; then
-    sudo "${ROOT}/stacks/baycom-pr/scripts/baycom-pr-ctl" status 2>/dev/null || echo "baycom-pr: not running or no root"
+  if [[ -f "${ROOT}/scripts/discover-plugins.sh" ]]; then
+    bash "${ROOT}/scripts/discover-plugins.sh" --type device
+  else
+    echo "discover: source checkout required (set MAX25_ROOT)"
+  fi
+  local baycom_ctl=""
+  baycom_ctl="$(resolve_baycom_ctl 2>/dev/null || true)"
+  if [[ -n "${baycom_ctl}" ]]; then
+    sudo "${baycom_ctl}" status 2>/dev/null || echo "baycom-pr: not running or no root"
   fi
 }
 
 cmd_test() {
   if [[ ! -d "${ROOT}/build" ]]; then
+    if [[ ! -f "${ROOT}/scripts/build.sh" ]]; then
+      echo "test: source checkout with build/ required (set MAX25_ROOT)" >&2
+      exit 1
+    fi
     bash "${ROOT}/scripts/build.sh"
   fi
   cmake --build "${ROOT}/build" --target max25_test

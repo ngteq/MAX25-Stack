@@ -59,7 +59,7 @@ Registry: `plugins/manifest.yaml`. Discovery CLI (`discover-plugins.sh`) lists *
 | Responsibility | Detail |
 |----------------|--------|
 | M25/1 IPC | TCP `:7325`, Unix `/run/max25/modem.sock` |
-| Multi-device | `[devices]` in `max25d.ini` — one `KissBridge` per id |
+| Multi-device | `[devices]` in `max25d.ini` — one backend per id (`kiss-serial`, `baycom-kiss`, `crdop-tcp`, …) |
 | KISS bridge | `kiss_bridge.py` — serial KISS for TNC paths |
 | Stack lifecycle | boot-wait, BayCom kernel, `crdopc` start |
 | TCP auth | Plain-text `AUTH` when `tcp_password` set |

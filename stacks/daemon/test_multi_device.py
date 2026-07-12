@@ -53,6 +53,30 @@ def free_port() -> int:
     return port
 
 
+class FakeBackend:
+    backend_type = "mock"
+
+    def __init__(self, cfg, root, on_rx, log=None):
+        self.device_id = cfg.device_id
+        self._on_rx = on_rx
+        self.status = "ready"
+
+    def open(self):
+        return True
+
+    def attach_session(self, mycall):
+        return True
+
+    def transmit(self, src, dst, text, ax25_ui):
+        return True, f"[AX25 UI {src}>{dst}] {text}"
+
+    def close(self):
+        self.status = "closed"
+
+    def detach_session(self):
+        pass
+
+
 def test_parse_legacy_single_device() -> None:
     mod = load_max25d_module()
     cp = configparser.ConfigParser()
@@ -72,6 +96,7 @@ baud = 19200
     assert devices[0].device_id == "tnc2c"
     assert devices[0].serial_device == "/dev/ttyS4"
     assert devices[0].serial_baud == 19200
+    assert devices[0].backend_type == "kiss-serial"
 
 
 def test_parse_multi_devices() -> None:
@@ -101,6 +126,34 @@ baud = 9600
     assert cfg.default_device == "tnc2c"
 
 
+def test_parse_heterogeneous_devices() -> None:
+    mod = load_max25d_module()
+    cp = configparser.ConfigParser()
+    cp.read_string(
+        """
+[devices]
+default = tnc2c
+tnc2c = /dev/ttyS4
+baycom-ser12 = baycom:a
+baycom-kiss = /dev/ttyUSB0
+soft-crdop = crdop:default
+[device.baycom-ser12]
+kiss_link = /var/run/baycom-pr/kiss
+[device.soft-crdop]
+port = 8515
+"""
+    )
+    cfg = mod.DaemonConfig()
+    devices = mod.parse_devices(cp, cfg)
+    by_id = {d.device_id: d for d in devices}
+    assert by_id["tnc2c"].backend_type == "kiss-serial"
+    assert by_id["baycom-ser12"].backend_type == "baycom-kiss"
+    assert by_id["baycom-ser12"].kiss_link == "/var/run/baycom-pr/kiss"
+    assert by_id["baycom-kiss"].backend_type == "kiss-raw-serial"
+    assert by_id["soft-crdop"].backend_type == "crdop-tcp"
+    assert by_id["soft-crdop"].crdop_port == 8515
+
+
 def test_parse_enabled_filter() -> None:
     mod = load_max25d_module()
     cp = configparser.ConfigParser()
@@ -121,67 +174,39 @@ extra = /dev/ttyUSB9
     assert disabled == {"extra"}
 
 
-def test_five_mock_bridges() -> None:
-    """Five concurrent KissBridge instances with mocked serial open."""
+def test_five_mock_backends() -> None:
+    """Five concurrent backend instances via mocked create_backend."""
     mod = load_max25d_module()
     opened: list[str] = []
 
-    class FakeBridge:
-        def __init__(self, profile, on_rx, log=None):
-            self.profile = profile
-            self._on_rx = on_rx
-            self.status = "ready"
-
+    class CountingBackend(FakeBackend):
         def open(self):
-            opened.append(self.profile.device)
+            opened.append(self.device_id)
             return True
 
-        def attach_session(self, mycall):
-            return True
-
-        def transmit(self, src, dst, text, ax25_ui):
-            return True, f"[AX25 UI {src}>{dst}] {text}"
-
-        def close(self):
-            self.status = "closed"
-
-        def detach_session(self):
-            pass
-
-    cp = configparser.ConfigParser()
-    cp.read_string(
-        """
-[devices]
-default = d1
-d1 = /dev/fake0
-d2 = /dev/fake1
-d3 = /dev/fake2
-d4 = /dev/fake3
-d5 = /dev/fake4
-"""
-    )
     cfg = mod.DaemonConfig(hardware="tncs", serial_enabled=True)
     cfg.devices = [
-        mod.DeviceConfig(device_id=f"d{i}", serial_device=f"/dev/fake{i - 1}", enabled=True)
+        mod.DeviceBackendConfig(device_id=f"d{i}", serial_device=f"/dev/fake{i - 1}", enabled=True)
         for i in range(1, 6)
     ]
+    for d in cfg.devices:
+        d.backend_type = "kiss-serial"
     cfg.default_device = "d1"
     state = mod.DaemonState(cfg=cfg)
     mod.init_device_runtimes(state)
 
-    with patch.object(mod, "KissBridge", FakeBridge):
-        with patch.object(mod, "tnc_serial_enabled", return_value=True):
-            assert mod.attach_all_sessions(state)
-            assert len(opened) == 5
-            assert set(opened) == {f"/dev/fake{i}" for i in range(5)}
+    with patch.object(mod, "create_backend", side_effect=lambda c, r, rx, log: CountingBackend(c, r, rx, log)):
+        assert mod.attach_all_sessions(state)
+        assert len(opened) == 5
+        assert set(opened) == {f"d{i}" for i in range(1, 6)}
 
-            state.selected_device = "d3"
-            dev_id = mod.resolve_selected_device(state)
-            assert dev_id == "d3"
-            rt = state.devices["d3"]
-            ok, display = rt.bridge.transmit("CB-0", "QST", "hi", True)
-            assert ok
-            assert "hi" in display
+        state.selected_device = "d3"
+        dev_id = mod.resolve_selected_device(state)
+        assert dev_id == "d3"
+        rt = state.devices["d3"]
+        ok, display = rt.backend.transmit("CB-0", "QST", "hi", True)
+        assert ok
+        assert "hi" in display
 
 
 def run_daemon_test(ini_text: str, fn: Callable[[LineReader, socket.socket], None]) -> None:
@@ -245,6 +270,7 @@ def test_protocol_multi_device() -> None:
         assert len(device_lines) == 2
         assert any("id=tnc2c" in l for l in device_lines)
         assert any("id=pktnc2" in l for l in device_lines)
+        assert any("backend=kiss-serial" in l for l in device_lines)
 
         sock.sendall(b"SET DEVICE pktnc2\n")
         assert reader.read() == "OK"
@@ -304,8 +330,9 @@ def main() -> int:
     tests = [
         test_parse_legacy_single_device,
         test_parse_multi_devices,
+        test_parse_heterogeneous_devices,
         test_parse_enabled_filter,
-        test_five_mock_bridges,
+        test_five_mock_backends,
         test_protocol_multi_device,
         test_protocol_legacy_single,
     ]

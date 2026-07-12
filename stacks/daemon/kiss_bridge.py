@@ -12,6 +12,7 @@ import termios
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Optional
 
 FEND = 0xC0
@@ -206,7 +207,24 @@ def load_env_file(path: str) -> dict[str, str]:
     return out
 
 
-def serial_profile_for_device(device_id: str, root: str, ini: dict[str, str]) -> SerialProfile:
+def _load_serial_env(device_id: str, root: str, prefix: Optional[str] = None) -> dict[str, str]:
+    from paths import serial_env_candidates
+
+    tree = Path(root)
+    pref = Path(prefix) if prefix else None
+    for path in serial_env_candidates(device_id, tree, pref):
+        env = load_env_file(str(path))
+        if env:
+            return env
+    return {}
+
+
+def serial_profile_for_device(
+    device_id: str,
+    root: str,
+    ini: dict[str, str],
+    prefix: Optional[str] = None,
+) -> SerialProfile:
     prof = SerialProfile()
     if ini.get("device"):
         prof.device = ini["device"]
@@ -219,8 +237,7 @@ def serial_profile_for_device(device_id: str, root: str, ini: dict[str, str]) ->
     if ini.get("kiss_entry"):
         prof.kiss_entry = ini["kiss_entry"].lower()
 
-    env_path = os.path.join(root, "stacks", "tncs", f"{device_id}-serial.env")
-    env = load_env_file(env_path)
+    env = _load_serial_env(device_id, root, prefix)
 
     if device_id == "tnc2c":
         prof.device = ini.get("device") or env.get("TNC2C_DEV", prof.device)

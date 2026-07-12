@@ -1,0 +1,51 @@
+; Full heterogeneous station — TNC2C + PK-TNC2 + BayCom SER12 + CRDOP
+; Copy to /etc/max25/max25d.ini and adjust paths for your site.
+; BayCom + CRDOP backends are architecturally wired; live RF may be untested.
+
+[daemon]
+mode = standalone
+hardware = tncs
+device = tnc2c
+
+[devices]
+default = tnc2c
+tnc2c = /dev/ttyS4
+pktnc2 = /dev/ttyS5
+baycom-ser12 = baycom:a
+soft-crdop = crdop:default
+
+[network]
+tcp_host = 0.0.0.0
+tcp_port = 7325
+unix_socket = /run/max25/modem.sock
+tcp_password =
+
+[modem]
+callerid = CB-0
+callid = QST
+ax25_ui = yes
+
+[stack]
+auto_start = yes
+
+[serial.tnc2c]
+baud = 19200
+line = 8n1
+dtr_rts = yes
+kiss_entry = kiss_on
+
+[serial.pktnc2]
+baud = 9600
+line = 8n1
+dtr_rts = no
+kiss_entry = auto
+
+[device.baycom-ser12]
+kiss_link = /var/run/baycom-pr/kiss
+modem = a
+
+[device.soft-crdop]
+host = 127.0.0.1
+port = 8515
+fecmode = 4FSK.500.100S
+listen = yes
