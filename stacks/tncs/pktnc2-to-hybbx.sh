@@ -3,7 +3,7 @@
 # HyBBX must be running on Unit A (ttyS4). PK-TNC2: boot-wait first.
 #
 # Usage: ./pktnc2-to-hybbx.sh [message] [src] [dst]
-# Default: "CONNECT" UN1TME-2 UN1TME
+# Default: "CONNECT" CB-0-2 CB-0
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -11,8 +11,8 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 source "$ROOT/pktnc2-serial.env"
 
 MSG="${1:-CONNECT}"
-SRC="${2:-UN1TME-2}"
-DST="${3:-UN1TME}"
+SRC="${2:-CB-0-2}"
+DST="${3:-CB-0}"
 
 if pgrep -x hybbx >/dev/null && fuser -s "$TNC_DEV" 2>/dev/null; then
     echo "WARN: HyBBX belegt evtl. ttyS5 — nur ttyS4 sollte aktiv sein" >&2

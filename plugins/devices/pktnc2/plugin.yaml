@@ -14,7 +14,7 @@ hybbx:
   kiss_entry: auto
 
 serial:
-  default_device: /dev/ttyUSB0
+  default_device: /dev/ttyUSB1
   default_baud: 9600
 
 rf:
@@ -26,12 +26,9 @@ scripts:
   probe: stacks/tncs/tnc2c-probe
 
 ini:
-  - stacks/tncs/research/hybbx/hybbx-stabo-pk2.ini
   - share/hybbx/pktnc2-edge.ini.example
 
 docs:
-  - stacks/tncs/docs/TNC-INVENTORY.md
+  - stacks/tncs/docs/TNC2C-REFERENCE.md
 
-notes: >
-  Unit B (Stabo XM6012 + PK-TNC2) — delivery expected.
-  Reuses TNC2C probe/find tools; dedicated boot-wait script present.
+notes: Planned device — probe serial port after hardware inventory.

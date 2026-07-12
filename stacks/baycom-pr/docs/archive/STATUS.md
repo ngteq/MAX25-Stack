@@ -1,6 +1,6 @@
 # Project status — facts vs deep analysis
 
-**Target:** v0.6.0 (push only after AX25SRV hardware OK) · **Updated:** 2026-07-08
+**Target:** v0.6.0 (push only after reference station hardware OK) · **Updated:** 2026-07-08
 
 ## Offline verification (this machine)
 
@@ -58,7 +58,7 @@ Doc: [RADIO-SERVICES.md](RADIO-SERVICES.md)
 6. `recover` — post-crash cleanup  
 7. `check-freeze.sh` — diagnostics report  
 
-## Hardware still required (AX25SRV)
+## Hardware still required (reference station)
 
 - [ ] `sudo baycom-pr-ctl doctor` — zero errors  
 - [ ] `sudo baycom-pr-ctl selftest` — full offline suite  

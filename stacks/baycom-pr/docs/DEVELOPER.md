@@ -101,7 +101,7 @@ P0 userspace mitigations: preflight, staged start, IRQ watchdog, recover. Kernel
 ## Release checklist
 
 1. `make verify` green
-2. AX25SRV: `doctor` + `selftest` zero errors (when hardware available)
+2. reference station: `doctor` + `selftest` zero errors (when hardware available)
 3. Single modem stable (no freeze)
 4. Optional dual with preflight
 5. Update `VERSION`, [CHANGELOG.md](../CHANGELOG.md), tag, push

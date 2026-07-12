@@ -1,5 +1,5 @@
 # MainAX25-Stack — CRDOP (soft modem) build wrapper
-# Upstream: stacks/crdop (merged from /home/akb/Code/CRDOP)
+# Upstream: stacks/crdop (ngteq/CRDOP)
 
 .PHONY: all clean test smoke
 

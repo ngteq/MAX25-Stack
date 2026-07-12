@@ -10,7 +10,7 @@ All notable releases of BayCom PR-Stack. Format follows [Keep a Changelog](https
 - **Connects:** 11 copy-paste incoming/outgoing examples (`listen`, `call`, monitor)
 - **HyBBX plugin contract:** KISS symlinks, AX.25 ports, INI schema documented in [PLUGIN.md](docs/PLUGIN.md)
 - **Automatic axports:** `setup` and `start` sync `/etc/baycom/axports/axports` from INI
-- **Hardware validated:** dual-modem service mode on AX25SRV (kernel 6.18, staged ser12 probe)
+- **Hardware validated:** dual-modem service mode on reference station (kernel 6.18, staged ser12 probe)
 - **Operator docs:** GETTING-STARTED, CONNECTS, GLOSSARY, GUIDE, REFERENCE, PLUGIN
 
 ## [0.8.5] - 2026-07-08
@@ -28,7 +28,7 @@ All notable releases of BayCom PR-Stack. Format follows [Keep a Changelog](https
 
 ## [0.6.5] - 2026-07-08
 
-- Dual-modem hardware validation on AX25SRV (ttyS0 IRQ 4 + ttyS5 IRQ 30)
+- Dual-modem hardware validation on reference station (ttyS0 IRQ 4 + ttyS5 IRQ 30)
 - Staged dual probe fix: single-instance modprobe exposes `bcsf0`/`bcp0` during probe
 - Doctor: resolve `/sbin/modprobe`, treat loaded modules as OK
 - Selftest works when installed under `/usr/local/sbin`

@@ -10,7 +10,7 @@
 | `hardware/modems` | `baycom` | `-DHYBBX_PLUGIN_BAYCOM=ON` | `baycom = yes` |
 | `hardware/soft-modems` | `crdop` | `-DHYBBX_PLUGIN_CRDOP=ON` | `crdop = yes` |
 
-HyBBX source: `/home/akb/Code/hyBBX/` (not vendored in MainAX25).
+HyBBX source: `https://github.com/ngteq/hyBBX/` (not vendored in MainAX25).
 
 ## Contract: packet_radio (TNCs)
 

@@ -41,7 +41,7 @@ HyBBX (external) → packet_radio | baycom | crdop plugins (after MAX25 prep)
 - Plugin IDs, scripts, code: **English**
 - Operator-facing docs: German terms OK (**Betriebsform**, **Betrieb**)
 - Minimal diffs; link to `stacks/*/` READMEs — do not duplicate stack docs
-- Do not commit secrets, local paths, or `stacks/tncs/research/` artifacts
+- Do not add personal paths, hostnames, or callsigns in docs — use placeholders.
 - HyBBX is external — reference `share/hybbx/*.ini.example` only
 
 ## Testing

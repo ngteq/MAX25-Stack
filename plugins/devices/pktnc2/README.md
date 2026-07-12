@@ -1,19 +1,16 @@
-# Device: PK-TNC2 / TNC-2 (TheFirmware)
+# Device: PK-TNC2
 
-**Status:** Planned — Unit B (Stabo + PK-TNC2).
+**Status:** Planned — probe serial port after hardware delivery.
 
-| Parameter | Expected |
-|-----------|----------|
-| Port | TBD (`/dev/ttyUSB0`) |
-| Host | 9600 8N1 |
-| RF | 1200 AFSK CB |
-| HyBBX | `tnc=tnc2`, `kiss_entry=auto` |
+PK-TNC2 / TNC-2 (TheFirmware) profile for HyBBX `packet_radio` with `tnc=tnc2`.
 
-## When hardware arrives
+## Preparation
 
-1. Assign serial port in `pktnc2-serial.env`
-2. Run `stacks/tncs/tnc2c-probe` to scan baud/parity
-3. `./stacks/tncs/pktnc2-boot-wait.sh`
-4. HyBBX with `share/hybbx/pktnc2-edge.ini.example`
+```bash
+# After delivery: edit stacks/tncs/pktnc2-serial.env
+./stacks/tncs/pktnc2-boot-wait.sh
+```
 
-See `stacks/tncs/research/tnc2c/ebay-227405716803.md`.
+HyBBX: `share/hybbx/pktnc2-edge.ini.example`
+
+Reuses `tnc2c-probe` for port scan.

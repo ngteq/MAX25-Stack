@@ -56,7 +56,7 @@ Site instances: `catalog = <id>` in [baycom-pr.ini](../config/baycom-pr.ini).
 
 ### Albrecht PC-COM / AE8000
 
-- BayCom-compatible (TFPCX §3.1). **txdelay = 35**. Offline verified on AX25SRV (v0.5.0).
+- BayCom-compatible (TFPCX §3.1). **txdelay = 35**. Offline verified on reference station (v0.5.0).
 
 ### Tigertronics BayPac
 

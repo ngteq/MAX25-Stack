@@ -32,7 +32,7 @@ sudo baycom-pr-ctl status
 
 ```bash
 sudo cp config/examples/baycom-pr.dual.ini /etc/baycom/baycom-pr.ini
-# Verify EACH port (AX25SRV PC-COM: ttyS0 IRQ4, ttyS5 IRQ30):
+# Verify EACH port (reference station PC-COM: ttyS0 IRQ4, ttyS5 IRQ30):
 /sbin/setserial -g /dev/ttyS0 /dev/ttyS5
 sudo baycom-pr-ctl preflight     # must pass with zero errors
 sudo baycom-pr-ctl start         # staged probe per UART, then full load

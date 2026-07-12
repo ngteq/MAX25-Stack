@@ -8,7 +8,7 @@ baycom = yes
 ; TNC edge A
 [transport.packet_radio1]
 tnc = tnc2c
-device = /dev/ttyS4
+device = /dev/ttyUSB0
 link_id = max25-edge-a
 link_password = changeme
 

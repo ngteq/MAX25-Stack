@@ -8,4 +8,6 @@ dist/
 *.log
 stacks/tncs/tnc2c-probe
 stacks/tncs/tnc2c-find
+stacks/tncs/research/
+stacks/crdop/build/
 stacks/baycom-pr/tools/baycom_test

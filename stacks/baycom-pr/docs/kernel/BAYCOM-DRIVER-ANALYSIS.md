@@ -4,7 +4,7 @@
 **Running kernel:** 6.18.38  
 **Analysis date:** 2026-07-08  
 **Scope:** All BayCom-related kernel drivers (serial, parallel, EPP) plus USB/KISS paths used with BayCom modems.  
-**Userspace cross-reference:** BayCom PR-Stack (`/home/akb/Code/pc-com`)
+**Userspace cross-reference:** BayCom PR-Stack (`stacks/baycom-pr`)
 
 ---
 
@@ -172,7 +172,7 @@ Once any `mode[i]` is empty, **all subsequent ports** get `iobase=irq=0`. Dual-m
 
 #### Dual-modem / PC-COM freeze assessment
 
-Typical AX25SRV / Albrecht PC-COM layout:
+Typical reference station / Albrecht PC-COM layout:
 
 | Port | Device | iobase | IRQ |
 |------|--------|--------|-----|

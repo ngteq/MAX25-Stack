@@ -7,7 +7,7 @@ Merged from:
 | Source | Location | Role |
 |--------|----------|------|
 | **TNCs-Stack** | `stacks/tncs/` | Serial TNC tools (TNC2C, PK-TNC2) |
-| **baycom_pr-Stack** (`pc-com`) | `stacks/baycom-pr/` | BayCom kernel modems (SER12, PAR96, KISS) |
+| **baycom_pr-Stack** | `stacks/baycom-pr/` | BayCom kernel modems (SER12, PAR96, KISS) |
 | **CRDOP** | `stacks/crdop/` | Sound-card ARDOP soft modem (`soft-crdop`) |
 
 ## Quick start
@@ -18,12 +18,12 @@ make all
 ./scripts/max25-ctl help
 ```
 
-### TNC2C (Unit A)
+### TNC2C
 
 ```bash
-./scripts/max25-ctl start --hardware tncs --device tnc2c   # boot-wait + power cycle
+./scripts/max25-ctl start --hardware tncs --device tnc2c
 ./scripts/max25-ctl test
-# Then HyBBX Secondary with share/hybbx/tnc2c-edge.ini.example
+# HyBBX Secondary: share/hybbx/tnc2c-edge.ini.example
 ```
 
 ### BayCom SER12
@@ -96,6 +96,7 @@ Full scope, acceptance tests, and release checklist: [docs/V1.0.0-SCOPE.md](docs
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development rules, testing |
 | [docs/HYBBX.md](docs/HYBBX.md) | HyBBX integration contract |
 | [docs/PLATFORMS.md](docs/PLATFORMS.md) | Linux primary, *BSD later |
+| [docs/MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) | max25d + MAX25 Terminal (planned) |
 | [docs/MERGE-REPORT.md](docs/MERGE-REPORT.md) | Merge archive (one-time) |
 
 ## Contributing

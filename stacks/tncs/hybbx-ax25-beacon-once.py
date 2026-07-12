@@ -82,9 +82,9 @@ def main():
     ap.add_argument("--port", type=int, default=7323)
     ap.add_argument("--password", default="changeme")
     ap.add_argument("--link-id", default="beacon-once")
-    ap.add_argument("--mycall", default="UN1TME")
+    ap.add_argument("--mycall", default="CB-0")
     ap.add_argument("--dest", default="*")
-    ap.add_argument("--message", default="Broadcast: UN1TME online")
+    ap.add_argument("--message", default="Broadcast: CB-0 online")
     args = ap.parse_args()
 
     sock = socket.create_connection((args.host, args.port), timeout=5)

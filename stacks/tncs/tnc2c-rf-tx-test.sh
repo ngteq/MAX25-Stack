@@ -1,13 +1,13 @@
 #!/bin/bash
 # Send N AX.25 UI frames via KISS (HyBBX must be stopped).
 # Usage: ./tnc2c-rf-tx-test.sh [count] [message-prefix] [src] [dst]
-# Example (root): pkill hybbx; ./tnc2c-rf-tx-test.sh 3 "TX test" UN1TME QST
+# Example (root): pkill hybbx; ./tnc2c-rf-tx-test.sh 3 "TX test" CB-0 QST
 
 set -euo pipefail
 
 COUNT="${1:-3}"
 PREFIX="${2:-TX test}"
-SRC="${3:-UN1TME}"
+SRC="${3:-CB-0}"
 DST="${4:-QST}"
 GAP="${TNC2C_TX_GAP:-8}"
 ROOT="$(cd "$(dirname "$0")" && pwd)"

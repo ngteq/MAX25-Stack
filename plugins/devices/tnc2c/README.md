@@ -1,6 +1,6 @@
 # Device: Landolt TNC2C
 
-**Status:** Active on AX25SRV (Unit A).
+**Status:** Active on reference station (Unit A).
 
 | Parameter | Value |
 |-----------|-------|
