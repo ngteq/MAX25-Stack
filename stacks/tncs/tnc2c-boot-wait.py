@@ -196,9 +196,24 @@ def finish_host(fd: int, hybbx_ready: bool, do_tx_rx: bool) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Hold DTR during TNC boot")
-    default_dev = os.environ.get("TNC_DEV") or os.environ.get("TNC2C_DEV") or "/dev/ttyS4"
-    default_baud = int(os.environ.get("TNC_BAUD") or os.environ.get("TNC2C_BAUD") or "19200")
-    default_line = os.environ.get("TNC_LINE") or os.environ.get("TNC2C_LINE") or "8n1"
+    default_dev = (
+        os.environ.get("TNC_DEV")
+        or os.environ.get("TNC2C_DEV")
+        or os.environ.get("PKTNC2_DEV")
+        or "/dev/ttyS4"
+    )
+    default_baud = int(
+        os.environ.get("TNC_BAUD")
+        or os.environ.get("TNC2C_BAUD")
+        or os.environ.get("PKTNC2_BAUD")
+        or "19200"
+    )
+    default_line = (
+        os.environ.get("TNC_LINE")
+        or os.environ.get("TNC2C_LINE")
+        or os.environ.get("PKTNC2_LINE")
+        or "8n1"
+    )
 
     parser.add_argument("device", nargs="?", default=default_dev)
     parser.add_argument("--baud", type=int, default=default_baud)
