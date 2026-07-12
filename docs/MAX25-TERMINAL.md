@@ -1,8 +1,6 @@
 # MAX25 Terminal
 
-**Der offizielle MAX25-Operator-Client** — textbasiert mit F10-Menü. Es gibt keinen zweiten Client; dieses UI-Konzept bleibt auf absehbare Zeit unverändert.
-
-Entwicklung & Anbindung an `max25d`: **[MAX25-CLIENT.md](MAX25-CLIENT.md)** · Protokoll: [`include/max25/protocol.md`](../include/max25/protocol.md)
+**[MAX25-CLIENT.md](MAX25-CLIENT.md)** · Protokoll: [`include/max25/protocol.md`](../include/max25/protocol.md)
 
 Standalone client for direct modem interaction. HyBBX-compatible look and behaviour; configuration and hardware lifecycle stay in **`max25d`**.
 
