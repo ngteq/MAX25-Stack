@@ -1,0 +1,4 @@
+id: terminal
+label: MAX25 Terminal clients
+stack: stacks/terminal
+description: Remote operator UI — no local hardware; connects to Linux max25d

@@ -1,0 +1,28 @@
+; MainAX25-Stack — max25d daemon (Linux only)
+; Copy to /etc/max25/max25d.ini or pass MAX25D_INI=
+
+[daemon]
+; Betriebsform: standalone | service | hybbx-edge
+mode = standalone
+; Plugin device id from plugins/manifest.yaml
+hardware = tncs
+device = tnc2c
+
+[network]
+; Terminal clients connect here (TCP). Unix socket always enabled on Linux.
+tcp_host = 0.0.0.0
+tcp_port = 7325
+unix_socket = /run/max25/modem.sock
+; Plain-text TCP auth for remote terminals (empty = disabled; Unix socket exempt)
+tcp_password =
+
+[modem]
+; Default IDs — terminal may override live (session scope)
+callerid = CB-0
+callid = QST
+; Send lines as AX.25 UI when yes
+ax25_ui = yes
+
+[stack]
+; Auto-start hardware on daemon start
+auto_start = yes

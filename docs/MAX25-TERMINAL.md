@@ -1,15 +1,37 @@
 # MAX25 Terminal
 
+**Der offizielle MAX25-Operator-Client** — textbasiert mit F10-Menü. Es gibt keinen zweiten Client; dieses UI-Konzept bleibt auf absehbare Zeit unverändert.
+
+Entwicklung & Anbindung an `max25d`: **[MAX25-CLIENT.md](MAX25-CLIENT.md)** · Protokoll: [`include/max25/protocol.md`](../include/max25/protocol.md)
+
 Standalone client for direct modem interaction. HyBBX-compatible look and behaviour; configuration and hardware lifecycle stay in **`max25d`**.
 
 ## Binaries
 
 | Binary | Symlink | Role |
 |--------|---------|------|
-| `max25d` | — | Daemon — config, plugins, boot-wait, KISS/PTY, device owner |
-| `max25-terminal` | `max25-client` | Operator UI — modem channel only |
+| `max25d` | — | **Linux only** — config, plugins, boot-wait, BayCom, KISS/PTY, device owner |
+| `max25-terminal` | `max25-client` | **v1 ready** — operator UI; connects to `max25d` on Linux |
 
-Operator talks to the **modem** through the terminal; everything else is **`max25d`**.
+Operator talks to the **modem** through the terminal; **`max25d` on Linux** owns hardware and BayCom.
+
+## Platform split
+
+| Where | What runs |
+|-------|-----------|
+| **Linux** | `max25d` + optional local `max25-terminal` |
+| **Windows, macOS, *BSD, AmigaOS** | `max25-terminal` only → remote Linux `max25d` |
+
+Transport: TCP to Linux host (default port **7325**), not raw serial on the client machine. Unix socket optional for local Linux terminal only (`/run/max25/modem.sock`).
+
+**AmigaOS:** deferred — same text client later, reduced ncurses if needed.
+
+## UI stability (long-term)
+
+- Text-only (TTY / ncurses / ANSI fallback) — **no GUI, no web UI**
+- **F10** menu, number keys **0–9** — no function-key navigation beyond F10
+- HyBBX palette only (light gray on black)
+- See [MAX25-CLIENT.md](MAX25-CLIENT.md#ui-vertrag-langfristig-stabil) for the binding contract
 
 ## Visual style (HyBBX-aligned)
 
@@ -26,8 +48,8 @@ Supports **`--ax25-ui`** (from hybbx-terminal):
 
 | Direction | Behaviour |
 |-----------|-----------|
-| TX | Lines → AX.25 UI frames (uses live CALLERID / CALLID) |
-| RX | TERMINAL and AX.25 UI decode to display |
+| TX | Lines → AX.25 UI frames (`CALLERID`→source, `CALLID`→dest); see [PACKET-RADIO.md](PACKET-RADIO.md) |
+| RX | UI payload decode to display |
 
 Traffic pacing and line width follow HyBBX `client_display` conventions.
 
@@ -65,7 +87,7 @@ Changes apply **immediately** to the next transmit — no `max25d` restart.
 2. Type new value in the prompt line
 3. **`Enter`** — active; header line updates
 
-Validation: AX.25 callsign rules (A–Z, 0–9, `-`; SSID optional). Invalid input keeps the previous value.
+Validation: AX.25 address rules — 1–6 call characters, optional SSID `-0`…`-15` ([PACKET-RADIO.md](PACKET-RADIO.md)). Invalid input keeps the previous value.
 
 Default persistence: **session only**. Optional “save to profile” may write `share/max25/*.ini` later.
 
@@ -77,9 +99,9 @@ Operator
    ▼
 max25-terminal (max25-client)
    │  F10 menu · CALLERID/CALLID · --ax25-ui
-   │  local socket (e.g. unix:///run/max25/modem.sock)
+   │  TCP (remote) or unix socket (local Linux)
    ▼
-max25d
+max25d  (Linux host only)
    │  plugins · serial/KISS · config
    ▼
 TNC / BayCom / CRDOP
@@ -98,14 +120,17 @@ TNC / BayCom / CRDOP
 
 In **hybbx-edge** Betriebsform: `max25d` prepares hardware; HyBBX attaches via `share/hybbx/*.ini.example`. MAX25 Terminal remains for local modem debug and live ID changes.
 
-## Out of scope (v1 terminal)
+## Out of scope (terminal — long-term)
 
+- Second client binary or alternative UI stack
 - Raw serial/minicom-style setup in the client
-- Multi-colour UI
+- Multi-colour UI / themes / graphical frontends
 - Function-key menu navigation (except F10 to toggle menu)
 
 ## See also
 
+- [PACKET-RADIO.md](PACKET-RADIO.md) — AX.25 / KISS technical reference
+- [MAX25-CLIENT.md](MAX25-CLIENT.md) — develop & connect the official client
 - [ARCHITECTURE.md](ARCHITECTURE.md) — stack layers
 - [HYBBX.md](HYBBX.md) — attach contract
-- [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) — current release scope (terminal planned post-v1.0.0)
+- [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) — release scope

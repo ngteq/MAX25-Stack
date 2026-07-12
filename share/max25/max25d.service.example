@@ -1,0 +1,13 @@
+[Unit]
+Description=MAX25 daemon (MainAX25-Stack)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/max25d -c /etc/max25/max25d.ini
+Restart=on-failure
+RuntimeDirectory=max25
+# Unix socket: /run/max25/modem.sock (writable when RuntimeDirectory=max25)
+
+[Install]
+WantedBy=multi-user.target

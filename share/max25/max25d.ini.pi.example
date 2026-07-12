@@ -1,0 +1,34 @@
+; MainAX25-Stack — max25d on Raspberry Pi (example)
+; Copy: sudo cp share/max25/max25d.ini.pi.example /etc/max25/max25d.ini
+
+[daemon]
+mode = standalone
+; --- pick ONE hardware path ---
+hardware = tncs
+device = tnc2c
+; hardware = modems
+; device = baycom-ser12
+; hardware = soft-modems
+; device = soft-crdop
+
+[network]
+; Listen on all interfaces — remote max25-terminal over Wi-Fi/LAN
+tcp_host = 0.0.0.0
+tcp_port = 7325
+; systemd RuntimeDirectory=max25 → /run/max25/modem.sock
+unix_socket = /run/max25/modem.sock
+; Set a password before exposing tcp_host = 0.0.0.0 on LAN/Wi-Fi
+tcp_password = changeme
+
+[modem]
+callerid = CB-0
+callid = QST
+ax25_ui = yes
+
+[stack]
+; Starts max25-ctl stack on daemon boot (TNC boot-wait, BayCom, crdopc)
+auto_start = yes
+
+; Serial (TNC / KISS) is owned by max25d — typical Pi USB paths:
+;   /dev/ttyUSB0  /dev/ttyACM0  /dev/serial/by-id/...
+; Configure in stack-specific config (HyBBX INI, baycom-pr.ini, crdop) — not in terminal.

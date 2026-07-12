@@ -6,6 +6,12 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
+│  MAX25 Terminal (max25-client) — all platforms (planned) │
+│  F10 menu · CALLERID/CALLID · --ax25-ui                  │
+├─────────────────────────────────────────────────────────┤
+│  max25d (Linux only) — config, plugins, device owner    │
+│  evolves from max25-ctl · BayCom · TNC · CRDOP          │
+├─────────────────────────────────────────────────────────┤
 │  HyBBX (external) — sessions, HBX, BBS, users          │
 │  Plugins: packet_radio | baycom | crdop                 │
 ├─────────────────────────────────────────────────────────┤
@@ -17,9 +23,11 @@
 ├─────────────────────────────────────────────────────────┤
 │  Protocol — KISS | hostmode | kernel hdlcdrv | AX.25 | ARDOP │
 ├─────────────────────────────────────────────────────────┤
-│  Physical — serial UART | USB | LPT | RF                │
+│  Physical — serial UART | USB | LPT | RF (Linux daemon)   │
 └─────────────────────────────────────────────────────────┘
 ```
+
+**Split:** daemon and hardware on **Linux**; **terminal** on any platform, talking to `max25d` over M25/1. Packet-radio facts: [PACKET-RADIO.md](PACKET-RADIO.md). See [PLATFORMS.md](PLATFORMS.md), [MAX25-CLIENT.md](MAX25-CLIENT.md), [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
 
 ## Directory layout
 
@@ -30,10 +38,14 @@ MainAX25-Stack (MAX25-Stack)/
 │   ├── tncs/          Merged TNCs-Stack (serial TNC operator tools)
 │   ├── baycom-pr/     Merged baycom_pr-Stack (kernel modem lifecycle)
 │   └── crdop/         Merged CRDOP (sound-card ARDOP soft modem)
+├── stacks/daemon/     max25d (Linux supervisor, M25/1 IPC)
+├── stacks/terminal/   max25-terminal / max25-client
 ├── scripts/           max25-ctl, discover-plugins, build-all
 ├── share/hybbx/       HyBBX INI snippets per device/mode
-└── docs/              Architecture, HyBBX contract, merge report
+└── docs/              Architecture, platforms, MAX25 Terminal spec
 ```
+
+**Implemented:** `stacks/daemon/max25d` — Linux supervisor; `stacks/terminal/` — **sole official client** (`max25-terminal` / `max25-client`), text + F10 menu. Binding: [MAX25-CLIENT.md](MAX25-CLIENT.md).
 
 ## Plugin types
 
@@ -55,7 +67,7 @@ MainAX25-Stack (MAX25-Stack)/
 
 ## Platform
 
-Development targets **Linux** first. *BSD family support is planned later; kernel AX.25 and BayCom paths are Linux-specific today. See [PLATFORMS.md](PLATFORMS.md).
+**`max25d` — Linux only** (BayCom, kernel AX.25, full stack). **`max25-terminal`** on Linux, *BSD, macOS, Windows (AmigaOS reduced later). See [PLATFORMS.md](PLATFORMS.md).
 
 Future: generate `devices/*/plugin.yaml` from `stacks/baycom-pr/config/modems.ini` catalog.
 
@@ -83,7 +95,7 @@ See [HYBBX.md](HYBBX.md).
 - Kernel module load, KISS PTY bridge, AX.25 port sync
 - `baycom-pr-ctl` lifecycle (probe, setup, doctor, start, recover)
 - Service dual-modem template for 24/7 HyBBX
-- **Linux only** (no BayCom kernel driver on BSD)
+- **Linux only** — runs inside `max25d`; BayCom stays first-class on Linux
 
 ### `stacks/crdop` (CRDOP)
 

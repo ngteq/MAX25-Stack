@@ -4,24 +4,35 @@
 
 ## Toolchain
 
-Linux primary. GCC or Clang, make, bash. CRDOP needs CMake 3.16+ and ALSA dev headers.
+Linux primary. **Raspberry Pi** is the main edge target for `max25d` + modems/TNCs — [RASPBERRY-PI.md](RASPBERRY-PI.md). GCC or Clang, make, bash. CRDOP needs CMake 3.16+ and ALSA dev headers.
 
 ```bash
 make all
 make test
 make release-check
+# Pi: ./scripts/install-max25.sh --deps
 ```
 
-*BSD porting is deferred — see [PLATFORMS.md](PLATFORMS.md).
+*BSD porting is deferred — daemon stays Linux; see [PLATFORMS.md](PLATFORMS.md).
+
+## Daemon vs terminal
+
+| Component | Linux | Other OS |
+|-----------|-------|----------|
+| `max25d` | **Yes** — BayCom, TNCs, CRDOP | **No** |
+| `max25-terminal` | Yes (local or remote) | Yes — remote TCP to Linux `max25d` |
+
+**One official client only:** `max25-terminal` / `max25-client` — text + F10 menu. See [MAX25-CLIENT.md](MAX25-CLIENT.md).
 
 ## Layout
 
 ```
 plugins/          Betriebsform / hardware / device metadata (plugin.yaml)
-stacks/           Merged source trees (tncs, baycom-pr, crdop)
+stacks/           Merged source trees (tncs, baycom-pr, crdop, daemon, terminal)
 scripts/          max25-ctl, discover-plugins.sh, release-check.sh
+share/max25/      max25d.ini, systemd example
 share/hybbx/      HyBBX INI examples per device/mode
-docs/             Architecture, HyBBX contract, platforms, v1 scope
+docs/             Architecture, client dev guide, platforms, v1 scope
 ```
 
 ## Architecture
@@ -65,6 +76,9 @@ Hardware tests (TNC2C RF, BayCom SER12) are manual — see [V1.0.0-SCOPE.md](V1.
 | Change | Update |
 |--------|--------|
 | Plugin / manifest | `plugins/manifest.yaml`, `plugins/**/plugin.yaml`, `discover-plugins.sh` if needed |
+| M25/1 protocol / client binding | [MAX25-CLIENT.md](MAX25-CLIENT.md), `include/max25/protocol.md`, `stacks/terminal/` |
+| AX.25 / KISS / TNC facts | [PACKET-RADIO.md](PACKET-RADIO.md), `include/max25/packet-radio.md` |
+| Terminal operator docs | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) |
 | HyBBX attach contract | [HYBBX.md](HYBBX.md) + `share/hybbx/*.ini.example` |
 | Platform limits | [PLATFORMS.md](PLATFORMS.md) |
 | v1 scope / release gates | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md), `VERSION`, `scripts/release-check.sh` |

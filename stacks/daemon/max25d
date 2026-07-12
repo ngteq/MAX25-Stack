@@ -1,0 +1,491 @@
+#!/usr/bin/env python3
+"""
+max25d — MainAX25-Stack daemon (Linux only).
+
+Owns config, plugin hardware lifecycle, and M25/1 IPC for max25-terminal clients.
+"""
+from __future__ import annotations
+
+import argparse
+import configparser
+import errno
+import os
+import re
+import select
+import signal
+import socket
+import subprocess
+import sys
+import threading
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, Optional, Set, TextIO
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_TCP_PORT = 7325
+DEFAULT_UNIX = "/run/max25/modem.sock"
+CALLSIGN_RE = re.compile(r"^[A-Z0-9]{1,6}(-(1[0-5]|[0-9]))?$")
+
+
+@dataclass
+class DaemonConfig:
+    mode: str = "standalone"
+    hardware: str = "tncs"
+    device: str = "tnc2c"
+    tcp_host: str = "0.0.0.0"
+    tcp_port: int = DEFAULT_TCP_PORT
+    unix_socket: str = DEFAULT_UNIX
+    tcp_password: str = ""
+    callerid: str = "CB-0"
+    callid: str = "QST"
+    ax25_ui: bool = True
+    auto_start: bool = True
+
+
+@dataclass
+class DaemonState:
+    cfg: DaemonConfig
+    connected: bool = False
+    monitor_only: bool = False
+    stack_proc: Optional[subprocess.Popen] = None
+    stack_status: str = "stopped"
+    clients: Set[socket.socket] = field(default_factory=set)
+    lock: threading.Lock = field(default_factory=threading.Lock)
+
+
+def log(msg: str) -> None:
+    print(f"max25d: {msg}", file=sys.stderr, flush=True)
+
+
+def valid_callsign(value: str) -> bool:
+    return bool(value and CALLSIGN_RE.match(value.upper()))
+
+
+def load_config(path: Optional[Path]) -> DaemonConfig:
+    cfg = DaemonConfig()
+    if path is None:
+        for candidate in (
+            Path(os.environ.get("MAX25D_INI", "")),
+            Path("/etc/max25/max25d.ini"),
+            ROOT / "share/max25/max25d.ini.example",
+        ):
+            if candidate and candidate.is_file():
+                path = candidate
+                break
+    if path is None or not path.is_file():
+        log(f"using built-in defaults (no ini at {path})")
+        return cfg
+
+    cp = configparser.ConfigParser(strict=False)
+    cp.read(path)
+    if cp.has_section("daemon"):
+        cfg.mode = cp.get("daemon", "mode", fallback=cfg.mode)
+        cfg.hardware = cp.get("daemon", "hardware", fallback=cfg.hardware)
+        cfg.device = cp.get("daemon", "device", fallback=cfg.device)
+    if cp.has_section("network"):
+        cfg.tcp_host = cp.get("network", "tcp_host", fallback=cfg.tcp_host)
+        cfg.tcp_port = cp.getint("network", "tcp_port", fallback=cfg.tcp_port)
+        cfg.unix_socket = cp.get("network", "unix_socket", fallback=cfg.unix_socket)
+        cfg.tcp_password = cp.get("network", "tcp_password", fallback=cfg.tcp_password)
+    if cp.has_section("modem"):
+        cfg.callerid = cp.get("modem", "callerid", fallback=cfg.callerid).upper()
+        cfg.callid = cp.get("modem", "callid", fallback=cfg.callid).upper()
+        cfg.ax25_ui = cp.get("modem", "ax25_ui", fallback="yes").lower() in (
+            "1",
+            "yes",
+            "true",
+            "on",
+        )
+    if cp.has_section("stack"):
+        cfg.auto_start = cp.get("stack", "auto_start", fallback="yes").lower() in (
+            "1",
+            "yes",
+            "true",
+            "on",
+        )
+    log(f"config {path}")
+    return cfg
+
+
+def status_line(state: DaemonState) -> str:
+    c = state.cfg
+    with state.lock:
+        return (
+            f"STATUS hardware={c.hardware} device={c.device} mode={c.mode} "
+            f"callerid={c.callerid} callid={c.callid} "
+            f"ax25_ui={'on' if c.ax25_ui else 'off'} "
+            f"connected={'yes' if state.connected else 'no'} "
+            f"stack={state.stack_status}"
+        )
+
+
+def broadcast(state: DaemonState, line: str, skip: Optional[socket.socket] = None) -> None:
+    payload = (line + "\n").encode("utf-8")
+    dead: list[socket.socket] = []
+    with state.lock:
+        for sock in state.clients:
+            if sock is skip:
+                continue
+            try:
+                sock.sendall(payload)
+            except OSError:
+                dead.append(sock)
+        for sock in dead:
+            state.clients.discard(sock)
+
+
+def send_line(sock: socket.socket, line: str) -> None:
+    sock.sendall((line + "\n").encode("utf-8"))
+
+
+def start_stack(state: DaemonState) -> None:
+    ctl = ROOT / "scripts" / "max25-ctl"
+    if not ctl.is_file():
+        state.stack_status = "error-no-ctl"
+        return
+    args = [
+        str(ctl),
+        "start",
+        "--mode",
+        state.cfg.mode,
+        "--hardware",
+        state.cfg.hardware,
+        "--device",
+        state.cfg.device,
+    ]
+    env = os.environ.copy()
+    env["MAX25_MODE"] = state.cfg.mode
+    try:
+        proc = subprocess.Popen(
+            args,
+            cwd=str(ROOT),
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        log(f"stack start failed: {exc}")
+        state.stack_status = "error"
+        return
+    state.stack_proc = proc
+    state.stack_status = "running"
+    log(f"stack started pid={proc.pid} ({state.cfg.hardware}/{state.cfg.device})")
+
+
+def stop_stack(state: DaemonState) -> None:
+    proc = state.stack_proc
+    if proc is not None and proc.poll() is None:
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            proc.terminate()
+    state.stack_proc = None
+    state.stack_status = "stopped"
+    ctl = ROOT / "scripts" / "max25-ctl"
+    if ctl.is_file():
+        subprocess.run(
+            [str(ctl), "stop", "--hardware", state.cfg.hardware],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    log("stack stopped")
+
+
+def format_tx(state: DaemonState, text: str) -> str:
+    if state.cfg.ax25_ui:
+        return f"[AX25 UI {state.cfg.callerid}>{state.cfg.callid}] {text}"
+    return text
+
+
+def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
+    line = line.strip("\r\n")
+    if not line:
+        return
+    upper = line.upper()
+
+    if upper == "PING":
+        send_line(sock, "OK")
+        return
+
+    if upper == "GET STATUS":
+        send_line(sock, status_line(state))
+        send_line(sock, "OK")
+        return
+
+    if upper.startswith("SET CALLERID "):
+        value = line[13:].strip().upper()
+        if not valid_callsign(value):
+            send_line(sock, "ERR invalid CALLERID")
+            return
+        state.cfg.callerid = value
+        send_line(sock, "OK")
+        return
+
+    if upper.startswith("SET CALLID "):
+        value = line[11:].strip().upper()
+        if not valid_callsign(value):
+            send_line(sock, "ERR invalid CALLID")
+            return
+        state.cfg.callid = value
+        send_line(sock, "OK")
+        return
+
+    if upper.startswith("SET AX25_UI "):
+        flag = line[12:].strip().lower()
+        if flag in ("on", "yes", "1", "true"):
+            state.cfg.ax25_ui = True
+        elif flag in ("off", "no", "0", "false"):
+            state.cfg.ax25_ui = False
+        else:
+            send_line(sock, "ERR ax25_ui on|off")
+            return
+        send_line(sock, "OK")
+        return
+
+    if upper == "CONNECT":
+        state.connected = True
+        send_line(sock, "EVENT connected")
+        send_line(sock, "OK")
+        return
+
+    if upper == "DISCONNECT":
+        state.connected = False
+        send_line(sock, "EVENT disconnected")
+        send_line(sock, "OK")
+        return
+
+    if upper.startswith("MONITOR "):
+        flag = line[8:].strip().lower()
+        state.monitor_only = flag in ("on", "yes", "1", "true")
+        send_line(sock, "OK")
+        return
+
+    if upper.startswith("SEND "):
+        if state.monitor_only:
+            send_line(sock, "ERR monitor-only")
+            return
+        if not state.connected:
+            send_line(sock, "ERR not connected")
+            return
+        payload = line[5:]
+        framed = format_tx(state, payload)
+        log(f"tx {framed}")
+        send_line(sock, f"RX {framed}")
+        broadcast(state, f"RX {framed}", skip=sock)
+        send_line(sock, "OK")
+        return
+
+    send_line(sock, f"ERR unknown command: {line.split()[0]}")
+
+
+def tcp_auth_ok(sock: socket.socket, expected: str, timeout: float = 30.0) -> bool:
+    if not expected:
+        return True
+    send_line(sock, "AUTH required")
+    sock.settimeout(timeout)
+    buf = b""
+    try:
+        while True:
+            try:
+                chunk = sock.recv(4096)
+            except socket.timeout:
+                return False
+            if not chunk:
+                return False
+            buf += chunk
+            while b"\n" in buf:
+                raw, buf = buf.split(b"\n", 1)
+                try:
+                    line = raw.decode("utf-8").strip("\r")
+                except UnicodeDecodeError:
+                    return False
+                if not line:
+                    continue
+                if line.upper().startswith("AUTH "):
+                    supplied = line[5:]
+                    return supplied == expected
+                return False
+    finally:
+        sock.settimeout(300.0)
+
+
+def client_thread(state: DaemonState, sock: socket.socket, from_tcp: bool) -> None:
+    sock.settimeout(300.0)
+    buf = b""
+    try:
+        if from_tcp and state.cfg.tcp_password:
+            if not tcp_auth_ok(sock, state.cfg.tcp_password):
+                send_line(sock, "ERR auth failed")
+                return
+        send_line(sock, "OK")
+        send_line(sock, status_line(state))
+        while True:
+            try:
+                chunk = sock.recv(4096)
+            except socket.timeout:
+                continue
+            if not chunk:
+                break
+            buf += chunk
+            while b"\n" in buf:
+                raw, buf = buf.split(b"\n", 1)
+                try:
+                    line = raw.decode("utf-8")
+                except UnicodeDecodeError:
+                    send_line(sock, "ERR invalid utf-8")
+                    continue
+                handle_command(state, sock, line)
+    except OSError:
+        pass
+    finally:
+        with state.lock:
+            state.clients.discard(sock)
+        try:
+            sock.close()
+        except OSError:
+            pass
+
+
+def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> None:
+    running = True
+
+    def on_signal(_signum, _frame):
+        nonlocal running
+        running = False
+
+    signal.signal(signal.SIGTERM, on_signal)
+    signal.signal(signal.SIGINT, on_signal)
+
+    if state.cfg.auto_start:
+        start_stack(state)
+
+    log(
+        f"listening tcp={state.cfg.tcp_host}:{state.cfg.tcp_port} "
+        f"unix={state.cfg.unix_socket}"
+    )
+
+    while running:
+        socks = [lsock for lsock, _ in listeners]
+        rlist, _, _ = select.select(socks, [], [], 1.0)
+        for lsock, from_tcp in listeners:
+            if lsock not in rlist:
+                continue
+            try:
+                client, _addr = lsock.accept()
+            except OSError:
+                continue
+            client.setblocking(True)
+            with state.lock:
+                state.clients.add(client)
+            threading.Thread(
+                target=client_thread,
+                args=(state, client, from_tcp),
+                daemon=True,
+            ).start()
+
+    stop_stack(state)
+    for lsock, _ in listeners:
+        lsock.close()
+    if state.cfg.unix_socket:
+        try:
+            os.unlink(state.cfg.unix_socket)
+        except FileNotFoundError:
+            pass
+
+
+def make_listeners(cfg: DaemonConfig) -> list[tuple[socket.socket, bool]]:
+    listeners: list[tuple[socket.socket, bool]] = []
+
+    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    tcp.bind((cfg.tcp_host, cfg.tcp_port))
+    tcp.listen(32)
+    tcp.setblocking(False)
+    listeners.append((tcp, True))
+
+    if cfg.unix_socket:
+        sock_path = Path(cfg.unix_socket)
+        try:
+            sock_path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            fallback = Path("/tmp/max25/modem.sock")
+            log(f"unix {cfg.unix_socket} unavailable, using {fallback}")
+            cfg.unix_socket = str(fallback)
+            sock_path = fallback
+            try:
+                sock_path.parent.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                log("unix socket disabled (no writable path)")
+                cfg.unix_socket = ""
+                return listeners
+        try:
+            os.unlink(cfg.unix_socket)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            pass
+        unix = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            unix.bind(cfg.unix_socket)
+        except OSError as exc:
+            log(f"unix socket {cfg.unix_socket} skipped ({exc})")
+            unix.close()
+        else:
+            try:
+                os.chmod(cfg.unix_socket, 0o660)
+            except OSError:
+                pass
+            unix.listen(32)
+            unix.setblocking(False)
+            listeners.append((unix, False))
+
+    return listeners
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    if sys.platform != "linux":
+        log("max25d is Linux-only (hardware + BayCom stack)")
+        return 1
+
+    parser = argparse.ArgumentParser(description="MAX25 daemon (Linux)")
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=Path,
+        default=None,
+        help="Path to max25d.ini",
+    )
+    parser.add_argument(
+        "--no-stack",
+        action="store_true",
+        help="Do not auto-start hardware stack",
+    )
+    parser.add_argument(
+        "--tcp-port",
+        type=int,
+        default=None,
+        help="Override TCP listen port",
+    )
+    args = parser.parse_args(argv)
+
+    cfg = load_config(args.config)
+    if args.no_stack:
+        cfg.auto_start = False
+    if args.tcp_port is not None:
+        cfg.tcp_port = args.tcp_port
+
+    state = DaemonState(cfg=cfg)
+    listeners = make_listeners(cfg)
+    try:
+        serve(state, listeners)
+    except KeyboardInterrupt:
+        stop_stack(state)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

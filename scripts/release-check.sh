@@ -33,18 +33,48 @@ else
 fi
 
 # --- required docs ---
-for doc in README.md CONTRIBUTING.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/MERGE-REPORT.md; do
+for doc in README.md CONTRIBUTING.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/RASPBERRY-PI.md docs/PACKET-RADIO.md; do
   [[ -f "$doc" ]] && ok "doc $doc" || fail "missing $doc"
 done
 
 # --- scripts executable ---
-for script in scripts/discover-plugins.sh scripts/build-all.sh scripts/release-check.sh scripts/max25-ctl; do
+for script in scripts/discover-plugins.sh scripts/build-all.sh scripts/release-check.sh scripts/max25-ctl scripts/install-max25.sh; do
   if [[ -x "$script" ]]; then
     ok "executable $script"
   else
     fail "not executable: $script"
   fi
 done
+
+if [[ -x stacks/daemon/max25d ]]; then
+  ok "executable stacks/daemon/max25d"
+else
+  fail "stacks/daemon/max25d not executable"
+fi
+
+if [[ -f share/max25/max25d.ini.example ]]; then
+  ok "share/max25/max25d.ini.example"
+else
+  fail "missing share/max25/max25d.ini.example"
+fi
+
+if [[ -f share/max25/max25d.ini.pi.example ]]; then
+  ok "share/max25/max25d.ini.pi.example"
+else
+  fail "missing share/max25/max25d.ini.pi.example"
+fi
+
+if [[ -f include/max25/protocol.md ]]; then
+  ok "include/max25/protocol.md"
+else
+  fail "missing include/max25/protocol.md"
+fi
+
+if [[ -f include/max25/packet-radio.md ]]; then
+  ok "include/max25/packet-radio.md"
+else
+  fail "missing include/max25/packet-radio.md"
+fi
 
 # --- plugin count ---
 YAML_COUNT="$(find plugins -name plugin.yaml | wc -l | tr -d ' ')"
@@ -111,6 +141,41 @@ if bash scripts/discover-plugins.sh --json >/dev/null 2>&1; then
   ok "discover-plugins --json"
 else
   fail "discover-plugins --json"
+fi
+
+# --- max25d + terminal ---
+make -C stacks/daemon all >/dev/null 2>&1 && ok "max25d ready" || fail "max25d"
+make -C stacks/terminal all >/dev/null 2>&1 \
+  && [[ -x stacks/terminal/max25-terminal ]] && ok "max25-terminal built" \
+  && [[ -L stacks/terminal/max25-client ]] && ok "max25-client symlink" \
+  || fail "max25-terminal build"
+if make -C stacks/terminal test >/dev/null 2>&1; then
+  ok "max25-terminal TCP probe"
+else
+  fail "max25-terminal TCP probe"
+fi
+
+if make -C stacks/daemon smoke >/dev/null 2>&1; then
+  ok "max25d protocol smoke"
+else
+  fail "max25d protocol smoke"
+fi
+
+if python3 stacks/daemon/test_auth.py >/dev/null 2>&1; then
+  ok "max25d TCP auth smoke"
+else
+  fail "max25d TCP auth smoke"
+fi
+
+# --- AmigaOS terminal (optional cross-build) ---
+if [[ -x /opt/amiga/bin/m68k-amigaos-gcc ]]; then
+  if bash scripts/build-amiga-terminal.sh >/dev/null 2>&1; then
+    ok "max25-terminal AmigaOS cross-build"
+  else
+    fail "max25-terminal AmigaOS cross-build"
+  fi
+else
+  warn "Amiga SDK not at /opt/amiga — skip Amiga terminal build"
 fi
 
 # --- CI workflow ---

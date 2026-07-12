@@ -1,0 +1,12 @@
+---
+description: Research and deep findings go to private 0-RESEARCHES only
+alwaysApply: true
+---
+
+# Research storage
+
+Deep research, investigations, and working notes: **only** `/home/akb/Code/0-RESEARCHES/` (private, not published).
+
+This repo (`MAX25-Stack`) gets **shipped docs** in `docs/` — compact, operator-facing. Do not add research dumps or planning archives here unless the user explicitly requests a shipped document.
+
+After substantial analysis, write a dated note under `0-RESEARCHES/notes/` or `0-RESEARCHES/findings/`.

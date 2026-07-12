@@ -1,0 +1,6 @@
+# Built client artifacts (make -C stacks/terminal all)
+max25-terminal
+max25-client
+*.o
+amiga/max25-terminal
+amiga/*.o

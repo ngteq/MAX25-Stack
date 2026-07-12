@@ -1,7 +1,7 @@
-# FreeBSD and AX.25 — Platform Notes
+# FREEBSD-AX25.md
 
-This document is consolidated into **[PLATFORMS.md](PLATFORMS.md#bsd-family-later)**.
+Background on *BSD AX.25 limits. **MainAX25 daemon (`max25d`) remains Linux-only.**
 
-MainAX25 develops **primarily for Linux**; *BSD support is planned **much later** (*deutlich später*).
+For the platform strategy (Linux daemon, cross-platform terminal), see **[PLATFORMS.md](PLATFORMS.md)**.
 
-For the full platform matrix, plugin viability, Direwolf path, and CRDOP on BSD, see [PLATFORMS.md — BSD family (later)](PLATFORMS.md#bsd-family-later).
+On *BSD, use **MAX25 Terminal** against a Linux host running `max25d` (BayCom, TNCs, CRDOP). No local BayCom kernel path on BSD.

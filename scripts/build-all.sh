@@ -22,6 +22,16 @@ if [[ -f stacks/crdop/Makefile ]]; then
   make -C stacks/crdop all
 fi
 
+if [[ -f stacks/daemon/Makefile ]]; then
+  echo "-- stacks/daemon (max25d)"
+  make -C stacks/daemon all
+fi
+
+if [[ -f stacks/terminal/Makefile ]]; then
+  echo "-- stacks/terminal (max25-terminal)"
+  make -C stacks/terminal all
+fi
+
 echo "== plugin discovery =="
 bash scripts/discover-plugins.sh
 

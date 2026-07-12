@@ -38,6 +38,10 @@ hardware:
     stack: stacks/crdop
     hybbx_plugin: crdop
     description: Sound-card software modems (CRDOP/ARDOP — no kernel driver)
+  - id: terminal
+    path: hardware/terminal
+    stack: stacks/terminal
+    description: MAX25 Terminal client group (remote UI to max25d)
 
 devices:
   - id: tnc2c
@@ -71,4 +75,8 @@ devices:
     path: devices/soft-crdop
     hardware: soft-modems
     hybbx_plugin: crdop
+    status: active
+  - id: max25-terminal
+    path: devices/max25-terminal
+    hardware: terminal
     status: active

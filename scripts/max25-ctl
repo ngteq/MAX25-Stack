@@ -26,6 +26,10 @@ Commands:
   status            Show stack status
   test              Offline tests (no root)
 
+Daemon (Linux):
+  stacks/daemon/max25d   Long-running supervisor + M25/1 IPC for max25-terminal
+  stacks/terminal/max25-terminal   Operator UI (F10 menu, CALLERID/CALLID)
+
 Options (start/stop/status):
   --mode MODE       standalone | service | hybbx-edge  (default: standalone)
   --hardware HW     tncs | modems | soft-modems

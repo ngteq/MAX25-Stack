@@ -1,0 +1,16 @@
+id: max25-terminal
+label: MAX25 Terminal
+hardware: terminal
+role: client
+status: active
+description: Official text-only operator UI — sole MAX25 client; M25/1 to max25d
+docs:
+  - docs/MAX25-CLIENT.md
+  - docs/MAX25-TERMINAL.md
+  - docs/PACKET-RADIO.md
+  - include/max25/protocol.md
+binaries:
+  - max25-terminal
+  - max25-client
+protocol: m25/1
+default_port: 7325

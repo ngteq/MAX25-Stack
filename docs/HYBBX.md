@@ -12,6 +12,8 @@
 
 HyBBX source: `https://github.com/ngteq/hyBBX/` (not vendored in MainAX25).
 
+**AX.25 / KISS / TNC technical facts** for MAX25 (not HyBBX product docs): [PACKET-RADIO.md](PACKET-RADIO.md).
+
 ## Contract: packet_radio (TNCs)
 
 ### Preparation (MainAX25)
