@@ -1,0 +1,9 @@
+# Pinned upstream for CRDOP vendor submodule (vendor/ardopcf)
+# Update with: scripts/sync-upstream.sh
+
+url=https://github.com/pflarue/ardop.git
+branch=master
+commit=a7c9228
+commit_full=a7c92289b569afbe4259dc556d749405ebc008f5
+describe=ardopcf baseline (Update CONTRIBUTING.md fix typo)
+imported=2026-07-04

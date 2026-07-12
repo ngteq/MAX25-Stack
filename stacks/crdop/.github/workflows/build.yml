@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  linux-gcc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libasound2-dev pkg-config libcmocka-dev
+      - name: Build and test
+        run: |
+          chmod +x scripts/*.sh
+          CRDOP_BUILD_TESTS=ON CRDOP_RUN_TESTS=ON ./scripts/build-crdop.sh
+
+  linux-clang:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y clang cmake libasound2-dev pkg-config libcmocka-dev
+      - name: Build and test (Clang)
+        run: |
+          chmod +x scripts/*.sh
+          CC=clang CRDOP_BUILD_TESTS=ON CRDOP_RUN_TESTS=ON ./scripts/build-crdop.sh
+
+  linux-aarch64-cross:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cross toolchain
+        run: sudo apt-get update && sudo apt-get install -y cmake gcc-aarch64-linux-gnu libasound2-dev:arm64 pkg-config
+      - name: Cross-build ARM64
+        run: |
+          chmod +x scripts/*.sh
+          CRDOP_TOOLCHAIN=aarch64-linux-gnu ./scripts/build-crdop.sh
+
+  windows-cross:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MinGW
+        run: sudo apt-get update && sudo apt-get install -y cmake mingw-w64
+      - name: Cross-build Windows x64
+        run: |
+          chmod +x scripts/*.sh
+          CRDOP_TOOLCHAIN=x86_64-w64-mingw32 ./scripts/build-crdop.sh
+      - name: Verify exe
+        run: test -x build/crdopc.exe

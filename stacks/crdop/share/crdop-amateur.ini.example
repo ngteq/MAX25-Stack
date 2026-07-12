@@ -1,0 +1,15 @@
+; CRDOP — amateur profile (secondary)
+; Docs: docs/EXAMPLES.md
+
+[profile]
+radio_profile = amateur
+
+[modem]
+arq_bandwidth = 1000MAX
+duplex = half
+
+[host]
+port = 8515
+
+[mycall]
+call = CALL-1

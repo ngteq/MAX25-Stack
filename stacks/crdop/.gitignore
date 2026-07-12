@@ -1,0 +1,9 @@
+build/
+build-*/
+*.o
+*.a
+*.so
+*.exe
+*.log
+.DS_Store
+vendor/ardopcf/.crdop-patches-applied

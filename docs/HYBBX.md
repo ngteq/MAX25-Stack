@@ -8,6 +8,7 @@
 |-------|--------------|------------|------------------|
 | `hardware/tncs` | `packet_radio` | default ON | `ax25 = yes` |
 | `hardware/modems` | `baycom` | `-DHYBBX_PLUGIN_BAYCOM=ON` | `baycom = yes` |
+| `hardware/soft-modems` | `crdop` | `-DHYBBX_PLUGIN_CRDOP=ON` | `crdop = yes` |
 
 HyBBX source: `/home/akb/Code/hyBBX/` (not vendored in MainAX25).
 
@@ -100,3 +101,37 @@ Recommended flow for Secondary nodes:
 - AX.25 `axports` sync
 
 Those remain MainAX25 (MAX25) / merged stack responsibilities.
+
+## Contract: crdop (Soft modems)
+
+### Preparation (MainAX25)
+
+```bash
+make -C stacks/crdop all
+./scripts/max25-ctl start --hardware soft-modems --device soft-crdrop
+```
+
+`crdopc` listens on TCP **8515** (control) / **8516** (data). Start modem **before** HyBBX.
+
+### HyBBX INI
+
+Merge `share/hybbx/crdop-edge.ini.example`:
+
+```ini
+[networks]
+crdop = yes
+
+[transport.crdop1]
+modem_host = 127.0.0.1
+modem_port = 8515
+mycall = CB-0
+listen = yes
+```
+
+HyBBX doc: external `hyBBX/docs/CRDOP.md`. CRDOP is **ARDOP**, not AX.25 — parallel to packet-radio transports.
+
+### Rules
+
+- One `crdopc` instance per sound-card radio path
+- HyBBX connects via TCP; no serial port exclusivity
+- CB profile defaults (`500MAX`, half-duplex) from `stacks/crdop/share/crdop.ini.example`

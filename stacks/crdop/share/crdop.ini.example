@@ -1,0 +1,21 @@
+; CRDOP — CB profile (default)
+; Copy: cp share/crdop.ini.example ~/.config/crdop/crdop.ini
+; Docs: docs/EXAMPLES.md · docs/CONFIG.md
+
+[profile]
+radio_profile = cb
+
+[modem]
+arq_bandwidth = 500MAX
+duplex = half
+; extra_delay_ms =
+
+[host]
+port = 8515
+
+[mycall]
+call = NOCALL-0
+
+[audio]
+; capture = plughw:0,0
+; playback = plughw:0,0

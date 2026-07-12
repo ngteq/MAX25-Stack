@@ -28,14 +28,15 @@ Commands:
 
 Options (start/stop/status):
   --mode MODE       standalone | service | hybbx-edge  (default: standalone)
-  --hardware HW     tncs | modems
-  --device DEV      tnc2c | pktnc2 | baycom-ser12 | baycom-par96 | baycom-kiss
+  --hardware HW     tncs | modems | soft-modems
+  --device DEV      tnc2c | pktnc2 | baycom-ser12 | baycom-par96 | baycom-kiss | soft-crdrop
 
 Examples:
   max25-ctl discover
   max25-ctl build
   max25-ctl start --hardware tncs --device tnc2c
   max25-ctl start --hardware modems --device baycom-ser12
+  max25-ctl start --hardware soft-modems --device soft-crdrop
   max25-ctl test
 EOF
 }
@@ -74,8 +75,24 @@ cmd_start() {
       exec sudo "${ROOT}/stacks/baycom-pr/scripts/baycom-pr-ctl" preflight
       sudo "${ROOT}/stacks/baycom-pr/scripts/baycom-pr-ctl" start
       ;;
+    soft-modems)
+      case "$DEVICE" in
+        soft-crdrop|"")
+          if [[ ! -x "${ROOT}/stacks/crdop/build/crdopc" ]]; then
+            echo "Building CRDOP (stacks/crdop)…"
+            make -C "${ROOT}/stacks/crdop" all
+          fi
+          echo "Starting crdopc — attach HyBBX crdop plugin to TCP :8515"
+          exec "${ROOT}/stacks/crdop/scripts/crdopc"
+          ;;
+        *)
+          echo "Unknown soft-modem device: $DEVICE" >&2
+          exit 1
+          ;;
+      esac
+      ;;
     "")
-      echo "Specify --hardware tncs|modems" >&2
+      echo "Specify --hardware tncs|modems|soft-modems" >&2
       exit 1
       ;;
     *)
@@ -107,6 +124,8 @@ cmd_test() {
   make -C "${ROOT}/stacks/tncs" test 2>/dev/null || true
   echo "-- BayCom PR stack --"
   make -C "${ROOT}/stacks/baycom-pr" test
+  echo "-- CRDOP soft modem --"
+  make -C "${ROOT}/stacks/crdop" smoke 2>/dev/null || true
 }
 
 case "$ACTION" in

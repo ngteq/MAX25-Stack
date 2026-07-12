@@ -4,6 +4,8 @@ schema_version: 1
 stack: max25
 name: MainAX25-Stack
 alias: MAX25-Stack
+version: 1.0.0-rc1
+default_betriebsform: standalone
 description: MainAX25-Stack (MAX25-Stack) — Main AX.25 Packet Radio standalone stack (HyBBX-compatible)
 
 betriebsform:
@@ -31,6 +33,11 @@ hardware:
     stack: stacks/baycom-pr
     hybbx_plugin: baycom
     description: BayCom kernel modems (SER12, PAR96, KISS serial)
+  - id: soft-modems
+    path: hardware/soft-modems
+    stack: stacks/crdop
+    hybbx_plugin: crdop
+    description: Sound-card software modems (CRDOP/ARDOP — no kernel driver)
 
 devices:
   - id: tnc2c
@@ -60,3 +67,8 @@ devices:
     hardware: modems
     hybbx_backend: kiss
     status: scaffold
+  - id: soft-crdrop
+    path: devices/soft-crdrop
+    hardware: soft-modems
+    hybbx_plugin: crdop
+    status: active

@@ -1,0 +1,15 @@
+; CRDOP — dual profile (CB ↔ amateur ARDOP)
+; Docs: docs/EXAMPLES.md
+
+[profile]
+radio_profile = dual
+
+[modem]
+arq_bandwidth = 500MAX
+duplex = half
+
+[host]
+port = 8515
+
+[mycall]
+call = CB01-0

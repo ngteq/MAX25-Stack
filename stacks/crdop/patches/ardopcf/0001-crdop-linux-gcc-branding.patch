@@ -1,0 +1,186 @@
+From: CRDOP <dev@ngteq.local>
+Subject: [PATCH] CRDOP: Linux/GCC build fixes and crdopc branding
+
+Build fixes for GCC 15 (prototypes, ws_server, rawhid fd cast).
+Product identity crdopc / 0.1.0-l2-cb; MIT attribution for ngteq changes.
+---
+ lib/rawhid/rawhid.c        | 8 ++++----
+ lib/ws_server/ws_server.c  | 2 +-
+ src/common/ARDOPC.c        | 4 ++--
+ src/common/ARDOPC.h        | 2 +-
+ src/common/ARDOPCommon.c   | 5 +++--
+ src/common/ARQ.c           | 4 ++--
+ src/common/HostInterface.c | 2 +-
+ src/common/ardopcommon.h   | 2 +-
+ src/common/version.h       | 2 +-
+ src/linux/ALSASound.c      | 4 ++--
+ 10 files changed, 18 insertions(+), 17 deletions(-)
+
+diff --git a/lib/rawhid/rawhid.c b/lib/rawhid/rawhid.c
+index 8791788..256641f 100644
+--- a/lib/rawhid/rawhid.c
++++ b/lib/rawhid/rawhid.c
+@@ -358,7 +358,7 @@ int HID_Read_Block()
+ #ifdef WIN32
+ 	Len = rawhid_recv(0, Msg, 64, 100);
+ #else
+-	Len = read(CM108Handle, Msg, 64);
++	Len = read((int)(intptr_t)CM108Handle, Msg, 64);
+ #endif
+ 
+ 	if (Len <= 0)
+@@ -403,7 +403,7 @@ int HID_Write_Block()
+ #ifdef WIN32
+ 		ret = rawhid_send(0, Msg, 64, 100);		// Always send 64
+ 
+-		if (ret < 0)
++		if (ret != 64)
+ 		{
+ 			ZF_LOGE("Rigcontrol HID Write Failed %d", errno);
+ 			rawhid_close(0);
+@@ -411,12 +411,12 @@ int HID_Write_Block()
+ 			return 0;
+ 		}
+ #else
+-		ret = write(CM108Handle, Msg, 64);
++		ret = write((int)(intptr_t)CM108Handle, Msg, 64);
+ 
+ 		if (ret != 64)
+ 		{
+ 			printf ("Write to %s failed, n=%d, errno=%d\n", HIDDevice, ret, errno);
+-			close (CM108Handle);
++			close((int)(intptr_t)CM108Handle);
+ 			CM108Handle = 0;
+ 			return 0;
+ 		}
+diff --git a/lib/ws_server/ws_server.c b/lib/ws_server/ws_server.c
+index a542627..e8db176 100644
+--- a/lib/ws_server/ws_server.c
++++ b/lib/ws_server/ws_server.c
+@@ -1139,7 +1139,7 @@ int client_handler(char *data, int data_size)
+ 	int data_len;
+ 	int opcode;
+ 	if (state[cnum] == WS_HTTP)
+-		return process_http_req(cnum);
++		return process_http_req();
+ 
+ 	if ((data_len = read_websocket_frame(data, data_size, &opcode)) < 0)
+ 		return (-1);
+diff --git a/src/common/ARDOPC.c b/src/common/ARDOPC.c
+index dc69a06..34e3f59 100644
+--- a/src/common/ARDOPC.c
++++ b/src/common/ARDOPC.c
+@@ -2,7 +2,7 @@
+ //
+ 
+ // ardopcf is a fork by pflarue of ardopc by John Wiseman
+-const char ProductName[] = "ardopcf";
++/* ProductName: CRDOP src/crdop_version.c */
+ 
+ // Version k  Fix conflicting definitions of bytDataToSend
+ // Version m  Add CM108 PTT (Sept 2021)
+@@ -56,7 +56,7 @@ BOOL SerialHostInit();
+ void SerialHostPoll();
+ void TCPHostPoll();
+ BOOL MainPoll();
+-void PlatformSleep();
++void PlatformSleep(int mS);
+ const char* PlatformSignalAbbreviation(int signal);
+ BOOL BusyDetect2(float * dblMag, int intStart, int intStop);
+ BOOL IsPingToMe(const StationId* caller, const StationId* target);
+diff --git a/src/common/ARDOPC.h b/src/common/ARDOPC.h
+index da2deb3..bdb8c5e 100644
+--- a/src/common/ARDOPC.h
++++ b/src/common/ARDOPC.h
+@@ -176,7 +176,7 @@ void SendReplyToHost(char * strText);
+ void TCPSendReplyToHost(char * strText);
+ void LogStats();
+ int GetNextFrameData(int * intUpDn, UCHAR * bytFrameTypeToSend, UCHAR * strMod, BOOL blnInitialize);
+-void SendData();
++void SendData(void);
+ int ComputeInterFrameInterval(int intRequestedIntervalMS);
+ int Encode4FSKControl(UCHAR bytFrameType, UCHAR bytSessionID, UCHAR * bytreturn);
+ int EncodeConACKwTiming(UCHAR bytFrameType, int intRcvdLeaderLenMs, UCHAR bytSessionID, UCHAR * bytreturn);
+diff --git a/src/common/ARDOPCommon.c b/src/common/ARDOPCommon.c
+index c6c068c..85db9cf 100644
+--- a/src/common/ARDOPCommon.c
++++ b/src/common/ARDOPCommon.c
+@@ -184,10 +184,11 @@ void processargs(int argc, char * argv[])
+ 		{
+ 		case 'h':
+ 
+-			printf("%s Version %s (https://www.github.com/pflarue/ardop)\n", ProductName, ProductVersion);
++			printf("%s Version %s (https://github.com/ngteq/CRDOP)\n", ProductName, ProductVersion);
+ 			printf("Copyright (c) 2014-2024 Rick Muething, John Wiseman, Peter LaRue\n");
++			printf("CRDOPC modifications Copyright (c) 2026 ngteq (MIT)\n");
+ 			printf(
+-				"See https://github.com/pflarue/ardop/blob/master/LICENSE for licence details including\n"
++				"See https://github.com/ngteq/CRDOP/blob/main/NOTICE.md and https://github.com/pflarue/ardop/blob/master/LICENSE for licence details including\n"
+ 				"  information about authors of external libraries used and their licenses.\n"
+ 			);
+ 			printf(HelpScreen, ProductName);
+diff --git a/src/common/ARQ.c b/src/common/ARQ.c
+index 1b44fa7..b67c1d3 100644
+--- a/src/common/ARQ.c
++++ b/src/common/ARQ.c
+@@ -822,7 +822,7 @@ int GetNumCarriers(UCHAR bytFrameType)
+ 
+ // Function to determine the next data frame to send (or IDLE if none)
+ 
+-void SendData()
++void SendData(void)
+ {
+ 	char strMod[16];
+ 	int Len;
+@@ -1772,7 +1772,7 @@ void ProcessRcvdARQFrame(UCHAR intFrameType, UCHAR * bytData, int DataLen, BOOL
+ 
+ 				SetARDOPProtocolState(ISS);
+ 				ARQState = ISSData;
+-				SendData(FALSE);
++				SendData();
+ 				return;
+ 			}
+ 			// In an active ARQ Connection, only send an IDFrame when ProtocolState
+diff --git a/src/common/HostInterface.c b/src/common/HostInterface.c
+index 0ba4eca..e4e6ddd 100644
+--- a/src/common/HostInterface.c
++++ b/src/common/HostInterface.c
+@@ -7,7 +7,7 @@
+ BOOL blnHostRDY = FALSE;
+ extern int intFECFramesSent;
+ 
+-void SendData();
++void SendData(void);
+ BOOL CheckForDisconnect();
+ int Encode4FSKControl(UCHAR bytFrameType, UCHAR bytSessionID, UCHAR * bytreturn);
+ int ComputeInterFrameInterval(int intRequestedIntervalMS);
+diff --git a/src/common/ardopcommon.h b/src/common/ardopcommon.h
+index 91cf281..1a334eb 100644
+--- a/src/common/ardopcommon.h
++++ b/src/common/ardopcommon.h
+@@ -165,7 +165,7 @@ void SendReplyToHost(char * strText);
+ void TCPSendReplyToHost(char * strText);
+ void LogStats();
+ int GetNextFrameData(int * intUpDn, UCHAR * bytFrameTypeToSend, UCHAR * strMod, BOOL blnInitialize);
+-void SendData();
++void SendData(void);
+ int ComputeInterFrameInterval(int intRequestedIntervalMS);
+ int Encode4FSKControl(UCHAR bytFrameType, UCHAR bytSessionID, UCHAR * bytreturn);
+ VOID WriteExceptionLog(const char * format, ...);
+diff --git a/src/linux/ALSASound.c b/src/linux/ALSASound.c
+index 4938b47..d15dbcc 100644
+--- a/src/linux/ALSASound.c
++++ b/src/linux/ALSASound.c
+@@ -404,10 +404,10 @@ int platform_main(int argc, char * argv[])
+ 
+ 	setlinebuf(stdout);  // So we can redirect output to file and tail
+ 
+-	ZF_LOGI("%s Version %s (https://www.github.com/pflarue/ardop)", ProductName, ProductVersion);
++	ZF_LOGI("%s Version %s (https://github.com/ngteq/CRDOP)", ProductName, ProductVersion);
+ 	ZF_LOGI("Copyright (c) 2014-2024 Rick Muething, John Wiseman, Peter LaRue");
+ 	ZF_LOGI(
+-		"See https://github.com/pflarue/ardop/blob/master/LICENSE for licence details including\n"
++		"See https://github.com/ngteq/CRDOP/blob/main/NOTICE.md and https://github.com/pflarue/ardop/blob/master/LICENSE for licence details including\n"
+ 		"  information about authors of external libraries used and their licenses."
+ 	);
+ 	ZF_LOGD("Command line: %s", cmdstr);

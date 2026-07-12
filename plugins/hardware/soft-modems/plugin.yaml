@@ -1,0 +1,24 @@
+id: soft-modems
+type: hardware
+parent_stack: MainAX25-Stack (MAX25-Stack)
+label: Soft Modems
+description: Sound-card software modems — no kernel TNC/driver required
+
+stack_path: stacks/crdop
+hybbx_plugin: crdop
+hybbx_doc: ../../docs/HYBBX.md#crdop
+
+protocols:
+  - ardop
+
+build:
+  makefile: stacks/crdop/Makefile
+  targets: [all, test, smoke]
+
+ctl:
+  build: stacks/crdop/scripts/build-crdop.sh
+  start: stacks/crdop/scripts/crdopc
+  install: stacks/crdop/scripts/install-crdop.sh
+
+devices:
+  - soft-crdrop

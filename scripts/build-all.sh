@@ -17,6 +17,11 @@ if [[ -f stacks/baycom-pr/Makefile ]]; then
   make -C stacks/baycom-pr all
 fi
 
+if [[ -f stacks/crdop/Makefile ]]; then
+  echo "-- stacks/crdop (CRDOP soft modem)"
+  make -C stacks/crdop all
+fi
+
 echo "== plugin discovery =="
 bash scripts/discover-plugins.sh
 

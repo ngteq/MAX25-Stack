@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+# CRDOPC launcher — profile + duplex presets → ARDOP host commands (-H).
+# Primary development: CB. Secondary: amateur. Dual: CB ↔ amateur ARDOP links.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PREFIX_SHARE="${SCRIPT_DIR}/../share/crdop"
+
+# Binary: installed bindir sibling, dev build/, or PATH
+if [[ -n "${CRDOP_BIN:-}" ]]; then
+    BIN="${CRDOP_BIN}"
+elif [[ -x "${SCRIPT_DIR}/crdopc" ]]; then
+    BIN="${SCRIPT_DIR}/crdopc"
+elif [[ -x "${ROOT}/build/crdopc" ]]; then
+    BIN="${ROOT}/build/crdopc"
+else
+    BIN="$(command -v crdopc 2>/dev/null || true)"
+fi
+
+# Default INI: user config → installed share → source tree
+if [[ -n "${CRDOP_INI:-}" ]]; then
+    INI="${CRDOP_INI}"
+elif [[ -f "${HOME}/.config/crdop/crdop.ini" ]]; then
+    INI="${HOME}/.config/crdop/crdop.ini"
+elif [[ -f "${PREFIX_SHARE}/crdop.ini.example" ]]; then
+    INI="${PREFIX_SHARE}/crdop.ini.example"
+else
+    INI="${ROOT}/share/crdop.ini.example"
+fi
+
+# --- INI reader ---------------------------------------------------------------
+
+ini_get() {
+    local section="$1" key="$2" default="$3" file="$4"
+    [[ -f "${file}" ]] || { echo "${default}"; return; }
+    awk -F= -v sec="[${section}]" -v k="${key}" -v d="${default}" '
+        $0 ~ /^[[:space:]]*[#;]/ { next }
+        $1 ~ /^\[/ { cur=$0; gsub(/[][]/, "", cur); next }
+        cur == substr(sec, 2, length(sec)-2) {
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $1)
+            if ($1 == k) {
+                v=$2; gsub(/^[[:space:]]+|[[:space:]]+$/, "", v); gsub(/^"|"$/, "", v)
+                print v; found=1; exit
+            }
+        }
+        END { if (!found) print d }
+    ' "${file}"
+}
+
+resolve_ini() {
+    if [[ ! -f "${INI}" && -f "${ROOT}/share/crdop.ini.example" ]]; then
+        INI="${ROOT}/share/crdop.ini.example"
+    fi
+}
+
+# --- Profile presets (CB-primary) ---------------------------------------------
+# Same ARDOP stack for all profiles; only launch defaults differ.
+
+profile_default_bw() {
+    case "$1" in
+        amateur) echo "1000MAX" ;;
+        dual|cb|*) echo "500MAX" ;;
+    esac
+}
+
+profile_busy_det() {
+    case "$1" in
+        amateur) echo "" ;;
+        dual|cb|*) echo "1" ;;
+    esac
+}
+
+profile_half_delay_ms() {
+    case "$1" in
+        amateur) echo "80" ;;
+        dual)    echo "200" ;;   # CB ↔ amateur: extra RX/TX turnaround
+        cb|*)    echo "150" ;;
+    esac
+}
+
+normalize_profile() {
+    case "${1,,}" in
+        cb|dual|amateur) echo "${1,,}" ;;
+        *)
+            echo "warn: unknown radio_profile '${1}', using cb" >&2
+            echo "cb"
+            ;;
+    esac
+}
+
+normalize_duplex() {
+    case "${1,,}" in
+        full|half) echo "${1,,}" ;;
+        *)
+            echo "warn: unknown duplex '${1}', using half" >&2
+            echo "half"
+            ;;
+    esac
+}
+
+build_host_commands() {
+    local profile="$1" duplex="$2" arqbw="$3" mycall="$4" extra_override="$5"
+
+    local cmds="INITIALIZE;PROTOCOLMODE ARQ;ARQBW ${arqbw};MYCALL ${mycall}"
+
+    case "${profile}" in
+        amateur) cmds="${cmds};ARQTIMEOUT 45" ;;
+        dual)    cmds="${cmds};ARQTIMEOUT 35" ;;
+        *)       cmds="${cmds};ARQTIMEOUT 30" ;;
+    esac
+
+    local busy
+    busy="$(profile_busy_det "${profile}")"
+    [[ -n "${busy}" ]] && cmds="${cmds};BUSYDET ${busy}"
+
+    local delay
+    if [[ -n "${extra_override}" ]]; then
+        delay="${extra_override}"
+    elif [[ "${duplex}" == "full" ]]; then
+        delay="0"
+    else
+        delay="$(profile_half_delay_ms "${profile}")"
+    fi
+    cmds="${cmds};EXTRADELAY ${delay}"
+
+    echo "${cmds}"
+}
+
+# --- Main ---------------------------------------------------------------------
+
+if [[ -z "${BIN}" || ! -x "${BIN}" ]]; then
+    echo "error: crdopc not found — build or set CRDOP_BIN" >&2
+    exit 1
+fi
+
+resolve_ini
+
+if [[ -f "${PREFIX_SHARE}/VERSION" ]]; then
+    CRDOP_VERSION="$(tr -d '[:space:]' < "${PREFIX_SHARE}/VERSION")"
+elif [[ -f "${ROOT}/VERSION" ]]; then
+    CRDOP_VERSION="$(tr -d '[:space:]' < "${ROOT}/VERSION")"
+else
+    CRDOP_VERSION="0.5.0"
+fi
+
+PROFILE="$(normalize_profile "$(ini_get profile radio_profile cb "${INI}")")"
+DUPLEX="$(normalize_duplex "$(ini_get modem duplex half "${INI}")")"
+DEFAULT_BW="$(profile_default_bw "${PROFILE}")"
+ARQBW="$(ini_get modem arq_bandwidth "${DEFAULT_BW}" "${INI}")"
+MYCALL="$(ini_get mycall call NOCALL-0 "${INI}")"
+HOST_PORT="$(ini_get host port 8515 "${INI}")"
+EXTRA_OVERRIDE="$(ini_get modem extra_delay_ms "" "${INI}")"
+
+HOSTCMDS="$(build_host_commands "${PROFILE}" "${DUPLEX}" "${ARQBW}" "${MYCALL}" "${EXTRA_OVERRIDE}")"
+
+if [[ $# -ge 1 && "${1}" =~ ^[0-9]+$ ]]; then
+    HOST_PORT="$1"
+    shift
+fi
+
+echo "CRDOP ${CRDOP_VERSION} profile=${PROFILE} duplex=${DUPLEX} port=${HOST_PORT} arq=${ARQBW} call=${MYCALL}"
+exec "${BIN}" "${HOST_PORT}" "$@" -H "${HOSTCMDS}"

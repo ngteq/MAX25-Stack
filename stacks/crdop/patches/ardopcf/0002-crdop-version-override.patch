@@ -1,0 +1,18 @@
+From: CRDOP <dev@ngteq.local>
+Subject: [PATCH 2/2] CRDOP: version from CRDOP tree (single source of truth)
+
+ProductName and ProductVersion live in src/crdop_version.c / include/crdop/version.h.
+---
+ src/common/version.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/common/version.h b/src/common/version.h
+index faabb3e..c4d0e1f 100644
+--- a/src/common/version.h
++++ b/src/common/version.h
+@@ -4,4 +4,4 @@
+ // ardopcf was a mistake.  This was due to a bug and misunderstanding
+ // of the ardop version numbering scheme.  So ardopcf v1.0.4.1.1 comes
+ // after and replaces v2.0.3.2.1
+-const char ProductVersion[] = "1.0.4.1.3";
++extern const char ProductVersion[];  /* CRDOP src/crdop_version.c */

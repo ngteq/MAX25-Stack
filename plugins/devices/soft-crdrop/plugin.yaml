@@ -1,0 +1,46 @@
+id: soft-crdrop
+type: device
+parent_stack: MainAX25-Stack (MAX25-Stack)
+hardware: soft-modems
+label: CRDOP Sound-Card Modem
+status: active
+
+upstream:
+  project: CRDOP
+  repo: https://github.com/ngteq/CRDOP
+  binary: crdopc
+  note: Plugin id soft-crdrop wraps upstream CRDOP (no separate crdrop repo)
+
+hybbx:
+  plugin: crdop
+  transport: tcp
+  control_port: 8515
+  data_port: 8516
+  profile: cb
+
+modem:
+  protocol: ardop
+  duplex: half
+  default_bandwidth: 500MAX
+  audio: alsa
+
+runtime:
+  ctl_start: stacks/crdop/scripts/crdopc
+  default_ini: stacks/crdop/share/crdop.ini.example
+  env:
+    - CRDOP_INI
+
+ini:
+  - stacks/crdop/share/crdop.ini.example
+  - stacks/crdop/share/crdop-dual.ini.example
+  - stacks/crdop/share/crdop-amateur.ini.example
+  - share/hybbx/crdop-edge.ini.example
+
+docs:
+  - stacks/crdop/README.md
+  - stacks/crdop/docs/CONFIG.md
+  - stacks/crdop/docs/EXAMPLES.md
+
+scripts:
+  build: stacks/crdop/scripts/build-crdop.sh
+  start: stacks/crdop/scripts/crdopc

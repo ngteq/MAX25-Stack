@@ -13,7 +13,7 @@ Betriebsform (operating mode)
 | Layer | Directory | Purpose |
 |-------|-----------|---------|
 | **Betriebsform** | `betriebsform/` | How the station runs (standalone, service, HyBBX edge) |
-| **Hardware** | `hardware/` | Device family — serial TNCs vs BayCom modems |
+| **Hardware** | `hardware/` | Device family — serial TNCs, BayCom modems, soft modems |
 | **Device** | `devices/` | Concrete hardware profile and HyBBX INI mapping |
 
 ## Discovery
@@ -31,5 +31,6 @@ Registry: `manifest.yaml`
 |----------------|--------------|-------------|
 | `hardware/tncs` | `packet_radio` | `[transport.packet_radioN]` |
 | `hardware/modems` | `baycom` | `[transport.baycomN]` |
+| `hardware/soft-modems` | `crdop` | `[transport.crdopN]` |
 
 See [docs/HYBBX.md](../docs/HYBBX.md).

@@ -12,7 +12,8 @@ Map for AI agents. Humans: [README.md](README.md).
 |----------------------|------------|-------|
 | `/home/akb/Code/TNCs-Stack` | `stacks/tncs/` | TNC2C tools, HyBBX INI, docs |
 | `/home/akb/Code/pc-com` (baycom_pr-Stack) | `stacks/baycom-pr/` | `baycom-pr-ctl`, config, tools |
-| `/home/akb/Code/hyBBX` | external | Consumer — `packet_radio` + `baycom` plugins |
+| `/home/akb/Code/hyBBX` | external | Consumer — `packet_radio` + `baycom` + `crdop` plugins |
+| `/home/akb/Code/CRDOP` | `stacks/crdop/` | CRDOP soft modem (plugin `soft-crdrop`) |
 
 `baycom_pr-Stack` is **`pc-com`** on disk (GitHub: ngteq/BayCom_PR-Stack).
 
@@ -23,8 +24,8 @@ Betriebsform → Hardware → Device
 ```
 
 - **Betriebsform:** `standalone`, `service`, `hybbx-edge`
-- **Hardware:** `tncs` (→ HyBBX `packet_radio`), `modems` (→ HyBBX `baycom`)
-- **Device:** `tnc2c`, `pktnc2`, `baycom-ser12`, …
+- **Hardware:** `tncs` (→ HyBBX `packet_radio`), `modems` (→ HyBBX `baycom`), `soft-modems` (→ HyBBX `crdop`)
+- **Device:** `tnc2c`, `pktnc2`, `baycom-ser12`, `soft-crdrop`, …
 
 Registry: `plugins/manifest.yaml` · Each plugin dir has `plugin.yaml` + `README.md`.
 
@@ -54,5 +55,7 @@ make all | test | discover | plugins
 ## Next work
 
 - Flesh out `baycom-par96`, `baycom-kiss` device plugins after hardware test
+- Live RF verify `soft-crdrop` (CRDOP) with HyBBX `crdop` plugin
 - Auto-generate device plugins from `stacks/baycom-pr/config/modems.ini` catalog
+- BSD porting (*deutlich später*) — see `docs/FREEBSD-AX25.md`
 - CI: `make test` + `scripts/discover-plugins.sh --json`
