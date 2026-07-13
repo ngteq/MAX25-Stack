@@ -1,0 +1,21 @@
+# MAX25 — Apache httpd 2.4. HTTPD_DOCROOT example: /srv/www
+
+<IfModule mod_proxy.c>
+    ProxyPreserveHost On
+    ProxyTimeout 3600
+
+    ProxyPass "/max25-websocket/ws" "ws://127.0.0.1:7326/max25" timeout=3600 keepalive=On
+    ProxyPassReverse "/max25-websocket/ws" "ws://127.0.0.1:7326/max25"
+</IfModule>
+
+Alias /max25-websocket /srv/www/max25-websocket
+<Directory /srv/www/max25-websocket>
+    DirectoryIndex index.php
+    Require all granted
+    <FilesMatch \.php$>
+        SetHandler application/x-httpd-php
+    </FilesMatch>
+</Directory>
+
+# UI: cp -r reverse-proxy/docroot/max25-websocket $HTTPD_DOCROOT/
+# Proxy: max25-ws-proxy -c /etc/max25/web-proxy.ini

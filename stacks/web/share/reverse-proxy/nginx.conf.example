@@ -1,0 +1,27 @@
+# MAX25 — nginx. Set HTTPD_DOCROOT (example: /srv/www).
+
+location = /max25-websocket/ws {
+    proxy_pass http://127.0.0.1:7326/max25;
+    proxy_http_version 1.1;
+    proxy_socket_keepalive on;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+}
+
+location /max25-websocket/ {
+    root /srv/www;
+    index index.php;
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+    }
+}
+
+# UI: cp -r reverse-proxy/docroot/max25-websocket $HTTPD_DOCROOT/
+# Proxy: max25-ws-proxy -c /etc/max25/web-proxy.ini

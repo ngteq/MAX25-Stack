@@ -1,0 +1,15 @@
+; MAX25 WebSocket forward-proxy (loopback only)
+; Copy to /etc/max25/web-proxy.ini or pass -c / MAX25_WEB_PROXY_INI=
+
+[proxy]
+bind = 127.0.0.1
+port = 7326
+path = /max25
+max_connections = 10
+
+[upstream]
+; max25d M25/1 TCP endpoint
+host = 127.0.0.1
+port = 7325
+; Match max25d.ini [network] tcp_password when set (proxy performs AUTH once)
+tcp_password =

@@ -19,6 +19,8 @@ option(MAX25_BUILD_BAYCOM "Build stacks/baycom-pr tools" ON)
 option(MAX25_BUILD_CRDOP "Build and install MAX25-SoftModem (CRDOP) — disable only if not needed" ON)
 option(MAX25_BUILD_TERMINAL "Build max25-terminal / max25-client" ON)
 option(MAX25_BUILD_DAEMON "Install max25d" ON)
+option(MAX25_BUILD_WEBSOCKET "Build max25-wsd WebSocket forward-proxy" ON)
+option(MAX25_BUILD_WEB "Install MAX25 web UI scaffold" ON)
 
 if(MAX25_BUILD_TNCS)
     add_subdirectory(stacks/tncs)
@@ -34,6 +36,10 @@ endif()
 
 if(MAX25_BUILD_TERMINAL)
     add_subdirectory(stacks/terminal)
+endif()
+
+if(MAX25_BUILD_WEB)
+    add_subdirectory(stacks/web)
 endif()
 
 if(MAX25_BUILD_DAEMON)
@@ -193,6 +199,7 @@ if(TARGET max25-terminal)
     )
 endif()
 
+
 add_custom_target(max25_test
     DEPENDS max25_daemon_smoke baycom_pr_test
 )
@@ -203,6 +210,10 @@ endif()
 
 if(TARGET crdop_smoke)
     add_dependencies(max25_test crdop_smoke)
+endif()
+
+if(TARGET max25_web_smoke)
+    add_dependencies(max25_test max25_web_smoke)
 endif()
 
 message(STATUS "MainAX25-Stack → ${CMAKE_BINARY_DIR}/bin (install prefix: ${CMAKE_INSTALL_PREFIX})")

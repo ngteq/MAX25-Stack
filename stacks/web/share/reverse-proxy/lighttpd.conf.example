@@ -1,0 +1,27 @@
+# MAX25 — lighttpd 1.4. HTTPD_DOCROOT example: /srv/www
+
+# Raise idle limits for upgraded WebSocket connections.
+server.max-read-idle = 3600
+server.max-write-idle = 3600
+
+$HTTP["url"] == "/max25-websocket/ws" {
+    proxy.server = ( "" => (
+        "max25" => (
+            "proxy"   => "http://127.0.0.1:7326/max25",
+            "upgrade" => "enable"
+        )
+    ))
+    proxy.header = ( "upgrade" => "enable" )
+}
+
+alias.url += ( "/max25-websocket/" => "/srv/www/max25-websocket/" )
+index-file.names += ( "index.php" )
+
+fastcgi.server += ( ".php" =>
+    ( "localhost" =>
+        ( "socket" => "/run/php-fpm/www.sock" )
+    )
+)
+
+# UI: cp -r reverse-proxy/docroot/max25-websocket $HTTPD_DOCROOT/
+# Proxy: max25-ws-proxy -c /etc/max25/web-proxy.ini
