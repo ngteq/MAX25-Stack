@@ -25,11 +25,11 @@ Examples:
   PREFIX=/opt/max25 $0      # Install to /opt/max25
 
 After install:
-  sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
+  sudo cp share/max25/max25d.ini.host.example /etc/max25/max25d.ini
   sudo max25d -c /etc/max25/max25d.ini
   max25-terminal -U /run/max25/modem.sock
 
-See docs/LINUX-EDGE-SETUP.md
+See docs/LINUX-HOST-SETUP.md
 EOF
 }
 
@@ -64,7 +64,7 @@ if [[ "$INSTALL_DEPS" -eq 1 ]]; then
       sudo apt-get install -y build-essential make cmake pkg-config git python3 libncurses-dev libasound2-dev
     }
   else
-    echo "WARN: apt-get not found; install build deps manually (see docs/LINUX-EDGE-SETUP.md)" >&2
+    echo "WARN: apt-get not found; install build deps manually (see docs/LINUX-HOST-SETUP.md)" >&2
   fi
 fi
 
@@ -112,9 +112,9 @@ if [[ -f "${BAYCOM_SINGLE}" ]]; then
 fi
 
 echo ""
-echo "Next steps (TNC edge):"
+echo "Next steps (TNC host):"
 echo "  sudo usermod -aG dialout \$USER   # serial access"
-echo "  sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini"
+echo "  sudo cp share/max25/max25d.ini.host.example /etc/max25/max25d.ini"
 echo "  sudo max25d -c /etc/max25/max25d.ini"
 echo "  max25-terminal -U /run/max25/modem.sock"
 echo ""
@@ -122,4 +122,4 @@ echo "Next steps (BayCom PC-COM, single modem on ttyS0):"
 echo "  sudo cp share/baycom/baycom-pr.pccom-ttyS0-only.ini.example /etc/baycom/baycom-pr.ini"
 echo "  sudo ${PREFIX}/sbin/baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup"
 echo "  ./scripts/max25-ctl start --hardware modems --device baycom-ser12"
-echo "  docs/BAYCOM.md · docs/LINUX-EDGE-SETUP.md"
+echo "  docs/BAYCOM.md · docs/LINUX-HOST-SETUP.md"

@@ -35,16 +35,16 @@ Operator                    Linux host (max25d)
 
 Build output: `build/bin/` (`max25-terminal`, `tnc2c-probe`, `crdopc`, …).
 
-### Linux edge (max25d + terminal)
+### Linux host (max25d + terminal)
 
 ```bash
 ./scripts/install-max25.sh --deps
-sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
+sudo cp share/max25/max25d.ini.host.example /etc/max25/max25d.ini
 sudo max25d -c /etc/max25/max25d.ini
 max25-terminal -U /run/max25/modem.sock --ax25-ui
 ```
 
-Guide: [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md).
+Guide: [docs/LINUX-HOST-SETUP.md](docs/LINUX-HOST-SETUP.md).
 
 ### Active devices (v1)
 
@@ -70,7 +70,7 @@ Details: [docs/PLATFORMS.md](docs/PLATFORMS.md).
 | Audience | Doc |
 |----------|-----|
 | **Index** | [docs/README.md](docs/README.md) |
-| Edge setup | [LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md) |
+| Host setup | [LINUX-HOST-SETUP.md](docs/LINUX-HOST-SETUP.md) |
 | Terminal operator | [MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) |
 | Client / M25/1 | [MAX25-CLIENT.md](docs/MAX25-CLIENT.md) |
 | Packet radio facts | [PACKET-RADIO.md](docs/PACKET-RADIO.md) |

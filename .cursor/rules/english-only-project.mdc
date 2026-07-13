@@ -29,4 +29,4 @@ Respond in **German** in conversation. The project language rule does not apply 
 
 ## When you find German in shipped files
 
-Translate to English in the same change. Do not recommend specific hardware platforms unless the user asked — prefer **settings/setup examples** (see [LINUX-EDGE-SETUP.md](../../docs/LINUX-EDGE-SETUP.md)).
+Translate to English in the same change. Do not recommend specific hardware platforms unless the user asked — prefer **settings/setup examples** (see [LINUX-HOST-SETUP.md](../../docs/LINUX-HOST-SETUP.md)).

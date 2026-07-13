@@ -14,7 +14,7 @@ Operating mode (`betriebsform/`)
 
 | Layer | Directory | Purpose |
 |-------|-----------|---------|
-| Operating mode | `betriebsform/` | Standalone, service, HyBBX edge |
+| Operating mode | `betriebsform/` | Standalone, service, HyBBX host |
 | Hardware | `hardware/` | Device family — TNCs, BayCom, soft modems |
 | Device | `devices/` | Concrete profile and HyBBX INI mapping |
 
@@ -67,4 +67,4 @@ Terminal client profiles: [share/clients/](../share/clients/README.md) · BayCom
 | `baycom-ser12` | `--hardware modems --device baycom-ser12` | `share/baycom/baycom-pr.pccom-ttyS0-only.ini.example` | `share/clients/baycom-ser12.yaml` (reference) |
 | `soft-crdop` | `--hardware soft-modems --device soft-crdop` | `stacks/crdop/share/crdop.ini.example` | `share/clients/soft-crdop.yaml` |
 
-BayCom default: **single PC-COM on `/dev/ttyS0`** (AX25SRV). Dual kernel-ser12 is **global opt-in** via `--baycom-profile dual` — see [docs/BAYCOM.md](../docs/BAYCOM.md).
+BayCom default: **single PC-COM** (shipped template). Dual kernel-ser12 is **global opt-in** via `--baycom-profile dual` — see [docs/BAYCOM.md](../docs/BAYCOM.md).

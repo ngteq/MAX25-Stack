@@ -21,7 +21,7 @@ Many modems draw **supply current from the host serial port**:
 | RTS (7) | PTT | Must assert for calibrate / TX |
 | CTS (8) | RX data | Timing-critical on kernel-ser12 |
 
-Cheap USB adapters may lack **RS-232 levels** or **line current** for port-powered ser12 modems.
+Consumer USB adapters may lack **RS-232 levels** or **line current** for port-powered ser12 modems.
 
 ## Requirements by backend
 

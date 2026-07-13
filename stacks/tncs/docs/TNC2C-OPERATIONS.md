@@ -26,7 +26,7 @@ Power cycle the TNC while DTR is asserted. Expect `OK: HOST` when successful.
 ## HyBBX
 
 1. Complete boot-wait on the TNC port.
-2. Start HyBBX Secondary with `share/hybbx/tnc2c-edge.ini.example` merged into `hybbx.ini`.
+2. Start HyBBX Secondary with `share/hybbx/tnc2c-host.ini.example` merged into `hybbx.ini`.
 3. Do not run another userspace serial client on the same device while HyBBX is active.
 
 See [HYBBX-TNC2C.md](HYBBX-TNC2C.md) and [../../docs/HYBBX.md](../../docs/HYBBX.md).

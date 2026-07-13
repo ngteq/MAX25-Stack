@@ -2,7 +2,7 @@
 
 Shipped **single-modem** templates for kernel BayCom (SER12). Site-specific copies go to `/etc/baycom/` or `local/baycom-pr.ini` (gitignored).
 
-## Canonical single PC-COM (AX25SRV / v1 default)
+## Canonical single PC-COM (v1 default)
 
 | File | Use |
 |------|-----|
@@ -24,19 +24,21 @@ Start via MAX25:
 
 Or let `max25d` auto-start (set `[device.baycom-ser12] baycom_ini = /etc/baycom/baycom-pr.ini`).
 
-## AX25SRV layout (single PC-COM)
+## Example multi-device host layout (single PC-COM)
 
-| Port | Role on AX25SRV |
-|------|-----------------|
+Typical onboard-UART assignment when BayCom and two TNCs share one host:
+
+| Port | Example role |
+|------|----------------|
 | `/dev/ttyS0` | PC-COM (BayCom kernel-ser12) — **only BayCom UART** |
 | `/dev/ttyS4` | TNC2C (`packet_radio`, boot-wait) |
 | `/dev/ttyS5` | PK-TNC2 (`packet_radio`, HyBBX) — **not BayCom** |
 
-Dual-modem BayCom (`ttyS0` + `ttyS5`) is a **service-mode example only** (`stacks/baycom-pr/config/examples/baycom-pr.dual.ini`) — never on AX25SRV.
+Dual-modem BayCom (`ttyS0` + `ttyS5`) is **service-mode only** (`stacks/baycom-pr/config/examples/baycom-pr.dual.ini`) — do not use when `ttyS5` is already assigned to a TNC.
 
-## Dual modem (service mode, worldwide opt-in)
+## Dual modem (service mode, opt-in)
 
-For two kernel-ser12 modems at non-AX25SRV sites:
+For two kernel-ser12 modems on **two free UARTs**:
 
 ```bash
 sudo cp stacks/baycom-pr/config/examples/baycom-pr.dual.ini /etc/baycom/baycom-pr.ini

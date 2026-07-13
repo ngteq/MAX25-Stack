@@ -26,7 +26,7 @@ scripts:
   probe: stacks/tncs/tnc2c-probe
 
 ini:
-  - share/hybbx/pktnc2-edge.ini.example
+  - share/hybbx/pktnc2-host.ini.example
 
 client:
   - share/clients/pktnc2.yaml

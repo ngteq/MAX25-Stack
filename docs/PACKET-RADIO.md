@@ -151,7 +151,7 @@ TheFirmware / PK-TNC2 often **will not key PTT** on KISS DATA until host **`MYCA
 MAX25 mapping:
 
 - Set TNC MYCALL from `max25d.ini` `[modem] callerid=` or live `SET CALLERID` before stack TX.
-- HyBBX edge: `mycall=` / `[broadcast] ax25_mycall` in `share/hybbx/*.ini.example`.
+- HyBBX host: `mycall=` / `[broadcast] ax25_mycall` in `share/hybbx/*.ini.example`.
 
 ---
 
@@ -182,7 +182,7 @@ Defaults for MAX25 `hardware/tncs` paths. Override only when hardware docs requi
 | **G3RUH FSK** | **9600** baud | 9600 modem boards, some TNCs |
 | 19200 | rare | specialised TNC firmware |
 
-`radio_baud` in INI examples is QoS/metadata for edge links; the **radio** must physically match.
+`radio_baud` in INI examples is QoS/metadata for host links; the **radio** must physically match.
 
 ---
 
@@ -203,7 +203,7 @@ Set `persist`, `slot`, `txdelay`, `txtail` in HyBBX transport INI or stack confi
 
 Native SER12/PAR96 on real 8250/16550 UART — **not** async USB serial. MAX25 prep: `baycom-pr-ctl` → KISS PTY `/var/run/baycom-pr/kiss` → `max25d` `BayComKissBackend`.
 
-**Operator guide:** [BAYCOM.md](BAYCOM.md) (canonical start path, AX25SRV layout, freeze prevention). Kernel internals: `stacks/baycom-pr/docs/`.
+**Operator guide:** [BAYCOM.md](BAYCOM.md) (canonical start path, example host layout, freeze prevention). Kernel internals: `stacks/baycom-pr/docs/`.
 
 ---
 
@@ -258,7 +258,7 @@ Full station example: `share/max25/max25d.full-station.ini.example`.
 
 M25/1: `devices=` in `STATUS`, `SET DEVICE <id>` for TX routing, `RX device=<id> …` on receive. See [`include/max25/protocol.md`](../include/max25/protocol.md).
 
-**Validation:** TNC2C serial KISS is CI-tested. BayCom `BayComKissBackend` and INI resolution are wired; **single-modem default** on AX25SRV (`ttyS0` only). Dual kernel-ser12 (`baycom-a` / `baycom-b`) is supported globally for service mode — see [BAYCOM.md](BAYCOM.md). Live RF acceptance remains manual.
+**Validation:** TNC2C serial KISS is CI-tested. BayCom `BayComKissBackend` and INI resolution are wired; **single-modem default** (shipped template). Dual kernel-ser12 (`baycom-a` / `baycom-b`) is supported globally for service mode — see [BAYCOM.md](BAYCOM.md). Live RF acceptance remains manual.
 
 ---
 
@@ -311,7 +311,7 @@ Reference algorithms: HyBBX `plugins/packet_radio/ax25.c`, `kiss.c`, `tnc.c` (up
 
 - [MAX25-CLIENT.md](MAX25-CLIENT.md) — M25/1 binding
 - [MAX25-TERMINAL.md](MAX25-TERMINAL.md) — operator UI
-- [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md) — example edge install & USB TNC setup
+- [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) — example host install & USB TNC setup
 - [HYBBX.md](HYBBX.md) — attach after prep (minimal)
 - [include/max25/packet-radio.md](../include/max25/packet-radio.md) — constants cheat sheet
 - `stacks/tncs/`, `stacks/baycom-pr/docs/`, `share/hybbx/*.ini.example`

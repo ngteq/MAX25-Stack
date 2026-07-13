@@ -78,7 +78,7 @@ install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25-ctl"
 
 install(FILES
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.example"
-    "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.edge.example"
+    "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.host.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.full-station.ini.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.dual-baycom.ini.example"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/max25"

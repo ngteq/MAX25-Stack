@@ -30,7 +30,7 @@ scripts:
 
 ini:
   - stacks/tncs/hybbx-tnc2c.ini
-  - share/hybbx/tnc2c-edge.ini.example
+  - share/hybbx/tnc2c-host.ini.example
 
 client:
   - share/clients/tnc2c.yaml

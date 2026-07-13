@@ -41,7 +41,7 @@ crdop:
   listen: true
 
 hybbx:
-  ini_example: share/hybbx/crdop-edge.ini.example
+  ini_example: share/hybbx/crdop-host.ini.example
   plugin: crdop
 
 docs:

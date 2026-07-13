@@ -1,11 +1,11 @@
-# Operating mode: HyBBX Edge
+# Operating mode: HyBBX Host
 
-RF edge on a HyBBX **Secondary** node. MAX25 prepares hardware; HyBBX bridges AX.25 to Main over HBX.
+Secondary RF host on a HyBBX **Secondary** node. MAX25 prepares hardware; HyBBX bridges AX.25 to Main over HBX.
 
 ## Workflow
 
 1. MAX25 device prep (boot-wait, `baycom-pr-ctl start`, or `crdopc`)
-2. Merge `share/hybbx/*-edge.ini.example` into Secondary `hybbx.ini`
+2. Merge `share/hybbx/*-host.ini.example` into Secondary `hybbx.ini`
 3. Start HyBBX Secondary
 
 ## Per device

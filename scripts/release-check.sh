@@ -33,7 +33,7 @@ else
 fi
 
 # --- required docs ---
-for doc in README.md CONTRIBUTING.md docs/README.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/BAYCOM.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/LINUX-EDGE-SETUP.md docs/PACKET-RADIO.md stacks/daemon/README.md; do
+for doc in README.md CONTRIBUTING.md docs/README.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/BAYCOM.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/LINUX-HOST-SETUP.md docs/PACKET-RADIO.md stacks/daemon/README.md; do
   [[ -f "$doc" ]] && ok "doc $doc" || fail "missing $doc"
 done
 
@@ -64,10 +64,10 @@ else
   fail "missing share/max25/max25d.ini.example"
 fi
 
-if [[ -f share/max25/max25d.ini.edge.example ]]; then
-  ok "share/max25/max25d.ini.edge.example"
+if [[ -f share/max25/max25d.ini.host.example ]]; then
+  ok "share/max25/max25d.ini.host.example"
 else
-  fail "missing share/max25/max25d.ini.edge.example"
+  fail "missing share/max25/max25d.ini.host.example"
 fi
 
 if [[ -f share/baycom/baycom-pr.pccom-ttyS0-only.ini.example ]]; then
@@ -129,9 +129,9 @@ done
 # --- HyBBX INI templates (stack-local) ---
 for ini in stacks/tncs/hybbx-tnc2c.ini \
            stacks/tncs/hybbx-dual.ini \
-           share/hybbx/tnc2c-edge.ini.example \
-           share/hybbx/baycom-ser12-edge.ini.example \
-           share/hybbx/crdop-edge.ini.example; do
+           share/hybbx/tnc2c-host.ini.example \
+           share/hybbx/baycom-ser12-host.ini.example \
+           share/hybbx/crdop-host.ini.example; do
   [[ -f "$ini" ]] && ok "ini $ini" || fail "missing $ini"
 done
 

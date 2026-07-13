@@ -1,4 +1,4 @@
-; MAX25 — BayCom single modem on ttyS0 (PC-COM) — canonical v1 / AX25SRV default
+; MAX25 — BayCom single modem on ttyS0 (PC-COM) — canonical v1 default
 ; ttyS4/ttyS5 stay with TNCs (TNC2C, PK-TNC2). Never run dual baycom-pr.ini in production.
 ;
 ; Install (root, once per site):

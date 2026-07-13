@@ -42,7 +42,7 @@ rf:
   band: cb
 
 hybbx:
-  ini_example: share/hybbx/pktnc2-edge.ini.example
+  ini_example: share/hybbx/pktnc2-host.ini.example
   plugin: packet_radio
   profile: tnc2
   aliases: [pktnc2, pk-tnc2, tapr, thefirmware]

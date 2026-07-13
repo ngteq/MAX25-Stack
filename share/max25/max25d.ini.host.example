@@ -1,8 +1,8 @@
-; MainAX25-Stack — max25d edge node (example setup)
-; Copy: sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
+; MainAX25-Stack — max25d Linux host (example setup)
+; Copy: sudo cp share/max25/max25d.ini.host.example /etc/max25/max25d.ini
 ; Unified workflow: docs/PLUGINS-DEVICE-MODEL.md
 ;
-; AX25SRV UART map (single BayCom — no dual on this host):
+; Example onboard-UART map (single BayCom — no dual on this layout):
 ;   /dev/ttyS0  BayCom PC-COM (kernel-ser12) — Path B below
 ;   /dev/ttyS4  TNC2C (packet_radio)         — Path A (default)
 ;   /dev/ttyS5  PK-TNC2 (packet_radio)       — NOT BayCom
@@ -37,7 +37,7 @@ ax25_ui = yes
 ; Starts max25-ctl stack on daemon boot (TNC boot-wait, BayCom, crdopc)
 auto_start = yes
 
-; --- Path A: TNC2C (AX25SRV / default edge) ---
+; --- Path A: TNC2C (default host) ---
 [devices]
 default = tnc2c
 tnc2c = /dev/ttyS4
@@ -48,7 +48,7 @@ line = 8n1
 dtr_rts = yes
 kiss_entry = kiss_on
 
-; Optional second TNC on AX25SRV (uncomment — do not share ttyS0 with BayCom):
+; Optional second TNC (uncomment — do not share ttyS0 with BayCom):
 ; pktnc2 = /dev/ttyS5
 ; [serial.pktnc2]
 ; baud = 9600

@@ -22,7 +22,7 @@ One process per serial port — stop other userspace serial owners before HyBBX 
 
 ## HyBBX INI
 
-Merge `share/hybbx/tnc2c-edge.ini.example` or `stacks/tncs/hybbx-tnc2c.ini` (AX25SRV `/dev/ttyS4`) into Secondary `hybbx.ini`:
+Merge `share/hybbx/tnc2c-host.ini.example` or `stacks/tncs/hybbx-tnc2c.ini` (example `/dev/ttyS4`) into Secondary `hybbx.ini`:
 
 ```ini
 [transport.packet_radio1]

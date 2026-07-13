@@ -19,6 +19,6 @@ Sound-card software modems managed by MainAX25 — no serial TNC or kernel BayCo
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 
-Then attach HyBBX with `share/hybbx/crdop-edge.ini.example`.
+Then attach HyBBX with `share/hybbx/crdop-host.ini.example`.
 
 **Note:** CRDOP is ARDOP, not AX.25/KISS. It complements packet-radio stacks for CB digital links.

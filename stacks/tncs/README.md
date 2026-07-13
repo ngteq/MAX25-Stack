@@ -19,7 +19,7 @@ Adjust serial port in `tnc2c-serial.env` before first use.
 | [docs/TNC2C-REFERENCE.md](docs/TNC2C-REFERENCE.md) | Parameters, tools, example profile |
 | [docs/HYBBX-TNC2C.md](docs/HYBBX-TNC2C.md) | HyBBX Secondary attach |
 
-HyBBX INI: [`hybbx-tnc2c.ini`](hybbx-tnc2c.ini) (AX25SRV) · shipped copy: `../../share/hybbx/tnc2c-edge.ini.example` · dual TNC: [`hybbx-dual.ini`](hybbx-dual.ini)
+HyBBX INI: [`hybbx-tnc2c.ini`](hybbx-tnc2c.ini) (onboard ttyS4 example) · shipped copy: `../../share/hybbx/tnc2c-host.ini.example` · dual TNC: [`hybbx-dual.ini`](hybbx-dual.ini)
 
 ## Tools
 

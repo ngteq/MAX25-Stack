@@ -70,4 +70,4 @@ M25/1: `BAN <callsign>`, `UNBAN <callsign>`, `BANS`. Changes persist to `bans_fi
 # Installs: /usr/local/bin/max25d, kiss_bridge.py, device_backends.py, max25-terminal
 ```
 
-Edge guide: [docs/LINUX-EDGE-SETUP.md](../../docs/LINUX-EDGE-SETUP.md). Protocol: [include/max25/protocol.md](../../include/max25/protocol.md). Client: [docs/MAX25-CLIENT.md](../../docs/MAX25-CLIENT.md).
+Host setup guide: [docs/LINUX-HOST-SETUP.md](../../docs/LINUX-HOST-SETUP.md). Protocol: [include/max25/protocol.md](../../include/max25/protocol.md). Client: [docs/MAX25-CLIENT.md](../../docs/MAX25-CLIENT.md).

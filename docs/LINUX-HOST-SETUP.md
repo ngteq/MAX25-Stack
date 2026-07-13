@@ -1,14 +1,14 @@
-# Linux edge setup example
+# Linux host setup example
 
-Example **settings and install steps** for running **`max25d`** on a small Linux edge node with a USB TNC, BayCom modem, or sound-card modem. MAX25 does not recommend specific hardware platforms — use this as a configuration template.
+Example **settings and install steps** for running **`max25d`** on a small Linux host with a USB TNC, BayCom modem, or sound-card modem. MAX25 does not recommend specific hardware platforms — use this as a configuration template.
 
-Example INI: `share/max25/max25d.ini.edge.example`
+Example INI: `share/max25/max25d.ini.host.example`
 
 ---
 
-## What runs on the edge node
+## What runs on the Linux host
 
-| Component | On Linux edge | Notes |
+| Component | On Linux host | Notes |
 |-----------|---------------|-------|
 | **`max25d`** | Yes | Python 3 — no x86-only code |
 | **`max25-terminal`** | Yes | Local UI via Unix socket or `127.0.0.1:7325` |
@@ -127,11 +127,11 @@ Copy and edit site config:
 
 ```bash
 sudo mkdir -p /etc/max25
-sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
+sudo cp share/max25/max25d.ini.host.example /etc/max25/max25d.ini
 sudo nano /etc/max25/max25d.ini
 ```
 
-**Edge example** (`share/max25/max25d.ini.edge.example`) defaults to USB TNC (`tnc2c`). Switch `[daemon]` for your hardware:
+**Host example** (`share/max25/max25d.ini.host.example`) defaults to USB TNC (`tnc2c`). Switch `[daemon]` for your hardware:
 
 | Hardware | `hardware=` | `device=` |
 |----------|-------------|-----------|
@@ -143,7 +143,7 @@ Set `[modem] callerid` / `callid` to your callsigns. Terminals can override live
 
 ### Multi-device (optional)
 
-For multiple TNCs on one edge node, add `[devices]` (see `share/max25/max25d.ini.example`):
+For multiple TNCs on one Linux host, add `[devices]` (see `share/max25/max25d.ini.example`):
 
 ```ini
 [devices]
@@ -215,7 +215,7 @@ sudo max25d -c /etc/max25/max25d.ini
 max25-terminal -U /run/max25/modem.sock
 ```
 
-HyBBX later: `share/hybbx/tnc2c-edge.ini.example`.
+HyBBX later: `share/hybbx/tnc2c-host.ini.example`.
 
 ### BayCom on UART (ttyS0)
 

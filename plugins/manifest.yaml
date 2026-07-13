@@ -17,10 +17,10 @@ betriebsform:
     path: betriebsform/service
     label: Service
     description: 24/7 dual-radio operation (HyBBX, digipeater, automation)
-  - id: hybbx-edge
-    path: betriebsform/hybbx-edge
-    label: HyBBX Edge
-    description: Secondary RF edge — KISS/HBX link to HyBBX Main
+  - id: hybbx-host
+    path: betriebsform/hybbx-host
+    label: HyBBX Host
+    description: Secondary RF host — KISS/HBX link to HyBBX Main
 
 hardware:
   - id: tncs

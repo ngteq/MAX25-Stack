@@ -8,7 +8,7 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 
 | Role | Document |
 |------|----------|
-| Edge deploy | [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md) |
+| Host setup | [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) |
 | **Unified device workflow** | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) — TNC reference, all backends |
 | Terminal operator | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) |
 | Client developer | [MAX25-CLIENT.md](MAX25-CLIENT.md) · [include/max25/protocol.md](../include/max25/protocol.md) |

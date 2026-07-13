@@ -23,7 +23,7 @@ All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
 ### Operator / docs
 
 - Unified five-step device workflow — [docs/PLUGINS-DEVICE-MODEL.md](docs/PLUGINS-DEVICE-MODEL.md)
-- BayCom single PC-COM default for AX25SRV — [docs/BAYCOM.md](docs/BAYCOM.md)
+- BayCom single PC-COM default — [docs/BAYCOM.md](docs/BAYCOM.md)
 - HyBBX attach INI examples in `share/hybbx/`
 - Offline release gates: `./scripts/build.sh`, `./scripts/test.sh`, `./scripts/release-check.sh`
 

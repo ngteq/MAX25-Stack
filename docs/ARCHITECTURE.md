@@ -15,7 +15,7 @@
 │  HyBBX (external) — sessions, HBX, BBS                  │
 │  Plugins: packet_radio | baycom | crdop                 │
 ├─────────────────────────────────────────────────────────┤
-│  Operating mode — standalone | service | hybbx-edge     │
+│  Operating mode — standalone | service | hybbx-host     │
 ├─────────────────────────────────────────────────────────┤
 │  Hardware — tncs | modems | soft-modems                   │
 ├─────────────────────────────────────────────────────────┤
@@ -48,7 +48,7 @@ MAX25-Stack/
 
 | Type | Path | Responsibility |
 |------|------|----------------|
-| **Operating mode** | `betriebsform/*` | Standalone, service, HyBBX edge role |
+| **Operating mode** | `betriebsform/*` | Standalone, service, HyBBX host role |
 | **Hardware** | `hardware/*` | Stack path, HyBBX plugin name |
 | **Device** | `devices/*` | Serial params, INI, scripts |
 
@@ -92,11 +92,11 @@ Contract: [HYBBX.md](HYBBX.md).
 |------|--------|--------------|------------|
 | `standalone` | 1 | Any active device | Optional local Main |
 | `service` | 1–2 | Dual INI templates | Secondary 24/7 |
-| `hybbx-edge` | 1 per section | Device plugin scripts | Secondary RF edge |
+| `hybbx-host` | 1 per section | Device plugin scripts | Secondary RF host |
 
 ## See also
 
 - [README.md](README.md) — doc index
 - [PLATFORMS.md](PLATFORMS.md) — Linux daemon, cross-platform terminal
 - [MAX25-CLIENT.md](MAX25-CLIENT.md) — M25/1 binding
-- [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md) — example edge install
+- [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) — example host install

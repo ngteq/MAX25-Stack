@@ -17,7 +17,7 @@
 
 ## Linux — daemon + terminal
 
-Full MAX25 stack. Edge setup: [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md).
+Full MAX25 stack. Host setup: [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md).
 
 ```bash
 ./scripts/install-max25.sh --deps

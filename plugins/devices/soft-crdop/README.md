@@ -23,7 +23,7 @@ ARDOP — parallel to AX.25/KISS, not a replacement. Wire protocol and ports mat
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 
-HyBBX: `share/hybbx/crdop-edge.ini.example`
+HyBBX: `share/hybbx/crdop-host.ini.example`
 
 ## Platform
 

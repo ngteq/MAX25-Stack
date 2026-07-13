@@ -133,7 +133,7 @@ TNC / BayCom / CRDOP
 | Palette / text UI | `hybbx/terminal.h` | shared convention |
 | Hardware prep | `packet_radio` plugin | `max25d` + stacks |
 
-In **hybbx-edge** operating mode: `max25d` prepares hardware; HyBBX attaches via `share/hybbx/*.ini.example`. MAX25 Terminal remains for local modem debug and live ID changes.
+In **hybbx-host** operating mode: `max25d` prepares hardware; HyBBX attaches via `share/hybbx/*.ini.example`. MAX25 Terminal remains for local modem debug and live ID changes.
 
 ## Out of scope (terminal — long-term)
 

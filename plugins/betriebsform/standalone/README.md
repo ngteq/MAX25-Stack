@@ -11,7 +11,7 @@ Single-operator packet radio. One TNC or one BayCom modem online. **Default v1 p
 # BayCom SER12
 ./scripts/max25-ctl start --mode standalone --hardware modems --device baycom-ser12
 
-# max25d (recommended edge path)
+# max25d (recommended host path)
 sudo max25d -c /etc/max25/max25d.ini
 ```
 

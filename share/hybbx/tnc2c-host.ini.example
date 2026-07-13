@@ -1,7 +1,7 @@
-; MainAX25-Stack — HyBBX Secondary edge (TNC2C)
+; MainAX25-Stack — HyBBX Secondary host (TNC2C)
 ; Merge into HyBBX hybbx.ini on Secondary node.
 ; Prerequisite: ./scripts/max25-ctl start --hardware tncs --device tnc2c
-; Stack template (AX25SRV ttyS4): stacks/tncs/hybbx-tnc2c.ini
+; Stack template (onboard ttyS4): stacks/tncs/hybbx-tnc2c.ini
 
 [networks]
 ax25 = yes
@@ -11,7 +11,7 @@ enabled = yes
 tnc = tnc2c
 protocol = kiss
 device_type = serial
-; AX25SRV: /dev/ttyS4  ·  USB edge: /dev/ttyUSB0 or /dev/serial/by-id/...
+; Onboard UART: /dev/ttyS4  ·  USB host: /dev/ttyUSB0 or /dev/serial/by-id/...
 device = /dev/ttyS4
 baud = 19200
 serial_line = 8n1

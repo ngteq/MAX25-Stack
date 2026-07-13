@@ -38,6 +38,6 @@ Example profile for a Landolt TNC2C with **19200 8N1** host link and **2400** ra
 
 ## HyBBX INI snippet
 
-Use `share/hybbx/tnc2c-edge.ini.example` — set `device`, `mycall`, and RF fields for your station.
+Use `share/hybbx/tnc2c-host.ini.example` — set `device`, `mycall`, and RF fields for your station.
 
 HyBBX TNC profiles: [hyBBX docs/TNCS.md](https://github.com/ngteq/hyBBX/blob/main/docs/TNCS.md)

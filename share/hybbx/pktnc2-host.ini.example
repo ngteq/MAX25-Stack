@@ -1,4 +1,4 @@
-; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary edge (PK-TNC2 / TNC-2)
+; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary host (PK-TNC2 / TNC-2)
 ; Status: planned — adjust device/baud after hardware inventory
 
 [networks]

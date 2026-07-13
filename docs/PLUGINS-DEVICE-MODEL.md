@@ -144,19 +144,19 @@ SEND hello
 
 PTT is kernel-driven on TX; there is no separate M25/1 PTT command.
 
-### AX25SRV layout (single BayCom, dual opt-in globally)
+### Example multi-device host layout (single BayCom, dual opt-in globally)
 
-| Port | Role on AX25SRV |
+| Port | Example role |
 |------|-----------------|
 | `/dev/ttyS0` | PC-COM (BayCom kernel-ser12) — **only BayCom UART** |
 | `/dev/ttyS4` | TNC2C (`packet_radio`) |
 | `/dev/ttyS5` | PK-TNC2 (`packet_radio`) — **not BayCom** |
 
-**Never** run dual BayCom (`ttyS0` + `ttyS5`) on AX25SRV while TNCs own `ttyS4`/`ttyS5`.
+**Never** run dual BayCom (`ttyS0` + `ttyS5`) on a host where TNCs already own those UARTs (`ttyS4`/`ttyS5`).
 
 | Layout | When | How |
 |--------|------|-----|
-| **Single (default)** | AX25SRV, most sites | Shipped `baycom-pr.pccom-ttyS0-only.ini.example`; `max25-ctl` skips dual `/etc/baycom/baycom-pr.ini` |
+| **Single (default)** | Most typical hosts | Shipped `baycom-pr.pccom-ttyS0-only.ini.example`; `max25-ctl` skips dual `/etc/baycom/baycom-pr.ini` |
 | **Dual (opt-in)** | Service mode, two radios, unique IRQ | `--baycom-profile dual` or `--baycom-ini stacks/baycom-pr/config/examples/baycom-pr.dual.ini` |
 
 Dual M25/1 ids: `baycom-a` / `baycom-b` — template `share/max25/max25d.dual-baycom.ini.example`.
@@ -269,7 +269,7 @@ These differences are **intentional** (kernel/audio constraints), not bugs. Oper
 | Extra site config file | serial env only | `baycom-pr.ini` (+ one-time `setup`) | `crdop.ini` (+ ALSA audio) |
 | Root for stack start | no (boot-wait) | **yes** (`baycom-pr-ctl`) | no (audio may need system config) |
 | Two-process model | max25d owns serial | baycom-pr-ctl → KISS PTY → max25d | crdopc TCP → max25d |
-| Dual layout confusion | N/A (separate tty per TNC) | dual INI skipped by default on AX25SRV | dual profile deferred v1.1+ |
+| Dual layout confusion | N/A (separate tty per TNC) | dual INI skipped by default (single-modem template) | dual profile deferred v1.1+ |
 | Freeze risk | low | **high** if wrong IRQ | low |
 | On-air protocol | AX.25/KISS | AX.25/KISS | ARDOP (not AX.25) |
 | CI backend tests | mature | `test_baycom_backend.py` | config-parse only |
@@ -300,8 +300,8 @@ Client profile registry: [share/clients/index.yaml](../share/clients/index.yaml)
 
 | Document | Content |
 |----------|---------|
-| [BAYCOM.md](BAYCOM.md) | BayCom operator guide, AX25SRV, dual opt-in |
+| [BAYCOM.md](BAYCOM.md) | BayCom operator guide, dual opt-in |
 | [PACKET-RADIO.md](PACKET-RADIO.md) | AX.25 / KISS / multi-device |
-| [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md) | Edge deploy walkthrough |
+| [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) | Host setup walkthrough |
 | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) | F10 menu, operator UI |
 | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) | v1 active vs deferred devices |

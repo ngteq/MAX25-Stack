@@ -34,7 +34,7 @@ ini:
   - stacks/crdop/share/crdop.ini.example
   - stacks/crdop/share/crdop-dual.ini.example
   - stacks/crdop/share/crdop-amateur.ini.example
-  - share/hybbx/crdop-edge.ini.example
+  - share/hybbx/crdop-host.ini.example
 
 client:
   - share/clients/soft-crdop.yaml

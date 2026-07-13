@@ -11,6 +11,6 @@ PK-TNC2 / TNC-2 (TheFirmware) profile for HyBBX `packet_radio` with `tnc=tnc2`.
 ./stacks/tncs/pktnc2-boot-wait.sh
 ```
 
-HyBBX: `share/hybbx/pktnc2-edge.ini.example`
+HyBBX: `share/hybbx/pktnc2-host.ini.example`
 
 Reuses `tnc2c-probe` for port scan.

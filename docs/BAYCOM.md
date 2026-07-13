@@ -2,7 +2,7 @@
 
 **MAX25** operator guide for kernel-driven SER12 and PAR96 modems (PC-COM, BayPac, LPT 9600). Stack implementation: [`stacks/baycom-pr/`](../stacks/baycom-pr/). Kernel deep dives: [`stacks/baycom-pr/docs/`](../stacks/baycom-pr/docs/INDEX.md) — do not duplicate here.
 
-[README](../README.md) · [PACKET-RADIO.md](PACKET-RADIO.md) · [HYBBX.md](HYBBX.md) · [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md)
+[README](../README.md) · [PACKET-RADIO.md](PACKET-RADIO.md) · [HYBBX.md](HYBBX.md) · [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md)
 
 ---
 
@@ -35,10 +35,10 @@ Radio ←→ UART (8250/16550)
 
 | Mode | Who | INI |
 |------|-----|-----|
-| **Single (default)** | One modem; AX25SRV and most sites | `share/baycom/baycom-pr.pccom-ttyS0-only.ini.example` → `/etc/baycom/baycom-pr.ini` |
+| **Single (default)** | One modem; default for most typical hosts | `share/baycom/baycom-pr.pccom-ttyS0-only.ini.example` → `/etc/baycom/baycom-pr.ini` |
 | **Dual (service)** | Two kernel-ser12 modems worldwide (HyBBX, digipeater, 24/7) | `stacks/baycom-pr/config/examples/baycom-pr.dual.ini` — unique IRQ per UART |
 
-**AX25SRV** has one PC-COM on `/dev/ttyS0` only — no second BayCom UART. Dual BayCom is **opt-in** for operators with two modems; it is not the default install path.
+The shipped **single-modem** template targets one PC-COM (typically `/dev/ttyS0`). Dual BayCom is **opt-in** for operators with two modems and two free UARTs; it is not the default install path.
 
 Without override, `max25-ctl` and `install-max25.sh` use the **single** template. Dual `/etc/baycom/baycom-pr.ini` is skipped unless you pass `--baycom-ini` or `--baycom-profile dual`.
 
@@ -71,7 +71,7 @@ Unified five-step workflow: [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md).
 
 ## Canonical start path (single PC-COM)
 
-**Default for v1 and AX25SRV:** one kernel-ser12 modem on `/dev/ttyS0`. There is **no second PC-COM** on this station — `/dev/ttyS5` is PK-TNC2 (HyBBX). Dual-modem BayCom is **service-mode only** on other hosts.
+**Default for v1:** one kernel-ser12 modem per site (shipped template uses `/dev/ttyS0`). Do not assign a second BayCom UART that is already used by another device (e.g. a TNC on `/dev/ttyS5`). Dual-modem BayCom is **service-mode only** on hosts with two free onboard UARTs.
 
 ### 1. Build and install
 
@@ -119,7 +119,7 @@ auto_start = yes
 ```
 
 ```bash
-sudo cp share/max25/max25d.ini.edge.example /etc/max25/max25d.ini
+sudo cp share/max25/max25d.ini.host.example /etc/max25/max25d.ini
 # Uncomment BayCom [devices] block; set hardware=modems device=baycom-ser12
 sudo max25d -c /etc/max25/max25d.ini
 max25-terminal -U /run/max25/modem.sock
@@ -151,7 +151,7 @@ sudo baycom-pr-ctl preflight && sudo baycom-pr-ctl start
 | `/etc/baycom/modems.ini` | Modem catalog (`albrecht-pc-com`, …) |
 | `stacks/baycom-pr/config/examples/` | CB, HAM, dual, LPT profiles — link only |
 | `share/max25/max25d*.ini.example` | Daemon multi-device templates (incl. `max25d.dual-baycom.ini.example`) |
-| `share/hybbx/baycom-ser12-edge.ini.example` | HyBBX merge snippet |
+| `share/hybbx/baycom-ser12-host.ini.example` | HyBBX merge snippet |
 
 **Workflow:** edit under `local/` or `/etc/`, never commit site callsigns or IRQ values. Verify live UART:
 
@@ -229,7 +229,7 @@ For end-to-end TX via max25d: stack up → `max25d` with `baycom-ser12` → term
 
 ## Dual modem (service mode)
 
-**Worldwide / general use:** two independent kernel-ser12 modems on **different UARTs** with **unique IRQs** is fully supported, documented, and tested. Use this for service mode (24/7), two radios, or HyBBX dual-transport sites — **not** on AX25SRV while TNCs own `ttyS4`/`ttyS5`.
+**General use:** two independent kernel-ser12 modems on **different UARTs** with **unique IRQs** is fully supported, documented, and tested. Use this for service mode (24/7), two radios, or HyBBX dual-transport sites — **not** when both UARTs are already assigned to TNCs or other serial owners.
 
 ### 1. BayCom INI (dual profile)
 
@@ -254,7 +254,7 @@ Staged start and IRQ safeguards: [`stacks/baycom-pr/docs/GUIDE.md`](../stacks/ba
 
 ### 2. Start via max25-ctl (explicit dual INI)
 
-`max25-ctl` **skips** a dual-modem `/etc/baycom/baycom-pr.ini` by default (AX25SRV-safe). Pass `--baycom-ini` when you intend dual:
+`max25-ctl` **skips** a dual-modem `/etc/baycom/baycom-pr.ini` by default (single-modem conservative default). Pass `--baycom-ini` when you intend dual:
 
 ```bash
 ./scripts/max25-ctl start --hardware modems --device baycom-ser12 \
@@ -306,13 +306,13 @@ Merge `share/hybbx/service-dual.ini.example` — two `[transport.baycomN]` secti
 
 ---
 
-## AX25SRV layout and freeze prevention
+## Example host layout and freeze prevention
 
 Kernel-ser12 bit-bangs UART lines under interrupt load. **Wrong IRQ or UART conflicts can hard-freeze the host.**
 
 ### Port assignment
 
-| Port | Role on AX25SRV |
+| Port | Example role |
 |------|-----------------|
 | `/dev/ttyS0` | PC-COM (BayCom kernel-ser12) |
 | `/dev/ttyS4` | TNC2C (`packet_radio`, boot-wait) |
@@ -359,7 +359,7 @@ Full analysis: [`stacks/baycom-pr/docs/archive/STABILITY.md`](../stacks/baycom-p
 
 Kernel-ser12 (`baycom_ser_fdx`) requires a **real 8250/16550 UART** — not `ttyUSB*`.
 
-For **USB KISS** paths (`baycom-kiss`, `kiss-serial-usb`): use a **self-powered USB hub with PSU** when the modem/TNC is port-powered. Cheap adapters often lack line drive → garbled KISS, missing PTT, disconnects. Profile: `share/clients/kiss-serial-usb.yaml`.
+For **USB KISS** paths (`baycom-kiss`, `kiss-serial-usb`): use a **self-powered USB hub with PSU** when the modem/TNC is port-powered. Consumer USB adapters often lack line drive → garbled KISS, missing PTT, disconnects. Profile: `share/clients/kiss-serial-usb.yaml`.
 
 ---
 
@@ -377,7 +377,7 @@ Registry: `plugins/manifest.yaml` · `./scripts/discover-plugins.sh`
 
 ## HyBBX
 
-Merge `share/hybbx/baycom-ser12-edge.ini.example` into Secondary `hybbx.ini` — `backend=kernel`, `mode=ser12*`, `interface=bcsf0`, or KISS PTY. Details: [HYBBX.md](HYBBX.md) · [`stacks/baycom-pr/docs/PLUGIN.md`](../stacks/baycom-pr/docs/PLUGIN.md).
+Merge `share/hybbx/baycom-ser12-host.ini.example` into Secondary `hybbx.ini` — `backend=kernel`, `mode=ser12*`, `interface=bcsf0`, or KISS PTY. Details: [HYBBX.md](HYBBX.md) · [`stacks/baycom-pr/docs/PLUGIN.md`](../stacks/baycom-pr/docs/PLUGIN.md).
 
 ---
 
@@ -413,7 +413,7 @@ watch -n1 'grep -E "ttyS|baycom" /proc/interrupts'
 | M25/1 SEND → KISS → kernel PTT | **Wired** — no separate PTT command |
 | KISS PTY RX → `RX device=…` | **Wired** — background `_rx_loop` |
 | HyBBX `baycom` contract | **Documented** |
-| Dual kernel-ser12 24/7 | **Service mode** — not used on AX25SRV (single PC-COM only) |
+| Dual kernel-ser12 24/7 | **Service mode** — opt-in; single PC-COM is the default |
 
 ---
 

@@ -44,7 +44,7 @@ rf:
   band: cb
 
 hybbx:
-  ini_example: share/hybbx/tnc2c-edge.ini.example
+  ini_example: share/hybbx/tnc2c-host.ini.example
   plugin: packet_radio
   profile: tnc2c
 

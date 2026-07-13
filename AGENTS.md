@@ -29,7 +29,7 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 
 1. **Standalone-first** — MAX25 prepares hardware; HyBBX never replaces boot-wait or kernel modem lifecycle.
 2. **No personal/local paths** in docs or examples — use placeholders (`/dev/ttyUSB0`, `main.example.com`).
-3. **Linux daemon only** — `max25d` + BayCom + full stack on Linux; edge setup — [docs/LINUX-EDGE-SETUP.md](docs/LINUX-EDGE-SETUP.md); terminal — [docs/PLATFORMS.md](docs/PLATFORMS.md).
+3. **Linux daemon only** — `max25d` + BayCom + full stack on Linux; host setup — [docs/LINUX-HOST-SETUP.md](docs/LINUX-HOST-SETUP.md); terminal — [docs/PLATFORMS.md](docs/PLATFORMS.md).
 4. **One official client** — `max25-terminal` / `max25-client` only; text + F10 menu; binding in [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md).
 5. **BayCom stays** — first-class on Linux daemon; not deprecated.
 6. **Minimal diffs** — link `stacks/*/` READMEs.

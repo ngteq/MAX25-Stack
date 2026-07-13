@@ -13,7 +13,7 @@ cmake --install build --prefix /usr/local
 ./scripts/release-check.sh
 ```
 
-Edge example: [LINUX-EDGE-SETUP.md](LINUX-EDGE-SETUP.md). *BSD porting deferred — [PLATFORMS.md](PLATFORMS.md).
+Host example: [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md). *BSD porting deferred — [PLATFORMS.md](PLATFORMS.md).
 
 ## Daemon vs terminal
 
@@ -31,7 +31,7 @@ plugins/          operating mode / hardware / device metadata
 stacks/           tncs, baycom-pr, crdop, daemon, terminal
 scripts/          build.sh, max25-ctl, discover-plugins, release-check
 share/max25/      max25d.ini examples
-share/baycom/     BayCom single-modem INI (AX25SRV default)
+share/baycom/     BayCom single-modem INI (v1 default)
 share/clients/    max25-terminal client profiles (YAML)
 share/hybbx/      HyBBX INI examples
 local/            site overrides (gitignored except README)
@@ -40,8 +40,8 @@ include/max25/    protocol.md, packet-radio.md
 
 ## Conventions
 
-- Plugin IDs, scripts, shipped text: **English**
-- Source comments may stay German temporarily; new comments in English
+- Plugin IDs, scripts, shipped text, and public docs: **English**
+- New source comments: **English**
 - Minimal diffs; link `stacks/*/` READMEs
 - No personal paths in docs — use placeholders
 - HyBBX external — `share/hybbx/*.ini.example` only

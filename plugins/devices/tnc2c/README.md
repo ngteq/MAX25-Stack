@@ -18,7 +18,7 @@ DTR must be high during power-on:
 ./stacks/tncs/tnc2c-integration-test.sh
 ```
 
-HyBBX INI: `share/hybbx/tnc2c-edge.ini.example`
+HyBBX INI: `share/hybbx/tnc2c-host.ini.example`
 
 ## Safety
 

@@ -1,8 +1,8 @@
-id: hybbx-edge
+id: hybbx-host
 type: betriebsform
 parent_stack: MainAX25-Stack (MAX25-Stack)
-label: HyBBX Edge
-description: Secondary RF edge — serial TNC or BayCom KISS → HBX to Main
+label: HyBBX Host
+description: Secondary RF host — serial TNC or BayCom KISS → HBX to Main
 
 stack_requirements:
   hybbx_secondary: true

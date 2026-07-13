@@ -40,7 +40,7 @@ baycom:
   root_required: true
 
 hybbx:
-  ini_example: share/hybbx/baycom-ser12-edge.ini.example
+  ini_example: share/hybbx/baycom-ser12-host.ini.example
   plugin: baycom
   backend: kernel
   mode: ser12*
@@ -54,4 +54,5 @@ docs:
 notes: |
   Kernel BayCom — configure hardware via baycom-pr.ini (catalog=), not serial env.
   Terminal attaches to max25d KISS PTY; never open raw /dev/ttyS0 while driver loaded.
-  AX25SRV: single PC-COM on ttyS0 only; ttyS4/ttyS5 are TNCs. Dual BayCom is global opt-in.
+  Single PC-COM default (shipped template). Do not use dual BayCom on a UART
+  already assigned to a TNC. Dual BayCom is global opt-in via --baycom-profile dual.
