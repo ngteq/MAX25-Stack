@@ -1,6 +1,15 @@
 # MAX25 Terminal
 
-**The official MAX25 operator client** — text-based with an F10 menu. There is no second client; this UI concept stays unchanged for the foreseeable future.
+**The official MAX25 operator client** for live packet-radio sessions — text-based with an F10 menu. Operators and integrators connect through **`max25-terminal`** (symlink **`max25-client`**) to exchange traffic with modems via **`max25d`**. This is the only supported **session client** for TX/RX, monitor mode, and live CALLERID/CALLID changes.
+
+**UI roadmap (for third-party planning):**
+
+| Surface | Purpose | Status |
+|---------|---------|--------|
+| **`max25-terminal`** | Operator session — connect, send, monitor, F10 menu | **Current** — text-only; **no graphical UI planned for a long time** |
+| **Web UI** | Browser-based stack administration and monitoring (alongside `max25d`) | **Planned later** — separate from the operator client; **not** a GUI replacement for `max25-terminal` |
+
+Third parties may build their own M25/1 clients against [`include/max25/protocol.md`](../include/max25/protocol.md). Only `max25-terminal` is maintained as the official operator UI.
 
 Development and connection to `max25d`: **[MAX25-CLIENT.md](MAX25-CLIENT.md)** · Protocol: [`include/max25/protocol.md`](../include/max25/protocol.md)
 
@@ -28,12 +37,28 @@ Transport: TCP to Linux host (default port **7325**), not raw serial on the clie
 
 **AmigaOS:** reduced text client in `stacks/terminal/amiga/` — TCP-only, no F10/ncurses menu parity.
 
-## UI stability (long-term)
+## Client UI policy
 
-- Text-only (TTY / ncurses / ANSI fallback) — **no GUI, no web UI**
+### Operator client (`max25-terminal`) — long-term text-only
+
+The session client stays a **terminal program**, not a desktop or browser application:
+
+- Text-only (TTY / ncurses / ANSI fallback) — **no windowing GUI**
 - **F10** menu, number keys **0–9** — no function-key navigation beyond F10
 - HyBBX palette only (light gray on black)
 - See [MAX25-CLIENT.md](MAX25-CLIENT.md#ui-contract-long-term-stable) for the binding contract
+
+A graphical client (Qt, GTK, native windows, or similar) is **not** on the near- or mid-term roadmap for `max25-terminal`. Integrators should assume **years** of text-only operation for live modem sessions.
+
+### Web UI — separate, later
+
+A **Web UI** (browser access to `max25d` for status, configuration overview, or remote administration) may ship in a future release. It serves a different role than the operator client:
+
+- **Does not** replace `max25-terminal` for live TX/RX or AX.25 UI sessions
+- **Does not** change the M25/1 client contract or F10 menu model
+- Details will be documented when the Web UI reaches a defined release gate
+
+Until then, all operator workflows documented here use `max25-terminal` only.
 
 ## Visual style (HyBBX-aligned)
 
@@ -135,12 +160,15 @@ TNC / BayCom / CRDOP
 
 In **hybbx-host** operating mode: `max25d` prepares hardware; HyBBX attaches via `share/hybbx/*.ini.example`. MAX25 Terminal remains for local modem debug and live ID changes.
 
-## Out of scope (terminal — long-term)
+## Out of scope (operator client)
 
-- Second client binary or alternative UI stack
-- Raw serial client setup in the client
-- Multi-colour UI / themes / graphical frontends
+- Graphical windowing UI for `max25-terminal` (long-term — text client remains canonical)
+- A second official session client or alternative TTY stack
+- Raw serial client setup in the client process
+- Multi-colour UI / themes / graphical frontends for the terminal
 - Function-key menu navigation (except F10 to toggle menu)
+
+The planned **Web UI** is a separate admin/monitoring surface; it is documented on its own when released and does not supersede this client.
 
 ## See also
 
