@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 """
-tnc2c-host-reset - recover Landolt TNC2C terminal/host mode over serial.
+tnc2c-host-reset - recover TNC-2 class terminal/host mode over serial.
 
-Unlike raw shell redirects (printf > /dev/ttyS4), this keeps DTR+RTS asserted
-so the TNC sees an attached terminal - DTR+RTS stay asserted.
+Uses full software recovery ladder (KISS-return, JHOST0, RESTART) — no power
+cycle required unless DTR was low at cold boot.
 
 Usage:
   ./tnc2c-host-reset.sh
   ./tnc2c-host-reset.sh /dev/ttyS4
-  ./tnc2c-host-reset.sh --power-hint      # remind to cycle TNC power first
-  ./tnc2c-host-reset.sh --no-kiss         # skip KISS reset frame
+  ./tnc2c-host-reset.sh --kiss          # recover + enter KISS
+  ./tnc2c-host-reset.sh --power-hint    # remind to cycle TNC power first
+  ./tnc2c-host-reset.sh --no-kiss       # skip KISS reset frame (step 2 only)
 """
 
 from __future__ import annotations
 
 import argparse
-import fcntl
+import importlib.util
 import os
-import struct
 import sys
 import time
-import termios
 
-BAUD = 19200
+BAUD_DEFAULT = 19200
+LINE_DEFAULT = "8n1"
 
 FIRMWARE_MARKERS = (
     b"TheFirmware",
@@ -34,42 +34,78 @@ FIRMWARE_MARKERS = (
     b"SMACK",
 )
 
-POWER_HINT = """\
-Note: For echo-only, disconnect TNC power first (10-15 s), then reconnect.
-Run this script immediately after (within ~30 s of LED blink).
-"""
+
+def load_recovery():
+    root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(root, "tnc_serial_recovery.py")
+    spec = importlib.util.spec_from_file_location("tnc_serial_recovery", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
-def load_env(path: str) -> str | None:
+def load_env(path: str) -> dict[str, str]:
+    out: dict[str, str] = {}
     if not os.path.isfile(path):
-        return None
+        return out
     with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if line.startswith("TNC2C_DEV="):
-                return line.split("=", 1)[1].strip()
-    return None
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            out[k.strip()] = v.strip()
+    return out
 
 
-def open_serial(dev: str) -> int:
+def parse_line(line: str) -> tuple[int, int]:
+    import termios
+
+    line = line.lower()
+    if line == "7e1":
+        return termios.CS7, termios.PARENB
+    if line == "8n1":
+        return termios.CS8, 0
+    raise ValueError(f"unsupported serial line: {line}")
+
+
+def parse_baud(baud: int) -> int:
+    import termios
+
+    table = {
+        1200: termios.B1200,
+        2400: termios.B2400,
+        4800: termios.B4800,
+        9600: termios.B9600,
+        19200: termios.B19200,
+    }
+    if baud not in table:
+        raise ValueError(f"unsupported baud: {baud}")
+    return table[baud]
+
+
+def open_serial(dev: str, baud: int, line: str) -> int:
+    import fcntl
+    import struct
+    import termios
+
+    speed = parse_baud(baud)
+    databits, parity = parse_line(line)
     fd = os.open(dev, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
     t = termios.tcgetattr(fd)
     t[0] = t[1] = 0
-    t[2] = termios.CLOCAL | termios.CREAD | termios.CS8
-    t[3] = t[4] = t[5] = termios.B19200
+    t[2] = termios.CLOCAL | termios.CREAD | databits | parity
+    t[3] = t[4] = t[5] = speed
     t[6][termios.VMIN] = 0
     t[6][termios.VTIME] = 5
     termios.tcsetattr(fd, termios.TCSANOW, t)
     termios.tcflush(fd, termios.TCIOFLUSH)
     flags = struct.unpack("I", fcntl.ioctl(fd, 0x5415, struct.pack("I", 0)))[0]
-    flags |= 0x004 | 0x002  # RTS + DTR
+    flags |= 0x004 | 0x002
     fcntl.ioctl(fd, 0x5416, struct.pack("I", flags))
     return fd
-
-
-def modem_lines(fd: int) -> tuple[bool, bool, bool]:
-    flags = struct.unpack("I", fcntl.ioctl(fd, 0x5415, struct.pack("I", 0)))[0]
-    return bool(flags & 0x004), bool(flags & 0x008), bool(flags & 0x100)
 
 
 def read_for(fd: int, seconds: float) -> bytes:
@@ -86,51 +122,53 @@ def read_for(fd: int, seconds: float) -> bytes:
 
 
 def write_flush(fd: int, data: bytes) -> None:
+    import termios
+
     os.write(fd, data)
     termios.tcdrain(fd)
 
 
-def decode(data: bytes) -> str:
-    return data.decode("ascii", errors="replace")
-
-
-def has_banner(data: bytes) -> bool:
-    lower = data.lower()
-    return any(m.lower() in lower for m in FIRMWARE_MARKERS)
-
-
-def is_echo_only(info_reply: bytes) -> bool:
-    stripped = info_reply.strip()
-    return stripped in (b"INFO", b"INFO\r", b"INFO\n", b"INFO\r\n")
-
-
-def print_block(label: str, data: bytes) -> None:
-    print(f"--- {label} ({len(data)} B) ---")
-    if data:
-        print(decode(data), end="" if data.endswith(b"\n") else "\n")
-    else:
-        print("(empty)")
+POWER_HINT = """\
+Note: If recovery fails (echo only), disconnect TNC power (10-15 s), reconnect
+while DTR+RTS stay high — run tnc2c-boot-wait.sh or this script immediately.
+"""
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="TNC2C host-mode reset with DTR+RTS (replaces printf > tty)"
+        description="TNC host-mode recovery with DTR+RTS (TheFirmware ladder)"
     )
-    parser.add_argument("device", nargs="?", default=None, help="serial device")
+    parser.add_argument("device", nargs="?", default=None)
+    parser.add_argument("--baud", type=int, default=None)
+    parser.add_argument("--line", default=None, choices=("8n1", "7e1"))
+    parser.add_argument("--kiss", action="store_true", help="enter KISS after recover")
     parser.add_argument(
-        "--power-hint",
-        action="store_true",
-        help="print power-cycle reminder before running",
+        "--kiss-entry",
+        default="kiss_on",
+        choices=("kiss_on", "auto"),
+        help="KISS entry method with --kiss",
     )
+    parser.add_argument("--power-hint", action="store_true")
     parser.add_argument(
         "--no-kiss",
         action="store_true",
-        help="skip KISS reset frame (only kiss off + INFO)",
+        help="skip KISS return frame in recovery ladder",
     )
     args = parser.parse_args()
 
     root = os.path.dirname(os.path.abspath(__file__))
-    dev = args.device or load_env(os.path.join(root, "tnc2c-serial.env")) or "/dev/ttyS4"
+    env = load_env(os.path.join(root, "tnc2c-serial.env"))
+    dev = (
+        args.device
+        or env.get("TNC_DEV")
+        or env.get("TNC2C_DEV")
+        or env.get("PKTNC2_DEV")
+        or "/dev/ttyS4"
+    )
+    baud = args.baud or int(
+        env.get("TNC_BAUD") or env.get("TNC2C_BAUD") or env.get("PKTNC2_BAUD") or BAUD_DEFAULT
+    )
+    line = args.line or env.get("TNC_LINE") or env.get("TNC2C_LINE") or LINE_DEFAULT
 
     if args.power_hint:
         print(POWER_HINT)
@@ -139,58 +177,51 @@ def main() -> int:
         print(f"FAIL: {dev} does not exist", file=sys.stderr)
         return 2
     if not os.access(dev, os.R_OK | os.W_OK):
-        print(f"FAIL: no access to {dev} (dialout group?)", file=sys.stderr)
+        print(f"FAIL: no access to {dev}", file=sys.stderr)
         return 2
 
-    print(f"TNC2C host-reset @ {dev} {BAUD} 8N1 (DTR+RTS high)")
-    received = b""
+    recovery = load_recovery()
 
+    print(f"TNC host-reset @ {dev} {baud} {line.upper()} (DTR+RTS high)")
     try:
-        fd = open_serial(dev)
+        fd = open_serial(dev, baud, line)
     except OSError as e:
         print(f"FAIL: {dev}: {e}", file=sys.stderr)
         return 2
 
-    rts, cts, dsr = modem_lines(fd)
-    print(f"Modem: RTS={int(rts)} CTS={int(cts)} DSR={int(dsr)}")
+    def wf(data: bytes) -> None:
+        write_flush(fd, data)
 
-    passive = read_for(fd, 2.0)
-    received += passive
-    print_block("passive (2s)", passive)
+    def rf(seconds: float) -> bytes:
+        return read_for(fd, seconds)
 
-    if not args.no_kiss:
-        write_flush(fd, b"\xc0\xff\xc0")
-        time.sleep(1.0)
-        after_kiss = read_for(fd, 1.0)
-        received += after_kiss
-        print_block("after KISS-reset", after_kiss)
+    def log(msg: str) -> None:
+        print(f"  {msg}")
 
-    write_flush(fd, b"kiss off\r")
-    time.sleep(1.0)
-    after_kiss_off = read_for(fd, 1.0)
-    received += after_kiss_off
-    print_block("kiss off", after_kiss_off)
+    ok, received = recovery.recover_terminal(
+        wf, rf, skip_kiss_frame=args.no_kiss, log=log
+    )
 
-    write_flush(fd, b"INFO\r")
-    info_reply = read_for(fd, 5.0)
-    received += info_reply
-    print_block("INFO", info_reply)
+    if ok and args.kiss:
+        recovery.enter_kiss(wf, rf, args.kiss_entry)
+        print("  KISS entry sent")
 
     os.close(fd)
 
     print()
-    if has_banner(received):
-        print("OK: firmware banner detected - host/terminal mode active")
+    if ok:
+        label = "HOST+KISS" if args.kiss else "HOST"
+        print(f"OK: {label} - terminal mode active (software recovery)")
+        if received:
+            text = received.decode("ascii", errors="replace")
+            if "NORD" in text or "TheFirmware" in text:
+                for line_out in text.splitlines():
+                    if any(m.decode() in line_out for m in FIRMWARE_MARKERS[:5]):
+                        print(f"  | {line_out.strip()}")
         return 0
-    if is_echo_only(info_reply):
-        print("ECHO: INFO -> echo only - TNC not in host mode")
-        print("  -> Disconnect TNC power (10 s), reconnect, then immediately:")
-        print("     ./tnc2c-host-reset.sh --power-hint")
-        return 1
-    if received:
-        print("PARTIAL: reply without firmware banner")
-        return 1
-    print("SILENT: no response")
+
+    print("FAIL: software recovery exhausted")
+    print("  -> Power-cycle with DTR high: ./tnc2c-boot-wait.sh")
     return 1
 
 

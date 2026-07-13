@@ -71,10 +71,11 @@ auto_start = yes
 ### Start and operate
 
 ```bash
-# Manual stack prep (boot-wait — power-cycle TNC when prompted):
+# Manual stack prep (software recovery first; power-cycle boot-wait is rescue):
 ./scripts/max25-ctl start --hardware tncs --device tnc2c
+# Or without power cycle: stacks/tncs/tnc2c-host-reset.sh --kiss
 
-# Or production: max25d with auto_start
+# Production: max25d with auto_start (recovery in kiss_bridge.attach_session)
 sudo max25d -c /etc/max25/max25d.ini
 max25-terminal -U /run/max25/modem.sock --ax25-ui
 ```

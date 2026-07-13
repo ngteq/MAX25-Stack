@@ -142,7 +142,9 @@ Host algorithm:
 | `auto` | Try `kiss on`, then ESC+`@K` | `tnc2`, `generic`, `mfj1278` |
 | KISS exit | `0xC0 0xFF 0xC0` (Return) | When leaving KISS after ESC+`@K` entry |
 
-MAX25 boot-wait (`tnc2c-boot-wait.sh`) leaves the TNC in host command mode; `max25d`/HyBBX then enters KISS.
+MAX25 prep runs software recovery (`tnc_serial_recovery`) before KISS attach; boot-wait with power cycle is **rescue only**. See `stacks/tncs/docs/TNC-RECOVERY.md`.
+
+**TNC2C:** DTR/RTS during cold boot-wait — without it the firmware stays in echo mode. Day-to-day recovery usually needs no power cycle. See `stacks/tncs/`.
 
 ### MYCALL before TX
 

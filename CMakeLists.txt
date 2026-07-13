@@ -51,11 +51,14 @@ if(MAX25_BUILD_DAEMON)
     set(_MAX25_STACK_PROGRAMS
         stacks/tncs/load-serial-env.sh
         stacks/tncs/tnc2c-boot-wait.sh
+        stacks/tncs/tnc2c-host-reset.sh
         stacks/tncs/pktnc2-boot-wait.sh
         stacks/crdop/scripts/crdopc
     )
     set(_MAX25_STACK_DATA
         stacks/tncs/tnc2c-boot-wait.py
+        stacks/tncs/tnc2c-host-reset.py
+        stacks/tncs/tnc_serial_recovery.py
         stacks/tncs/tnc2c-serial.env
         stacks/tncs/pktnc2-serial.env
     )
@@ -157,6 +160,8 @@ add_custom_target(max25_daemon_smoke
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_multi_device.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_bans.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/tncs/test_tnc_serial_recovery.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "max25d M25/1 smoke tests"
 )

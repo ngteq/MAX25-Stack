@@ -12,12 +12,24 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import fcntl
 import os
 import struct
 import sys
 import time
 import termios
+
+def load_recovery():
+    root = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(root, "tnc_serial_recovery.py")
+    spec = importlib.util.spec_from_file_location("tnc_serial_recovery", path)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
 
 FIRMWARE_MARKERS = (
     b"TheFirmware",
@@ -229,6 +241,11 @@ def main() -> int:
         action="store_true",
         help="TX KISS + passive RX on same port before close (with power cycle)",
     )
+    parser.add_argument(
+        "--recover-only",
+        action="store_true",
+        help="skip boot listen; run software recovery ladder only (no power cycle)",
+    )
     args = parser.parse_args()
     hybbx_ready = not args.no_hybbx_ready
     do_tx_rx = args.tx_rx
@@ -237,12 +254,35 @@ def main() -> int:
         print(f"FAIL: no access to {args.device}", file=sys.stderr)
         return 2
 
+    fd = open_serial(args.device, args.baud, args.line)
+
+    if args.recover_only:
+        print(f"=== TNC recover-only @ {args.device} {args.baud} {args.line.upper()} ===")
+        rec = load_recovery()
+        if rec is None:
+            print("FAIL: tnc_serial_recovery.py not found", file=sys.stderr)
+            os.close(fd)
+            return 2
+
+        def wf(data: bytes) -> None:
+            write_flush(fd, data)
+
+        def rf(seconds: float) -> bytes:
+            return read_for(fd, seconds)
+
+        ok, rx = rec.recover_terminal(wf, rf, log=lambda m: print(f"  {m}"))
+        if ok:
+            show(rx[-800:] if len(rx) > 800 else rx)
+            return finish_host(fd, hybbx_ready, do_tx_rx)
+        os.close(fd)
+        print("\nFAIL: software recovery — try power-cycle with DTR high (re-run without --recover-only)")
+        return 1
+
     print(f"=== TNC boot-wait @ {args.device} {args.baud} {args.line.upper()} ===")
     print("DTR+RTS HIGH - power OFF the TNC now (10s), then power ON.")
     print("CB: squelch CLOSED (CD off) - otherwise TX/boot may be disturbed.")
     print(f"Listening {args.wait}s for boot banner ...\n")
 
-    fd = open_serial(args.device, args.baud, args.line)
     buf = read_for(fd, args.wait)
 
     if has_banner(buf):
@@ -264,8 +304,25 @@ def main() -> int:
 
     if has_banner(buf):
         return finish_host(fd, hybbx_ready, do_tx_rx)
+
+    rec = load_recovery()
+    if rec is not None:
+        print("\n--- software recovery ladder ---")
+
+        def wf(data: bytes) -> None:
+            write_flush(fd, data)
+
+        def rf(seconds: float) -> bytes:
+            return read_for(fd, seconds)
+
+        ok, rx = rec.recover_terminal(wf, rf, log=lambda m: print(f"  {m}"))
+        buf += rx
+        if ok:
+            show(rx[-800:] if len(rx) > 800 else rx)
+            return finish_host(fd, hybbx_ready, do_tx_rx)
+
     os.close(fd)
-    print("\nDEGRADED: echo only - try tnc2c-host-reset or repeat power reset")
+    print("\nDEGRADED: try ./tnc2c-host-reset.sh or power-cycle with this script running")
     return 1
 
 

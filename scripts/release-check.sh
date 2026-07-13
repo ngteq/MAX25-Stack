@@ -192,6 +192,14 @@ else
   fail "max25d TCP auth smoke"
 fi
 
+if python3 stacks/tncs/test_tnc_serial_recovery.py >/dev/null 2>&1; then
+  ok "tnc serial recovery unit tests"
+else
+  fail "tnc serial recovery unit tests"
+fi
+
+[[ -x stacks/tncs/tnc2c-host-reset.sh ]] && ok "tnc2c-host-reset.sh" || fail "tnc2c-host-reset.sh"
+
 # --- AmigaOS terminal (optional cross-build) ---
 if [[ -x /opt/amiga/bin/m68k-amigaos-gcc ]]; then
   if bash scripts/build-amiga-terminal.sh >/dev/null 2>&1; then

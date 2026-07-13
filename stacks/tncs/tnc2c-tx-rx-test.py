@@ -122,7 +122,7 @@ def main() -> int:
     if has_fw(all_host):
         print("  OK: firmware/host detected")
     elif info.strip() in (b"INFO", b"INFO\r", b"INFO\r\n"):
-        print("  WARN: echo only - ./tnc2c-boot-wait.sh + power cycle recommended")
+        print("  WARN: echo only - try ./tnc2c-host-reset.sh --kiss or ./tnc2c-boot-wait.sh --recover-only")
     else:
         print(f"  INFO reply: {info[:120]!r}")
 

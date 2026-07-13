@@ -25,7 +25,9 @@ AX.25 / KISS / TNC technical facts: [PACKET-RADIO.md](PACKET-RADIO.md). HyBBX op
 # or: stacks/tncs/tnc2c-boot-wait.sh
 ```
 
-**HyBBX INI:** merge `share/hybbx/tnc2c-host.ini.example` into Secondary `hybbx.ini`. Key fields: `tnc=tnc2c`, `protocol=kiss`, `device=/dev/ttyUSB0`, `baud`, `serial_line`, `rts_dtr`.
+**HyBBX INI:** merge `share/hybbx/tnc2c-host.ini.example` into Secondary `hybbx.ini`. Key fields: `tnc=tnc2c`, `protocol=kiss`, `device`, `baud`, `serial_line`, `rts_dtr`, **`kiss_entry=none`** (MAX25 owns KISS entry), `persist=255` on CB.
+
+Recovery without power cycle: `stacks/tncs/docs/TNC-RECOVERY.md`.
 
 ## BayCom (`baycom`)
 

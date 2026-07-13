@@ -419,12 +419,13 @@ def main() -> int:
     # --- software checklist ---
     print_header("7) Software / next steps")
     if mostly_echo and not any_cmd:
-        print("  1. TNC may be stuck in KISS/transparent - power-cycle TNC briefly")
-        print("  2. tnc2c-host-reset @ {} -b {} (test {})".format(
-            dev, work_baud, "7E1" if work_7e1 else "8N1"))
-        print("  3. After reset: 'kiss off' + Enter, then 'INFO' - expect cmd:")
-        print("  4. Only when cmd: appears -> ./tnc2c-health.sh --tx")
-        print("  5. Start HyBBX only after that (serial_line from tnc2c-serial.env)")
+        print("  1. Software recovery (no power cycle):")
+        print("       ./tnc2c-host-reset.sh --kiss")
+        print("       ./tnc2c-boot-wait.sh --recover-only")
+        print("  2. Expect cmd: or TheFirmware banner after recovery")
+        print("  3. Rescue only if still echo-only: ./tnc2c-boot-wait.sh + power cycle (DTR high)")
+        print("  4. When cmd: appears -> ./tnc2c-health.sh --tx")
+        print("  5. HyBBX: kiss_entry=none when max25d owns KISS (see docs/TNC-RECOVERY.md)")
     else:
         print(f"  Serial OK with {work_name}")
         print("  ./tnc2c-send-test.sh for single send test")

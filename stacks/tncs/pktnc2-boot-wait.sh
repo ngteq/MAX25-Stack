@@ -1,5 +1,10 @@
 #!/bin/bash
 # PK-TNC2 boot-wait — TheFirmware TNC-2 class, typically 9600 8N1
+#
+# Software recovery (no power cycle):
+#   ./pktnc2-boot-wait.sh --recover-only
+# Rescue (DTR + power cycle while script runs):
+#   ./pktnc2-boot-wait.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=load-serial-env.sh

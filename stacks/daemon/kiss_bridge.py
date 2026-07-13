@@ -364,6 +364,10 @@ class KissBridge:
             return False
         self._mycall = mycall.upper()
         with self._lock:
+            if not self._recover_terminal_unlocked():
+                self._log("serial: terminal recovery failed (echo mode?)")
+                self.status = "error-host"
+                return False
             self._write_unlocked(b"kiss off\r")
             time.sleep(0.3)
             self._drain_unlocked(0.2)
@@ -375,6 +379,40 @@ class KissBridge:
             self._kiss_active = True
         self.status = "ready"
         return True
+
+    def _recover_terminal_unlocked(self) -> bool:
+        """Software recovery before KISS attach (skip if already in host mode)."""
+        try:
+            import importlib.util
+            from pathlib import Path
+
+            path = Path(__file__).resolve().parents[1] / "tncs" / "tnc_serial_recovery.py"
+            if not path.is_file():
+                return True
+            spec = importlib.util.spec_from_file_location("tnc_serial_recovery", path)
+            if spec is None or spec.loader is None:
+                return True
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+
+            def wf(data: bytes) -> None:
+                self._write_unlocked(data)
+
+            def rf(seconds: float) -> bytes:
+                return self._drain_unlocked(seconds)
+
+            ok, _, only_echo = mod.probe_info(wf, rf)
+            if ok and not only_echo:
+                self._log("serial: terminal mode OK")
+                return True
+            self._log("serial: software recovery ladder")
+            ok, _ = mod.recover_terminal(wf, rf, log=self._log)
+            if ok:
+                self._log("serial: recovery OK")
+            return ok
+        except Exception as exc:
+            self._log(f"serial: recovery skipped ({exc})")
+            return True
 
     def detach_session(self) -> None:
         with self._lock:

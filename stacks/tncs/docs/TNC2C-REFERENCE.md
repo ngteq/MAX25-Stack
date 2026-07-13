@@ -28,8 +28,8 @@ Example profile for a Landolt TNC2C with **19200 8N1** host link and **2400** ra
 
 | Tool | Use |
 |------|-----|
-| `tnc2c-boot-wait.sh` | Host mode after power-on |
-| `tnc2c-host-reset.sh` | Recovery without power cycle |
+| `tnc2c-boot-wait.sh` | Host mode after power-on (rescue) |
+| `tnc2c-host-reset.sh` | Software recovery without power cycle |
 | `tnc2c-autotest.sh` | Quick 19200-8N1 probe |
 | `tnc2c-health.sh` | Full check, no TX |
 | `tnc2c-integration-test.sh` | Post boot-wait HyBBX gate |
