@@ -496,25 +496,26 @@ class KissBridge:
         return b"".join(chunks)
 
     def _set_mycall_unlocked(self, call: str) -> bool:
-        cmd = f"MYCALL {call}\r".encode("ascii", errors="replace")
+        mod = self._load_recovery_mod()
+        if mod is not None and hasattr(mod, "tf_mycall_frame"):
+            cmd = mod.tf_mycall_frame(call)
+        else:
+            cmd = f"\x1bI {call.upper()}\r".encode("ascii", errors="replace")
         self._write_unlocked(cmd)
         time.sleep(0.4)
         reply = self._drain_unlocked(0.6)
         return b"?" not in reply[:32]
 
     def _enter_kiss_unlocked(self) -> bool:
-        if self.profile.kiss_entry == "auto":
-            self._write_unlocked(b"kiss on\r")
-            time.sleep(0.5)
-            reply = self._drain_unlocked(0.5)
-            if reply.strip() and reply.strip() == b"kiss on":
-                self._write_unlocked(b"\x1b@K")
-                time.sleep(0.5)
-                self._drain_unlocked(0.5)
-        else:
+        entry = self.profile.kiss_entry
+        if entry == "tapr":
             self._write_unlocked(b"kiss on\r")
             time.sleep(0.5)
             self._drain_unlocked(0.3)
+            return True
+        self._write_unlocked(b"\x1b@K")
+        time.sleep(0.5)
+        self._drain_unlocked(0.3)
         return True
 
     def _rx_loop(self) -> None:

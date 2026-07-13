@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Hold /dev/ttyS4 open with DTR+RTS during TNC power-on, then kiss off + INFO.
+Hold /dev/ttyS4 open with DTR+RTS during TNC power-on, then native TF probe (ESC V).
 
 Usage:
   1. Run this FIRST (waits for port):
      ./tnc2c-boot-wait.sh
   2. While it says "waiting", power-cycle the TNC (off 10s, on).
-  3. Script detects banner or runs kiss off + INFO automatically.
+  3. Script detects banner or runs KISS return + ESC V automatically.
 """
 
 from __future__ import annotations
@@ -117,7 +117,7 @@ def is_cmd_echo(cmd: bytes, reply: bytes) -> bool:
 def run_tx_rx(fd: int) -> None:
     """TX KISS frame + passive RX on same open fd (before port close)."""
     print("\n--- TX (KISS TEST-0 -> CQ, TXRX) ---")
-    write_flush(fd, b"kiss on\r")
+    write_flush(fd, b"\x1b@K")
     time.sleep(0.5)
     read_for(fd, 0.3)
 
@@ -156,8 +156,8 @@ def run_tx_rx(fd: int) -> None:
     print(f"  Sent {len(pkt)} B, serial RX {len(tx_rx)} B")
     print("  -> CHECK: LED2 PTT + modem tone on 2m CB")
 
-    write_flush(fd, b"kiss off\r")
-    time.sleep(0.5)
+    write_flush(fd, b"\xc0\xff\xc0")
+    time.sleep(1.0)
     read_for(fd, 0.5)
 
     print("\n--- RX (passive 10s) ---")
@@ -169,21 +169,17 @@ def run_tx_rx(fd: int) -> None:
 
 
 def verify_hybbx_ready(fd: int) -> tuple[bool, bytes, bool]:
-    """kiss off + INFO on open fd. Returns (banner_in_reply, data, only_echo)."""
-    write_flush(fd, b"kiss off\r")
-    time.sleep(0.6)
-    prelude = read_for(fd, 1.0)
-    write_flush(fd, b"INFO\r")
-    time.sleep(0.3)
+    """ESC V on open fd. Returns (banner_in_reply, data, only_echo)."""
+    write_flush(fd, b"\x1bV\r")
+    time.sleep(0.4)
     info = read_for(fd, 5.0)
-    combined = prelude + info
-    only_echo = is_cmd_echo(b"kiss off\r", prelude) and is_cmd_echo(b"INFO\r", info)
-    return has_banner(combined), combined, only_echo
+    only_echo = is_cmd_echo(b"\x1bV\r", info)
+    return has_banner(info), info, only_echo
 
 
 def finish_host(fd: int, hybbx_ready: bool, do_tx_rx: bool) -> int:
     if hybbx_ready:
-        print("\n--- HyBBX-Verify (kiss off + INFO) ---")
+        print("\n--- HyBBX-Verify (ESC V) ---")
         ok, verify, only_echo = verify_hybbx_ready(fd)
         show(verify)
         host_ok = ok or only_echo
@@ -191,7 +187,7 @@ def finish_host(fd: int, hybbx_ready: bool, do_tx_rx: bool) -> int:
             if do_tx_rx:
                 run_tx_rx(fd)
             os.close(fd)
-            print("\nWARN: unexpected kiss/INFO response")
+            print("\nWARN: unexpected ESC V response")
             return 1
     else:
         host_ok = True
@@ -234,7 +230,7 @@ def main() -> int:
     parser.add_argument(
         "--no-hybbx-ready",
         action="store_true",
-        help="only detect boot banner, skip kiss off + INFO verify",
+        help="only detect boot banner, skip ESC V verify",
     )
     parser.add_argument(
         "--tx-rx",
@@ -290,16 +286,16 @@ def main() -> int:
         show(buf)
         return finish_host(fd, hybbx_ready, do_tx_rx)
 
-    print(f"(no banner in {args.wait}s - trying kiss off + INFO)\n")
-    write_flush(fd, b"kiss off\r")
-    time.sleep(0.6)
-    buf += read_for(fd, 1.0)
-    write_flush(fd, b"INFO\r")
+    print(f"(no banner in {args.wait}s - trying KISS return + ESC V)\n")
+    write_flush(fd, b"\xc0\xff\xc0")
+    time.sleep(1.0)
+    buf += read_for(fd, 2.5)
+    write_flush(fd, b"\x1bV\r")
     time.sleep(0.4)
     info = read_for(fd, 4.0)
     buf += info
 
-    print("--- kiss off + INFO ---")
+    print("--- KISS return + ESC V ---")
     show(info if info else buf[-500:])
 
     if has_banner(buf):

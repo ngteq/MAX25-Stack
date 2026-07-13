@@ -13,21 +13,23 @@ Shared implementation: `stacks/tncs/tnc_serial_recovery.py` (used by `tnc2c-host
 | PK-TNC2 (9600 8N1) | `./pktnc2-boot-wait.sh --recover-only` | `./pktnc2-boot-wait.sh` + power cycle |
 | Cold boot, never saw `cmd:` | `./tnc2c-boot-wait.sh` (DTR before power-on) | Fix wiring (DTR/RTS, CTS bridge) |
 
-## Software recovery ladder
+## Software recovery ladder (TheFirmware TF 2.7 native)
 
 Run with **DTR+RTS high** and the port open:
 
 1. Passive listen (~1.5 s) + **DTR settle 2 s** after open (max25d)
-2. KISS return `0xC0 0xFF 0xC0` + ESC+`@K`
-3. JHOST 0 — 300× NUL + framed `JHOST 0\r`
-4. Buffer flush `^Q^X`
-5. `kiss off` + `INFO` (also combined `kiss off`+`INFO`)
-6. 3× Ctrl-C + `RESTART` / `@RESTART` + INFO
-7. ESC E 0 + second RESTART round + final flush
+2. KISS return `0xC0 0xFF 0xC0` (firmware reset → banner)
+3. Buffer flush `^Q^X` + JHOST 0 (leave host mode)
+4. **ESC V** — version / terminal probe
+5. **ESC QRES** — software cold boot (no mains power cycle; DTR must stay high)
+6. ESC E 0 + second ESC QRES
+7. Legacy TAPR `kiss off` + `INFO` (last resort only)
 
 Success markers: `TheFirmware`, `NORD`, `Version 2.7`, `Checksum`, `cmd:`.
 
-Then enter KISS: `kiss on` (TNC2C) or `auto` (`kiss on`, then ESC+`@K` if echo-only — PK-TNC2).
+Then enter KISS: **ESC `@K`** (`0x1B 40 4B`). MYCALL: **ESC I** `<call>`.
+
+Vault reference: `0-RESEARCHES/projects/max25-stack/2026-07-13-thefirmware-native-recovery-sequence.md`
 
 ## Operator commands
 

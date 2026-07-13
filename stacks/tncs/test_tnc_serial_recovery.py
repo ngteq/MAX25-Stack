@@ -50,46 +50,72 @@ def test_format_rx_brief_and_classify() -> None:
     assert "banner" in diag
 
 
-def test_probe_combined_banner() -> None:
+def test_probe_tf_terminal() -> None:
     port = MockPort()
-    port.responses = [b"NORD TheFirmware 2.7\r\ncmd: "]
-    ok, combined, only_echo = mod.probe_combined(port.write_flush, port.read_for)
+    port.responses = [b"TheFirmware Version 2.7 DAMA\r\nChecksum"]
+    ok, combined, only_echo = mod.probe_tf_terminal(port.write_flush, port.read_for)
     assert ok
     assert not only_echo
-    assert b"TheFirmware" in combined
+    assert port.written[0] == mod.TF_ESC_V
 
 
-def test_recover_terminal_success_after_jhost() -> None:
+def test_tf_mycall_frame() -> None:
+    assert mod.tf_mycall_frame("cb-0") == b"\x1bI CB-0\r"
+
+
+def test_recover_terminal_ok_on_passive_banner() -> None:
     port = MockPort()
-    # passive, kiss, esc@k, jhost, flush, probe banner (2 reads in probe_info)
-    port.responses = [b"", b"", b"", b"", b"", b"", b"NORD TheFirmware\r\ncmd: "]
+    port.responses = [b"NORD TheFirmware Version 2.7\r\n"]
+    ok, rx = mod.recover_terminal(
+        port.write_flush, port.read_for, skip_kiss_frame=True, log=lambda _m: None
+    )
+    assert ok
+    assert b"TheFirmware" in rx
+    assert b"\xc0\xff\xc0" not in port.written
+
+
+def test_recover_terminal_ok_after_kiss_return() -> None:
+    port = MockPort()
+    port.responses = [
+        b"",
+        b"TheFirmware Version 2.7\r\nChecksum (0000) = DC0A\r\n",
+    ]
     ok, rx = mod.recover_terminal(
         port.write_flush, port.read_for, skip_kiss_frame=False, log=lambda _m: None
     )
     assert ok
     assert b"TheFirmware" in rx
-    assert b"\xc0\xff\xc0" in port.written[0]
-    assert b"\x1b@K" in port.written[1]
+    assert port.written[0] == b"\xc0\xff\xc0"
 
 
-def test_recover_terminal_sends_restart_on_echo() -> None:
+def test_recover_terminal_sends_qres_on_failure() -> None:
     port = MockPort()
     port.responses = [b""] * 40
     ok, _ = mod.recover_terminal(
         port.write_flush, port.read_for, skip_kiss_frame=True, log=lambda _m: None
     )
     assert not ok
-    assert b"RESTART\r" in port.written
-    assert b"\x1b@K" not in port.written[0:1]  # skipped kiss frame
+    assert mod.TF_ESC_QRES in port.written
+    assert b"RESTART\r" not in port.written
+
+
+def test_enter_kiss_native() -> None:
+    port = MockPort()
+    port.responses = [b""]
+    mod.enter_kiss(port.write_flush, port.read_for, entry="kiss_on")
+    assert port.written[0] == mod.TF_ESC_AT_K
 
 
 def main() -> int:
     tests = [
         test_has_banner,
         test_format_rx_brief_and_classify,
-        test_probe_combined_banner,
-        test_recover_terminal_success_after_jhost,
-        test_recover_terminal_sends_restart_on_echo,
+        test_probe_tf_terminal,
+        test_tf_mycall_frame,
+        test_recover_terminal_ok_on_passive_banner,
+        test_recover_terminal_ok_after_kiss_return,
+        test_recover_terminal_sends_qres_on_failure,
+        test_enter_kiss_native,
     ]
     for fn in tests:
         fn()
