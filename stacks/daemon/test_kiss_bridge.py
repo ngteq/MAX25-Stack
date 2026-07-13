@@ -101,6 +101,15 @@ def test_invalid_callsign_tx() -> None:
     assert "invalid" in msg.lower()
 
 
+def test_rx_thread_not_started_on_open() -> None:
+    from kiss_bridge import KissBridge, SerialProfile
+
+    bridge = KissBridge(SerialProfile(), on_rx=lambda _m: None)
+    bridge._fd = 1
+    bridge.status = "open"
+    assert bridge._thread is None
+
+
 def main() -> int:
     tests = [
         test_callsign_parse,
@@ -113,6 +122,7 @@ def main() -> int:
         test_crc_known_vector,
         test_kiss_non_data_ignored,
         test_invalid_callsign_tx,
+        test_rx_thread_not_started_on_open,
     ]
     for fn in tests:
         fn()

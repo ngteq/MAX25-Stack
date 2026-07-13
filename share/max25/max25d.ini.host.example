@@ -39,6 +39,8 @@ auto_start = yes
 serial_watch = yes
 serial_watch_interval = 60
 stack_recover_only = yes
+serial_bootwait_escalate = yes
+serial_bootwait_escalate_after = 3
 
 ; --- Path A: TNC2C (default host) ---
 [devices]

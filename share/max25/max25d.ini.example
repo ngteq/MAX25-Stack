@@ -51,6 +51,10 @@ serial_watch_startup_grace = 45
 ; max25d uses --recover-only for TNC stack prep (no power cycle on daemon start)
 stack_recover_only = yes
 stack_retry_interval = 120
+; After N inline repair failures (error-host), escalate to boot-wait subprocess
+serial_bootwait_escalate = yes
+serial_bootwait_escalate_after = 3
+serial_bootwait_escalate_cooldown = 300
 
 [serial]
 ; Legacy single-device overrides — ignored when [devices] is present.

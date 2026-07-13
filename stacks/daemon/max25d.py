@@ -68,6 +68,9 @@ class DaemonConfig:
     serial_watch_startup_grace: int = 45
     stack_recover_only: bool = True
     stack_retry_interval: int = 120
+    serial_bootwait_escalate: bool = True
+    serial_bootwait_escalate_after: int = 3
+    serial_bootwait_escalate_cooldown: int = 300
     bans_file: str = str(DEFAULT_BANS_FILE)
     # Legacy single-device [serial] overrides (used when [devices] absent).
     serial_device: str = ""
@@ -88,6 +91,8 @@ class DeviceRuntime:
     last_repair: float = 0.0
     last_stack_retry: float = 0.0
     prep_done: bool = False
+    inline_repair_failures: int = 0
+    last_bootwait_escalate: float = 0.0
 
 
 @dataclass
@@ -240,6 +245,16 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
         cfg.stack_retry_interval = cp.getint(
             "stack", "stack_retry_interval", fallback=cfg.stack_retry_interval
         )
+        if cp.has_option("stack", "serial_bootwait_escalate"):
+            cfg.serial_bootwait_escalate = _truthy(cp.get("stack", "serial_bootwait_escalate"))
+        cfg.serial_bootwait_escalate_after = cp.getint(
+            "stack", "serial_bootwait_escalate_after", fallback=cfg.serial_bootwait_escalate_after
+        )
+        cfg.serial_bootwait_escalate_cooldown = cp.getint(
+            "stack",
+            "serial_bootwait_escalate_cooldown",
+            fallback=cfg.serial_bootwait_escalate_cooldown,
+        )
     if cp.has_section("serial"):
         cfg.serial_device = cp.get("serial", "device", fallback="")
         cfg.serial_baud = cp.getint("serial", "baud", fallback=0)
@@ -352,8 +367,55 @@ def prep_inline_serial_device(state: DaemonState, dev_id: str) -> None:
     else:
         log(
             f"serial prep deferred ({dev_id}) status={backend.status} "
-            "— serial watch will retry (software ladder, no boot-wait subprocess)"
+            "— serial watch will retry (escalates to boot-wait after repeated failures)"
         )
+
+
+def escalate_to_bootwait_stack(state: DaemonState, dev_id: str) -> None:
+    """Release inline serial and run boot-wait subprocess (DTR + power-cycle rescue)."""
+    rt = state.devices[dev_id]
+    close_backend(state, dev_id)
+    rt.prep_done = False
+    ctl = ctl_path(ROOT, PREFIX, _EXE)
+    if not ctl.is_file():
+        rt.stack_status = "error-no-ctl"
+        log(f"serial watch: boot-wait escalate failed — no ctl ({dev_id})")
+        return
+    hw = device_hardware(state, dev_id)
+    args = [
+        str(ctl),
+        "start",
+        "--mode",
+        state.cfg.mode,
+        "--hardware",
+        hw,
+        "--device",
+        dev_id,
+    ]
+    env = os.environ.copy()
+    env["MAX25_MODE"] = state.cfg.mode
+    env.pop("MAX25_TNC_PREP", None)
+    workdir = str(ROOT if (ROOT / "plugins").is_dir() else (PREFIX or ROOT))
+    try:
+        proc = subprocess.Popen(
+            args,
+            cwd=workdir,
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        log(f"serial watch: boot-wait escalate failed ({dev_id}): {exc}")
+        rt.stack_status = "error"
+        return
+    rt.stack_proc = proc
+    rt.stack_status = "running"
+    log(
+        f"serial watch: escalating to boot-wait ({dev_id}) pid={proc.pid} "
+        "— power OFF TNC 10s then ON while script runs (DTR held high)"
+    )
+    broadcast(state, f"EVENT device={dev_id} serial=boot-wait-escalate")
 
 
 def backend_needs_open(backend: Optional[DeviceBackend]) -> bool:
@@ -643,6 +705,22 @@ def poll_device_stack(state: DaemonState, dev_id: str) -> None:
         log(f"stack boot-wait finished ({dev_id}) rc={rc}")
         if backend_enabled(state, dev_id):
             open_backend(state, dev_id)
+            backend = rt.backend
+            stabilize = getattr(backend, "stabilize_session", None) if backend else None
+            if stabilize is not None:
+                ok = stabilize(state.cfg.callerid, force=False)
+                rt.prep_done = True
+                rt.link_status = backend.status
+                rt.inline_repair_failures = 0
+                if ok:
+                    log(f"serial post boot-wait OK ({dev_id})")
+                    if state.connected:
+                        attach_backend_session(state, dev_id)
+                else:
+                    log(
+                        f"serial post boot-wait deferred ({dev_id}) "
+                        f"status={backend.status}"
+                    )
     else:
         rt.stack_status = f"error-rc{rc}"
         log(f"stack boot-wait failed ({dev_id}) rc={rc}")
@@ -679,6 +757,8 @@ def poll_serial_stability(state: DaemonState) -> None:
         if device_backend_kind(state, dev_id) != "kiss-serial":
             continue
         rt = state.devices[dev_id]
+        if rt.stack_proc is not None and rt.stack_proc.poll() is None:
+            continue
         if (
             not uses_inline_tnc_prep(state, dev_id)
             and cfg.stack_recover_only
@@ -713,11 +793,30 @@ def poll_serial_stability(state: DaemonState) -> None:
         ok = stabilize(state.cfg.callerid, force=force)
         rt.link_status = backend.status
         if ok:
+            rt.inline_repair_failures = 0
             if force:
                 log(f"serial watch: repaired ({dev_id})")
                 broadcast(state, f"EVENT device={dev_id} serial=ready")
         else:
             log(f"serial watch: repair failed ({dev_id}) status={backend.status}")
+            if (
+                uses_inline_tnc_prep(state, dev_id)
+                and backend.status == "error-host"
+                and cfg.serial_bootwait_escalate
+            ):
+                rt.inline_repair_failures += 1
+                if (
+                    rt.inline_repair_failures >= cfg.serial_bootwait_escalate_after
+                    and now - rt.last_bootwait_escalate >= cfg.serial_bootwait_escalate_cooldown
+                ):
+                    rt.last_bootwait_escalate = now
+                    rt.inline_repair_failures = 0
+                    escalate_to_bootwait_stack(state, dev_id)
+                elif rt.inline_repair_failures >= cfg.serial_bootwait_escalate_after:
+                    log(
+                        f"serial watch: boot-wait escalate cooldown ({dev_id}) "
+                        f"— manual: stacks/tncs/{dev_id}-boot-wait.sh"
+                    )
             if backend.status in ("error-io", "error-open", "error-no-device"):
                 close_backend(state, dev_id)
                 if open_backend(state, dev_id) and state.connected:

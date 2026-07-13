@@ -56,7 +56,7 @@ cd stacks/tncs
 
 HyBBX INI (production): `kiss_entry = none`, `persist = 255` (CB CSMA), optional `[max25] check = yes`.
 
-max25d runs `recover_terminal()` in `kiss_bridge.attach_session()` before `MYCALL` and KISS entry.
+max25d runs `recover_terminal()` in `kiss_bridge.stabilize_session()` before `MYCALL` and KISS entry. The KISS RX thread starts **only after** successful stabilization (avoids a race where RX consumes recovery replies).
 
 ### max25d serial watch (automatic)
 
@@ -69,8 +69,11 @@ When `[stack] serial_watch = yes` and `stack_recover_only = yes` (default), max2
 | `serial_repair_cooldown` | 20 | Minimum gap between repair attempts |
 | `stack_recover_only` | yes | Daemon start uses `--recover-only` (no power cycle) |
 | `stack_retry_interval` | 120 | Retry failed stack prep with recover-only |
+| `serial_bootwait_escalate` | yes | Escalate to boot-wait after repeated inline failures |
+| `serial_bootwait_escalate_after` | 3 | Inline `error-host` failures before boot-wait |
+| `serial_bootwait_escalate_cooldown` | 300 | Minimum seconds between boot-wait escalations |
 
-Triggers: periodic interval, `error-host` / `error-kiss` / `error-tx` / `error-io`, failed TX (one auto-retry). Power-cycle boot-wait remains manual rescue via `tnc2c-boot-wait.sh` without `--recover-only`.
+Triggers: periodic interval, `error-host` / `error-kiss` / `error-tx` / `error-io`, failed TX (one auto-retry). After `serial_bootwait_escalate_after` consecutive `error-host` inline failures, max25d releases the port and runs `tnc2c-boot-wait.sh` / `pktnc2-boot-wait.sh` **without** `--recover-only` (operator should power-cycle while script runs). Manual rescue remains: `stacks/tncs/tnc2c-boot-wait.sh`.
 
 ## Power-cycle rescue (only when needed)
 

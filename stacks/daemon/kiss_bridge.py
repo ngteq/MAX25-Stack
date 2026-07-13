@@ -270,21 +270,15 @@ class KissBridge:
             self._log(f"serial open failed: {exc}")
             return False
         self._fd = fd
-        self.status = "open"
-        self._stop.clear()
-        self._thread = threading.Thread(target=self._rx_loop, name="kiss-rx", daemon=True)
-        self._thread.start()
         self._log(f"serial open {dev} {self.profile.baud} {self.profile.line.upper()}")
         if self.profile.dtr_rts:
             time.sleep(2.0)
             self._log("serial: DTR settle (2s)")
+        self.status = "open"
         return True
 
     def close(self) -> None:
-        self._stop.set()
-        if self._thread is not None:
-            self._thread.join(timeout=2.0)
-            self._thread = None
+        self._stop_rx_thread()
         with self._lock:
             if self._fd is not None:
                 if self._kiss_active:
@@ -298,12 +292,32 @@ class KissBridge:
         self.status = "closed"
         self._decoder = KissDecoder()
 
+    def _stop_rx_thread(self) -> None:
+        """Stop KISS RX thread so recovery owns the serial FD exclusively."""
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+            self._thread = None
+        self._stop.clear()
+
+    def _start_rx_thread(self) -> None:
+        """Start KISS RX after terminal recovery and KISS entry succeed."""
+        if self._fd is None or self._thread is not None or not self._kiss_active:
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._rx_loop, name="kiss-rx", daemon=True)
+        self._thread.start()
+
     def attach_session(self, mycall: str) -> bool:
         if self._fd is None:
             return False
         self._mycall = mycall.upper()
+        self._stop_rx_thread()
         with self._lock:
-            return self._stabilize_unlocked(self._mycall, force_ladder=False)
+            ok = self._stabilize_unlocked(self._mycall, force_ladder=False)
+        if ok:
+            self._start_rx_thread()
+        return ok
 
     def stabilize_session(self, mycall: str, *, force: bool = False) -> bool:
         """Probe terminal/KISS health and repair without closing the port (keeps DTR)."""
@@ -311,8 +325,12 @@ class KissBridge:
             self.status = "error-open"
             return False
         self._mycall = mycall.upper()
+        self._stop_rx_thread()
         with self._lock:
-            return self._stabilize_unlocked(self._mycall, force_ladder=force)
+            ok = self._stabilize_unlocked(self._mycall, force_ladder=force)
+        if ok:
+            self._start_rx_thread()
+        return ok
 
     def _load_recovery_mod(self):
         import importlib.util
@@ -418,6 +436,7 @@ class KissBridge:
             return True
 
     def detach_session(self) -> None:
+        self._stop_rx_thread()
         with self._lock:
             if self._fd is not None and self._kiss_active:
                 self._write_unlocked(b"kiss off\r")

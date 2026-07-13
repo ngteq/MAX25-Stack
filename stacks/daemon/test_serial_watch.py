@@ -90,11 +90,59 @@ def test_stabilize_session_probe_path() -> None:
         bridge, "_drain_unlocked", return_value=b""
     ), patch.object(bridge, "_set_mycall_unlocked", return_value=True), patch.object(
         bridge, "_enter_kiss_unlocked", return_value=True
-    ), patch.object(bridge, "_load_recovery_mod", return_value=fake):
+    ), patch.object(bridge, "_load_recovery_mod", return_value=fake), patch.object(
+        bridge, "_start_rx_thread"
+    ):
         ok = bridge.stabilize_session("CB-0")
     assert ok
     assert bridge.status == "ready"
     fake.recover_terminal.assert_not_called()
+
+
+def test_rx_thread_deferred_until_ready() -> None:
+    from kiss_bridge import KissBridge, SerialProfile  # noqa: E402
+
+    bridge = KissBridge(SerialProfile(), lambda _l: None, log=lambda _m: None)
+    bridge._fd = 99
+    bridge._kiss_active = True
+    assert bridge._thread is None
+    bridge._start_rx_thread()
+    assert bridge._thread is not None
+    bridge._stop_rx_thread()
+    assert bridge._thread is None
+
+
+def test_stabilize_stops_rx_during_recovery() -> None:
+    from kiss_bridge import KissBridge, SerialProfile  # noqa: E402
+
+    bridge = KissBridge(SerialProfile(), lambda _l: None, log=lambda _m: None)
+    bridge._fd = 99
+    bridge._kiss_active = True
+    bridge._start_rx_thread()
+    assert bridge._thread is not None
+
+    fake = MagicMock()
+    fake.probe_info.return_value = (True, b"TheFirmware cmd:", False)
+    fake.recover_terminal.return_value = (True, b"")
+
+    with patch.object(bridge, "_write_unlocked"), patch.object(
+        bridge, "_drain_unlocked", return_value=b""
+    ), patch.object(bridge, "_set_mycall_unlocked", return_value=True), patch.object(
+        bridge, "_enter_kiss_unlocked", return_value=True
+    ), patch.object(bridge, "_load_recovery_mod", return_value=fake), patch.object(
+        bridge, "_start_rx_thread"
+    ) as start_rx:
+        ok = bridge.stabilize_session("CB-0")
+    assert ok
+    start_rx.assert_called_once()
+
+
+def test_bootwait_escalate_config() -> None:
+    mod = load_max25d()
+    cfg = mod.DaemonConfig()
+    assert cfg.serial_bootwait_escalate is True
+    assert cfg.serial_bootwait_escalate_after == 3
+    assert cfg.serial_bootwait_escalate_cooldown == 300
 
 
 def main() -> int:
@@ -106,6 +154,12 @@ def main() -> int:
     print("OK test_inline_tnc_prep")
     test_stabilize_session_probe_path()
     print("OK test_stabilize_session_probe_path")
+    test_rx_thread_deferred_until_ready()
+    print("OK test_rx_thread_deferred_until_ready")
+    test_stabilize_stops_rx_during_recovery()
+    print("OK test_stabilize_stops_rx_during_recovery")
+    test_bootwait_escalate_config()
+    print("OK test_bootwait_escalate_config")
     print("All serial watch tests passed")
     return 0
 
