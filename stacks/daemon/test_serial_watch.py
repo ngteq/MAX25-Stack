@@ -55,6 +55,23 @@ def test_serial_repair_statuses() -> None:
     mod = load_max25d()
     assert "error-io" in mod.BACKEND_RETRY_STATUSES
     assert "error-host" in mod.SERIAL_REPAIR_STATUSES
+    assert "open" not in mod.SERIAL_REPAIR_STATUSES
+
+
+def test_inline_tnc_prep() -> None:
+    mod = load_max25d()
+    cfg = mod.DaemonConfig(stack_recover_only=True)
+    state = mod.DaemonState(cfg=cfg)
+    from device_backends import DeviceBackendConfig  # noqa: E402
+
+    state.devices["tnc2c"] = mod.DeviceRuntime(
+        cfg=DeviceBackendConfig(device_id="tnc2c", backend_type="kiss-serial")
+    )
+    state.devices["baycom-ser12"] = mod.DeviceRuntime(
+        cfg=DeviceBackendConfig(device_id="baycom-ser12", backend_type="baycom-kiss")
+    )
+    assert mod.uses_inline_tnc_prep(state, "tnc2c")
+    assert not mod.uses_inline_tnc_prep(state, "baycom-ser12")
 
 
 def test_stabilize_session_probe_path() -> None:
@@ -85,6 +102,8 @@ def main() -> int:
     print("OK test_stack_serial_watch_config")
     test_serial_repair_statuses()
     print("OK test_serial_repair_statuses")
+    test_inline_tnc_prep()
+    print("OK test_inline_tnc_prep")
     test_stabilize_session_probe_path()
     print("OK test_stabilize_session_probe_path")
     print("All serial watch tests passed")

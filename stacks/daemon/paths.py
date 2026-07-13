@@ -68,6 +68,17 @@ def stacks_dir(tree: Path, prefix: Path | None) -> Path:
     return tree_stacks
 
 
+def tnc_serial_recovery_path(tree: Path, prefix: Path | None) -> Path | None:
+    """Locate tnc_serial_recovery.py (dev checkout or cmake install)."""
+    for candidate in (
+        stacks_dir(tree, prefix) / "tncs" / "tnc_serial_recovery.py",
+        tree / _STACKS / "tncs" / "tnc_serial_recovery.py",
+    ):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def ctl_path(tree: Path, prefix: Path | None, exe: Path) -> Path:
     if prefix is not None:
         sibling = exe.resolve().parent / "max25-ctl"

@@ -289,10 +289,15 @@ class KissBridge:
         profile: SerialProfile,
         on_rx: Callable[[str], None],
         log: Optional[Callable[[str], None]] = None,
+        *,
+        tree_root: str = "",
+        install_prefix: Optional[str] = None,
     ) -> None:
         self.profile = profile
         self._on_rx = on_rx
         self._log = log or (lambda _m: None)
+        self._tree_root = tree_root
+        self._install_prefix = install_prefix
         self._fd: Optional[int] = None
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
@@ -378,7 +383,14 @@ class KissBridge:
     def _load_recovery_mod(self):
         import importlib.util
 
-        path = Path(__file__).resolve().parents[1] / "tncs" / "tnc_serial_recovery.py"
+        from paths import tnc_serial_recovery_path
+
+        path = None
+        if self._tree_root:
+            prefix = Path(self._install_prefix) if self._install_prefix else None
+            path = tnc_serial_recovery_path(Path(self._tree_root), prefix)
+        if path is None:
+            path = Path(__file__).resolve().parents[1] / "tncs" / "tnc_serial_recovery.py"
         if not path.is_file():
             return None
         spec = importlib.util.spec_from_file_location("tnc_serial_recovery", path)
@@ -424,24 +436,27 @@ class KissBridge:
             wf, rf = self._recovery_io()
             self._leave_kiss_unlocked()
 
-            if mod is not None:
-                ok, _, only_echo = mod.probe_info(wf, rf, pause=0.25)
-                if ok and not only_echo and not force_ladder:
-                    return self._enter_kiss_session_unlocked()
-                if only_echo or not ok or force_ladder:
-                    label = "auto-repair" if force_ladder else "recovery ladder"
-                    self._log(f"serial: {label}")
-                    ok, _ = mod.recover_terminal(wf, rf, log=self._log)
-                    if not ok:
-                        self.status = "error-host"
-                        self._kiss_active = False
-                        return False
-                    return self._enter_kiss_session_unlocked()
+            if mod is None:
+                self._log("serial: tnc_serial_recovery.py not found")
+                self.status = "error-config"
+                self._kiss_active = False
+                return False
 
-            self._write_unlocked(b"kiss off\r")
-            time.sleep(0.3)
-            self._drain_unlocked(0.2)
-            return self._enter_kiss_session_unlocked()
+            ok, _, only_echo = mod.probe_info(wf, rf, pause=0.25)
+            if ok and not only_echo and not force_ladder:
+                return self._enter_kiss_session_unlocked()
+            if only_echo or not ok or force_ladder:
+                label = "auto-repair" if force_ladder else "recovery ladder"
+                self._log(f"serial: {label}")
+                ok, _ = mod.recover_terminal(wf, rf, log=self._log)
+                if not ok:
+                    self.status = "error-host"
+                    self._kiss_active = False
+                    return False
+                return self._enter_kiss_session_unlocked()
+            self.status = "error-host"
+            self._kiss_active = False
+            return False
         except OSError as exc:
             self.status = "error-io"
             self._kiss_active = False

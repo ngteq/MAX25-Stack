@@ -162,7 +162,13 @@ class KissSerialBackend(DeviceBackend):
             self._ini_overrides(),
             prefix=self._prefix,
         )
-        bridge = KissBridge(profile, self._on_rx, self._log)
+        bridge = KissBridge(
+            profile,
+            self._on_rx,
+            self._log,
+            tree_root=self._root,
+            install_prefix=self._prefix,
+        )
         if not bridge.open():
             self._bridge = bridge
             self.status = bridge.status

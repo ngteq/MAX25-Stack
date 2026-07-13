@@ -314,9 +314,41 @@ SERIAL_REPAIR_STATUSES = frozenset(
         "error-kiss",
         "error-tx",
         "error-io",
-        "open",
+        "error-config",
     }
 )
+
+
+def uses_inline_tnc_prep(state: DaemonState, dev_id: str) -> bool:
+    """kiss-serial owned by max25d — no boot-wait subprocess (avoids port conflict)."""
+    if not state.cfg.stack_recover_only:
+        return False
+    return device_backend_kind(state, dev_id) == "kiss-serial"
+
+
+def prep_inline_serial_device(state: DaemonState, dev_id: str) -> None:
+    """Open serial and run initial recovery while holding DTR (no subprocess)."""
+    rt = state.devices[dev_id]
+    rt.stack_status = "ready"
+    log(f"stack inline ({dev_id}) — max25d owns serial recovery")
+    if not backend_enabled(state, dev_id):
+        return
+    if not open_backend(state, dev_id):
+        log(f"serial prep: open failed ({dev_id}) status={rt.link_status}")
+        return
+    backend = rt.backend
+    stabilize = getattr(backend, "stabilize_session", None)
+    if stabilize is None:
+        return
+    ok = stabilize(state.cfg.callerid, force=False)
+    rt.link_status = backend.status
+    if ok:
+        log(f"serial prep OK ({dev_id})")
+    else:
+        log(
+            f"serial prep failed ({dev_id}) status={backend.status} "
+            "— rescue: power-cycle with DTR high, then tnc2c-boot-wait.sh"
+        )
 
 
 def backend_needs_open(backend: Optional[DeviceBackend]) -> bool:
@@ -468,6 +500,9 @@ def send_line(sock: socket.socket, line: str) -> None:
 
 
 def start_device_stack(state: DaemonState, dev_id: str) -> None:
+    if uses_inline_tnc_prep(state, dev_id):
+        prep_inline_serial_device(state, dev_id)
+        return
     rt = state.devices[dev_id]
     ctl = ctl_path(ROOT, PREFIX, _EXE)
     if not ctl.is_file():
@@ -523,6 +558,9 @@ def start_stacks(state: DaemonState) -> None:
     for dev_id in enabled_device_ids(state):
         rt = state.devices[dev_id]
         kind = rt.cfg.backend_type or ""
+        if uses_inline_tnc_prep(state, dev_id):
+            prep_inline_serial_device(state, dev_id)
+            continue
         if kind == "baycom-kiss":
             explicit = rt.cfg.baycom_ini or ""
             resolved = resolve_baycom_ini(dev_id, ROOT, PREFIX, explicit)
@@ -611,7 +649,7 @@ def retry_pending_backends(state: DaemonState) -> None:
         if not backend_enabled(state, dev_id):
             continue
         rt = state.devices[dev_id]
-        if rt.stack_status not in ("ready", "stopped", "running"):
+        if rt.stack_status not in ("ready", "stopped"):
             continue
         if not backend_needs_open(rt.backend):
             continue
@@ -629,7 +667,8 @@ def poll_serial_stability(state: DaemonState) -> None:
             continue
         rt = state.devices[dev_id]
         if (
-            cfg.stack_recover_only
+            not uses_inline_tnc_prep(state, dev_id)
+            and cfg.stack_recover_only
             and rt.stack_status.startswith("error")
             and rt.stack_proc is None
             and now - rt.last_stack_retry >= cfg.stack_retry_interval

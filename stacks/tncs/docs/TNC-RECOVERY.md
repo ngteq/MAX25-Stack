@@ -60,7 +60,7 @@ max25d runs `recover_terminal()` in `kiss_bridge.attach_session()` before `MYCAL
 
 ### max25d serial watch (automatic)
 
-When `[stack] serial_watch = yes` (default), max25d periodically probes the TNC and runs the software recovery ladder when needed — **without closing the serial port** (DTR stays high).
+When `[stack] serial_watch = yes` and `stack_recover_only = yes` (default), max25d **opens the TNC serial port itself** — no `boot-wait` subprocess (avoids port conflict). Recovery runs inline via `stabilize_session`.
 
 | INI key | Default | Role |
 |---------|---------|------|
