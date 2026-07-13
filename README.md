@@ -42,7 +42,7 @@ cmake -B build -DMAX25_BUILD_CRDOP=OFF
 | AX.25 / Packet Radio | **Fully compatible on the acoustic layer** — same AFSK tone classes as TNCs and BayCom modems |
 | Use like hardware | Sound card **IN/OUT** + radio — kernel **ALSA direct**, MAX25 **sound-proxy**, **no PulseAudio** |
 | Sound card | **Required** — kernel ALSA; accurate tones; stricter at higher baud |
-| ARDOP wire-compat | **Optional only** — third-party hosts; never vendored in MAX25 releases |
+| ARDOP-plugin | **Optional** — `ardop_compat=true` on `soft-crdop` |
 
 ```
 Radio ↔ hw IN/OUT ↔ kernel ALSA ↔ MAX25 sound-proxy ↔ CRDOP ↔ max25d ↔ M25/1 / HyBBX

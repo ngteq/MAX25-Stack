@@ -173,7 +173,7 @@ Vendor tree is **never** installed in MAX25 releases.
 
 - **English** for all shipped docs and user-facing strings.
 - **No PulseAudio / PipeWire** in production audio path.
-- **ARDOP** wire format: external-only via `ardop_compat=true` — never vendored.
+- **ARDOP-plugin** wire format: optional via `ardop_compat=true` — see [plugins/external/ardop/README.md](../../../plugins/external/ardop/README.md).
 - Baud ceiling: **19200** (P1 G3RUH direct FSK). Above that: out of scope.
 
 ---

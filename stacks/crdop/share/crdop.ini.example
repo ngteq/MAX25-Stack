@@ -37,4 +37,4 @@ no_pulse = yes
 mode = line
 
 [compat]
-; ardop_compat = no   ; yes = third-party ARDOP wire format (external, never shipped by MAX25)
+; ardop_compat = no   ; yes = ARDOP-plugin wire mode on soft-crdop

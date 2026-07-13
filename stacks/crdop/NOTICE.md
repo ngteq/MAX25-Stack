@@ -4,10 +4,10 @@
 
 In-house sound-card modem subproject of MainAX25-Stack. Sound-card based; kernel ALSA via MAX25 sound-proxy. Project rule: [docs/CRDOP.md](../../docs/CRDOP.md).
 
-## ARDOP (external reference only)
+## ARDOP-plugin
 
-Third-party ARDOP implementations are **not** bundled in MAX25 releases. Optional external attach only.
+**ARDOP-plugin** is an optional MAX25-Stack plugin for ARDOP wire mode on `soft-crdop`. Registry: [plugins/external/ardop/README.md](../../plugins/external/ardop/README.md).
 
-[g8bpq/ardop](https://github.com/g8bpq/ardop) — GPL-3.0 protocol reference (not vendored).
+[g8bpq/ardop](https://github.com/g8bpq/ardop) — GPL-3.0 protocol reference.
 
 Operators must comply with local radio regulations.

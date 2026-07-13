@@ -5,7 +5,7 @@
 **CRDOP-CUR999** — in-house MAX25-SoftModem scaffold inside MAX25-Stack. Pre-release track until **v0.5** ships.
 
 - Product label **CRDOP-CUR999**; version file `CUR999`
-- Native modem DSP in development; optional legacy ARDOP vendor build (`-DCRDOP_VENDOR_ARDOPCF=ON`) never shipped in MAX25 releases
+- Native modem DSP in development; optional legacy vendor build (`-DCRDOP_VENDOR_ARDOPCF=ON`); **ARDOP-plugin** documented separately
 - `max25d` `crdop-tcp` backend, INI scaffold, launcher, HyBBX attach examples
 
 ## [0.5.0] — planned (not yet released)

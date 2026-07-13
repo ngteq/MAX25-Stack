@@ -40,7 +40,7 @@ Interface specification for builders: [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE
 |-------|--------|
 | On-air / acoustic | AX.25-compatible AFSK tones (1200 baud primary) |
 | Host to max25d | MAX25-native TCP control + data (see [PROTOCOL.md](PROTOCOL.md)) |
-| ARDOP wire format | **Optional** third-party compat only — not MAX25 standard, never vendored |
+| ARDOP-plugin wire format | **Optional** — `ardop_compat=true` on `soft-crdop` |
 
 We study legacy stacks; we implement our own modem and document it for **reproducible hardware builds**.
 

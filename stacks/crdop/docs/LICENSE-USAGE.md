@@ -66,7 +66,7 @@ MAX25-Stack bundles CRDOP with daemon, terminal, and plugins. Distribution of th
 |-----------|-----------------|
 | `stacks/crdop/` | GPL-3.0-or-later |
 | MAX25 daemon / terminal | GPL-3.0-or-later (repository default) |
-| Third-party ARDOP (external) | **Not shipped** — operator's responsibility |
+| ARDOP-plugin | Optional MAX25-Stack plugin — operator ARDOP host when `ardop_compat=true` |
 
 ---
 
@@ -83,16 +83,17 @@ Patent suits against GPL users can terminate your license (GPLv3 §8).
 
 ---
 
-## ARDOP third-party software
+## ARDOP-plugin
 
-**ARDOP** (ardopcf, vendor binaries) is **not part of CRDOP** and **not shipped** by MAX25-Stack.
+**ARDOP-plugin** is an optional MAX25-Stack plugin — not part of the CRDOP GPLv3 tree.
 
-| Item | License / policy |
-|------|------------------|
-| Optional `ardop_compat=true` | Operator installs external ARDOP — separate license terms apply |
-| `vendor/ardopcf/` in repo | Dev-only reference; MIT (upstream) — never installed in releases |
+| Item | Policy |
+|------|--------|
+| Enable | `ardop_compat=true` on `soft-crdop` |
+| ARDOP host software | Operator-provided — separate license terms |
+| Registry | [plugins/external/ardop/README.md](../../../plugins/external/ardop/README.md) |
 
-CRDOP GPLv3 obligations apply to **CRDOP code**, not to third-party ARDOP you optionally attach.
+CRDOP GPLv3 obligations apply to **CRDOP code**, not to operator ARDOP host software used with ARDOP-plugin mode.
 
 ---
 

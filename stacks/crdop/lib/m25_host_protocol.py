@@ -11,8 +11,8 @@ import threading
 from typing import Callable, Optional
 
 # KISS-compatible data semantics; control is text lines ending in \\n
-DEFAULT_CTRL_PORT = 8520
-DEFAULT_DATA_PORT = 8521
+DEFAULT_CTRL_PORT = 8515
+DEFAULT_DATA_PORT = 8516
 
 CmdFn = Callable[[str], str]
 DataRxFn = Callable[[bytes], None]

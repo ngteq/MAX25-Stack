@@ -17,6 +17,16 @@
 | Hardware builder | [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE.md) | Generic radio/audio interface specification |
 | Legal / distribution | [LICENSE-USAGE.md](LICENSE-USAGE.md) | GPLv3 — private and commercial use rights |
 
+## Implementation specs (vault → repo, v1.0.0)
+
+| Doc | One-line purpose |
+|-----|------------------|
+| [HOST-PROTOCOL-SPEC.md](HOST-PROTOCOL-SPEC.md) | **Frozen** M25/KISS TCP :8515/:8516 — normative host wire |
+| [ACOUSTIC-TEST-PROTOCOL.md](ACOUSTIC-TEST-PROTOCOL.md) | Phase 0 bench acceptance matrix |
+| [FEC-SPEC.md](FEC-SPEC.md) | Duplex + FEC strategy — implementable parameters |
+| [SOUNDCARD-QUALIFICATION.md](SOUNDCARD-QUALIFICATION.md) | Interface qualification tests (class A/B/C) |
+| [G3RUH-DESIGN.md](G3RUH-DESIGN.md) | Phase 2 P1 — 9600–19200 direct FSK |
+
 ---
 
 ## Technical reference
@@ -24,7 +34,7 @@
 | Doc | One-line purpose |
 |-----|------------------|
 | [AUDIO-ARCHITECTURE.md](AUDIO-ARCHITECTURE.md) | Kernel ALSA only — sound-proxy, no PulseAudio |
-| [PROTOCOL.md](PROTOCOL.md) | M25-family host TCP (:8515 ctrl, :8516 data) |
+| [PROTOCOL.md](PROTOCOL.md) | M25 host summary — **normative:** [HOST-PROTOCOL-SPEC.md](HOST-PROTOCOL-SPEC.md) |
 | [CONFIG.md](CONFIG.md) | `crdop.ini` keys and launcher behaviour |
 | [BUILD.md](BUILD.md) | Standalone CMake build and cross-compile |
 | [EXAMPLES.md](EXAMPLES.md) | INI profiles, launcher, `max25d` snippets |
@@ -48,6 +58,7 @@
 | `audio-dummy` | device | Acoustic bench — loopback / ALSA / host (`acoustic-bench`) |
 | `soft-modems` | hardware | CRDOP device family |
 | `acoustic-bench` | hardware | Dev/test bench — no RF required |
+| `ardop-plugin` | optional | ARDOP wire mode on `soft-crdop` |
 
 ---
 

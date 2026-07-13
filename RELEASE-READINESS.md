@@ -17,10 +17,12 @@
 - Version `1.0.0` (no `1.0.0.0`)
 - CRDOP product **CRDOP-CUR999** until separate v0.5
 - `MAX25_BUILD_CRDOP=ON` default documented everywhere
-- ARDOP external-only; vendor tree removed from release path
+- ARDOP-plugin documented; vendor tree not in release install path
 - `CrdopTcpBackend`: KISS default, `[CRDOP AX25 UI …]` display strings
 - German user-facing strings in shipped docs/YAML → English
 - `stacks/crdop/docs/INDEX.md` linked from `AGENTS.md` and `docs/README.md`
+- **Vault → repo:** implementable specs in `stacks/crdop/docs/*-SPEC.md`, `docs/HARDWARE-ACCEPTANCE.md`, `docs/MAX25-OPERATOR-RUNBOOK.md`, `docs/AX25-NATIVE-CODEC.md`
+- Host protocol ports unified: **8515/8516** in `m25_host_protocol.py` + [HOST-PROTOCOL-SPEC.md](stacks/crdop/docs/HOST-PROTOCOL-SPEC.md)
 
 ## Tag status
 

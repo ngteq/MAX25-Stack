@@ -423,7 +423,7 @@ class CrdopTcpBackend(DeviceBackend):
     """MAX25-SoftModem (CRDOP) via TCP host interface (:8515 / :8516).
 
     Default: native M25/KISS host protocol (MAX25-SoftModem).
-    Optional: third-party ARDOP wire-compat when crdop_ardop_compat=true.
+    Optional: ARDOP-plugin wire mode when crdop_ardop_compat=true.
     """
 
     backend_type = "crdop-tcp"

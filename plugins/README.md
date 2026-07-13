@@ -17,7 +17,7 @@ Operating mode (`betriebsform/`)
 | Operating mode | `betriebsform/` | Standalone, service, HyBBX host |
 | Hardware | `hardware/` | Device family — TNCs, BayCom, soft modems |
 | Device | `devices/` | Concrete profile and HyBBX INI mapping |
-| External optional | `external/` | Third-party attach only (ARDOP — never shipped) |
+| Optional plugins | `external/` | ARDOP-plugin (optional wire mode on `soft-crdop`) |
 
 ## Discovery
 
@@ -48,11 +48,11 @@ See [docs/HYBBX.md](../docs/HYBBX.md).
 | `baycom-ser12` | `modems` | active |
 | `soft-crdop` | `soft-modems` | active — MAX25-SoftModem (CRDOP) standard |
 
-## External optional (never shipped)
+## ARDOP-plugin (optional)
 
 | Plugin | Notes |
 |--------|-------|
-| **ARDOP** | Third-party wire compat only — see [external/README.md](external/README.md) |
+| **ARDOP-plugin** | Optional wire mode on `soft-crdop` — [external/README.md](external/README.md) |
 
 ## Deferred (v1.1+)
 

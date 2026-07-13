@@ -15,6 +15,8 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | Terminal profiles | [share/clients/README.md](../share/clients/README.md) · [share/clients/index.yaml](../share/clients/index.yaml) |
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
 | BayCom / PC-COM operator | [BAYCOM.md](BAYCOM.md) · `share/baycom/` examples |
+| Host / operator | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) · [HARDWARE-ACCEPTANCE.md](HARDWARE-ACCEPTANCE.md) |
+| AX.25 codec | [AX25-NATIVE-CODEC.md](AX25-NATIVE-CODEC.md) |
 | Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | v1 release | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) |
 

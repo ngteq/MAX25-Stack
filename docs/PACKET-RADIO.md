@@ -29,7 +29,7 @@ Operator
 | Kernel AX.25 | `stacks/baycom-pr` | `hdlcdrv`, `bcsf0`, `AF_PACKET` |
 | HyBBX attach | external | After stack is up — INI in `share/hybbx/` |
 
-**MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol)** (`soft-crdop`) is the in-house sound-card modem — **CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio); **MAX25-Stack standard** (built unless `MAX25_BUILD_CRDOP=OFF`). Development/test phase: acoustically AX.25-compatible at 1200 baud+, half/full duplex, max 19200 baud. Native M25/KISS host TCP; `max25d` `CrdopTcpBackend`. ARDOP wire-compat is optional third-party only (`ardop_compat=true`) — never vendored. See [stacks/crdop/docs/SOFTMODEM.md](../stacks/crdop/docs/SOFTMODEM.md).
+**MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol)** (`soft-crdop`) is the in-house sound-card modem — **CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio); **MAX25-Stack standard** (built unless `MAX25_BUILD_CRDOP=OFF`). Development/test phase: acoustically AX.25-compatible at 1200 baud+, half/full duplex, max 19200 baud. Native M25/KISS host TCP; `max25d` `CrdopTcpBackend`. **ARDOP-plugin** optional via `ardop_compat=true`. See [stacks/crdop/docs/SOFTMODEM.md](../stacks/crdop/docs/SOFTMODEM.md).
 
 ---
 

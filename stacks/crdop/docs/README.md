@@ -15,7 +15,7 @@ Project rule: [docs/CRDOP.md](../../../docs/CRDOP.md)
 | Rule | |
 |------|--|
 | Standard | Native MAX25 M25/KISS host on TCP :8515/:8516 |
-| ARDOP | Optional third-party attach only — never vendored in MAX25 |
+| ARDOP-plugin | Optional MAX25-Stack plugin — `ardop_compat=true` |
 | Focus | CB-first; `dual` and `amateur` are presets |
 | Scope | Modem only — no host application |
 

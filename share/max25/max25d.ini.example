@@ -93,5 +93,5 @@ stack_retry_interval = 120
 ; host = 127.0.0.1
 ; port = 8515
 ; listen = yes
-; ardop_compat = no   ; opt-in third-party ARDOP wire format (never shipped by MAX25)
+; ardop_compat = no   ; yes = ARDOP-plugin wire mode
 ; fecmode = 4FSK.500.100S   ; only when ardop_compat = yes

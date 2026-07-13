@@ -2,7 +2,7 @@
 
 `scripts/crdopc` reads INI → starts native `audio-dummyd` (M25/KISS host) by default.
 
-When `[compat] ardop_compat = yes`, launcher requires an **external** ARDOP vendor binary (`CRDOP_BIN`) — never shipped by MAX25.
+When `[compat] ardop_compat = yes`, launcher uses **ARDOP-plugin** mode and requires `CRDOP_BIN` pointing to an ARDOP-capable host binary.
 
 ## INI search order
 
@@ -45,7 +45,7 @@ Templates: `share/crdop.ini.example` · `share/crdop-dual.ini.example` · `share
 
 | Key | Default | Notes |
 |-----|---------|-------|
-| `ardop_compat` | `no` | `yes` = external third-party ARDOP binary required (`CRDOP_BIN`) |
+| `ardop_compat` | `no` | `yes` = **ARDOP-plugin** wire mode (`CRDOP_BIN` for launcher) |
 
 **No PulseAudio** in the production path. The **MAX25 sound-proxy** opens ALSA directly; `scripts/crdopc` clears Pulse/PipeWire session env when `no_pulse=yes`.
 
@@ -54,6 +54,6 @@ Templates: `share/crdop.ini.example` · `share/crdop-dual.ini.example` · `share
 | Variable | Purpose |
 |----------|---------|
 | `CRDOP_INI` | Config file path |
-| `CRDOP_BIN` | Path to external ARDOP vendor binary (only when `ardop_compat=yes`) |
+| `CRDOP_BIN` | Path to ARDOP host binary (ARDOP-plugin mode only) |
 
 Examples: [EXAMPLES.md](EXAMPLES.md)

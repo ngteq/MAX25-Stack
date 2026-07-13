@@ -1,11 +1,5 @@
-# vendor/ardopcf
+# Vendor tree (dev-only)
 
-**Dev-only — never shipped in MAX25 releases.**
+Legacy **ardopcf** may exist under `vendor/ardopcf/` for local developer builds (`-DCRDOP_VENDOR_ARDOPCF=ON`). **Not** part of MAX25 release install.
 
-Embedded **[pflarue/ardop](https://github.com/pflarue/ardop)** (ardopcf), MIT — pin `a7c9228`.
-
-Build locally with `-DCRDOP_VENDOR_ARDOPCF=ON` when this tree is present. MAX25 default installs native SoftModem (`audio-dummyd`, launcher) only.
-
-ARDOP is an **external optional** attach — see `plugins/external/ardop/plugin.yaml`.
-
-See [docs/README.md](../docs/README.md#upstream-sources) · maintainer refresh: `scripts/refresh-vendor-ardopcf.sh`
+**ARDOP-plugin** for operators: [plugins/external/ardop/README.md](../../plugins/external/ardop/README.md) — enable with `ardop_compat=true`.

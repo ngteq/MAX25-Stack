@@ -1,20 +1,19 @@
-id: ardop
-type: external
+id: ardop-plugin
+type: optional
 parent_stack: MainAX25-Stack (MAX25-Stack)
-label: ARDOP (third-party)
+label: ARDOP-plugin
 status: optional
-shipped: false
 
 note: |
-  ARDOP is ONLY available as an external optional plugin.
-  MAX25 does NOT ship ARDOP source code or binaries.
-  Operators may attach a third-party ARDOP implementation (ardopcf, Pat, etc.)
-  via TCP :8515/:8516 when ardop_compat=true on soft-crdop.
+  ARDOP-plugin is an optional MAX25-Stack plugin for ARDOP host wire mode.
+  MAX25 ships CRDOP (MAX25-SoftModem) as the standard sound-card modem.
+  Enable ARDOP-plugin mode with ardop_compat=true on soft-crdop (TCP :8515/:8516).
 
 policy:
-  vendored_in_max25: false
-  binary_in_release: false
-  max25_standard: false
+  max25_standard_modem: CRDOP
+  ardop_plugin_mode: ardop_compat
+  crdop_code_in_max25: true
+  ardop_modem_binary_in_max25: false
 
 attach:
   via_device: soft-crdop
@@ -23,7 +22,7 @@ attach:
   data_port: 8516
   wire_format: ardop-host-tcp
 
-standard_alternative:
+standard_modem:
   product: MAX25-SoftModem
   device: soft-crdop
   stack: stacks/crdop
@@ -31,4 +30,5 @@ standard_alternative:
 
 docs:
   - plugins/external/README.md
+  - plugins/external/ardop/README.md
   - docs/CRDOP.md

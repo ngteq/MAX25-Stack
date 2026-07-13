@@ -180,7 +180,7 @@ playback = plughw:1,0
 port = 8515
 
 [compat]
-ardop_compat = no           ; external ARDOP only — see below
+ardop_compat = no           ; yes = ARDOP-plugin wire mode
 ```
 
 Launch:
@@ -246,16 +246,16 @@ MAX25 owns modem lifecycle; HyBBX owns sessions. See [docs/HYBBX.md](../../../do
 
 ---
 
-## ARDOP — external only
+## ARDOP-plugin
 
-| Policy | Detail |
-|--------|--------|
-| Vendored ardopcf | **Never** in MAX25 release tarballs |
-| ARDOP binaries | **Never** installed by MAX25 |
-| Optional attach | `ardop_compat = yes` in `crdop.ini` or `[device.soft-crdop]` |
-| Binary path | Operator supplies `CRDOP_BIN=/path/to/external/crdopc` |
+Optional **MAX25-Stack plugin** for ARDOP wire mode on `soft-crdop`.
 
-Native CRDOP/M25 host is the **default**. ARDOP wire format is third-party opt-in only.
+| Item | Detail |
+|------|--------|
+| Registry | [plugins/external/ardop/README.md](../../../plugins/external/ardop/README.md) |
+| Enable | `ardop_compat = yes` in `crdop.ini` or `[device.soft-crdop]` |
+| Default | Native CRDOP / M25-KISS host (`ardop_compat = no`) |
+| ARDOP host | Operator runs ARDOP-capable modem; set `CRDOP_BIN` if using `crdopc` launcher |
 
 ```ini
 [compat]
@@ -263,7 +263,7 @@ ardop_compat = yes
 ```
 
 ```bash
-CRDOP_BIN=/path/to/external/crdopc CRDOP_INI=~/.config/crdop/crdop.ini crdop
+CRDOP_BIN=/path/to/ardopc CRDOP_INI=~/.config/crdop/crdop.ini crdop
 ```
 
 Plugin metadata: `plugins/external/ardop/plugin.yaml`.

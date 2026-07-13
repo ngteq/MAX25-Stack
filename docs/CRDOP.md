@@ -24,7 +24,7 @@ This document is the **authoritative project rule** for CRDOP. All design, docum
 | **Build** | **ON by default** — `MAX25_BUILD_CRDOP=ON`; disable with `-DMAX25_BUILD_CRDOP=OFF` |
 | **HyBBX** | External consumer via `share/hybbx/crdop-host.ini.example` |
 
-CRDOP is **not** a third-party drop-in. It is an **in-house GNU GPLv3 subproject** developed, tested, and documented inside MAX25-Stack, with its own headers, INI, launcher, and roadmap.
+CRDOP is an **in-house GNU GPLv3 subproject** developed, tested, and documented inside MAX25-Stack, with its own headers, INI, launcher, and roadmap.
 
 ```
 MAX25-Stack/
@@ -107,9 +107,7 @@ CRDOP is a **GNU GPLv3** project:
 
 - Source in `stacks/crdop/` is licensed under **GPL-3.0-or-later** (see [LICENSE](../stacks/crdop/LICENSE) and repository root [LICENSE](../LICENSE)).
 - Derivative hardware documentation that ships with the repo follows the same free-software intent.
-- **ARDOP vendor code** (ardopcf, etc.) is **never** bundled in MAX25 releases.
-- **ARDOP binaries** are **never** installed in MAX25 releases.
-- Optional third-party ARDOP attach via `ardop_compat=true` on `soft-crdop` only.
+- **ARDOP-plugin** is an optional MAX25-Stack plugin — enable with `ardop_compat=true` on `soft-crdop`. Registry: [plugins/external/ardop/README.md](../plugins/external/ardop/README.md).
 
 Contributors grant rights consistent with GPLv3 copyleft.
 
@@ -119,8 +117,8 @@ Contributors grant rights consistent with GPLv3 copyleft.
 
 | Item | Policy |
 |------|--------|
-| ARDOP fork / vendored ardopcf | **Never** in release tarballs or install tree |
-| ARDOP binaries (crdopc vendor) | **Never** shipped — external operator install only |
+| ARDOP modem binary in MAX25 install | **Not included** — use **ARDOP-plugin** mode with operator ARDOP host |
+| ARDOP vendor tree in release tarball | **Not included** |
 | PulseAudio / PipeWire production path | **Forbidden** |
 | Kernel AX.25 replacement | CRDOP is a **modem**, not `libax25` |
 | HyBBX session logic | External — attach after stack is up |
@@ -172,7 +170,8 @@ max25-terminal -U /run/max25/modem.sock
 
 | Audience | Start here |
 |----------|------------|
-| MAX25 operator | [stacks/crdop/docs/MAX25-USAGE.md](../stacks/crdop/docs/MAX25-USAGE.md) |
+| Implementation specs | [HOST-PROTOCOL-SPEC.md](../stacks/crdop/docs/HOST-PROTOCOL-SPEC.md), [FEC-SPEC.md](../stacks/crdop/docs/FEC-SPEC.md), [ACOUSTIC-TEST-PROTOCOL.md](../stacks/crdop/docs/ACOUSTIC-TEST-PROTOCOL.md) |
+| MAX25 operator | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) · [HARDWARE-ACCEPTANCE.md](HARDWARE-ACCEPTANCE.md) |
 | Developer | [stacks/crdop/docs/DEVELOPER.md](../stacks/crdop/docs/DEVELOPER.md) |
 | Hardware builder | [stacks/crdop/docs/HARDWARE-INTERFACE.md](../stacks/crdop/docs/HARDWARE-INTERFACE.md) |
 | License / distribution | [stacks/crdop/docs/LICENSE-USAGE.md](../stacks/crdop/docs/LICENSE-USAGE.md) |
@@ -186,7 +185,8 @@ max25-terminal -U /run/max25/modem.sock
 | [stacks/crdop/docs/SOFTMODEM.md](../stacks/crdop/docs/SOFTMODEM.md) | Product definition |
 | [stacks/crdop/docs/AUDIO-ARCHITECTURE.md](../stacks/crdop/docs/AUDIO-ARCHITECTURE.md) | Kernel ALSA, sound-proxy |
 | [stacks/crdop/docs/CONFIG.md](../stacks/crdop/docs/CONFIG.md) | INI keys |
-| [stacks/crdop/docs/PROTOCOL.md](../stacks/crdop/docs/PROTOCOL.md) | Host TCP interface |
+| [stacks/crdop/docs/HOST-PROTOCOL-SPEC.md](../stacks/crdop/docs/HOST-PROTOCOL-SPEC.md) | M25 host wire (frozen) |
+| [stacks/crdop/docs/PROTOCOL.md](../stacks/crdop/docs/PROTOCOL.md) | Host TCP summary |
 | [stacks/crdop/ROADMAP.md](../stacks/crdop/ROADMAP.md) | P0/P1/P2 phases, RF paths, FEC |
 | [PACKET-RADIO.md](PACKET-RADIO.md) | AX.25 / KISS context in MAX25 |
 | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) | Release scope |

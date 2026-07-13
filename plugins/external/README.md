@@ -1,28 +1,29 @@
-# External optional plugins
+# Optional plugins — ARDOP-plugin
 
-**CRDOP (CB/AR Digital Open Protocol — MAX25-SoftModem)** is a **MAX25-Stack standard** — built and installed by default (`MAX25_BUILD_CRDOP=ON`). See `plugins/devices/soft-crdop/`.
+**CRDOP (MAX25-SoftModem)** is the **MAX25-Stack standard** modem — built and installed by default (`MAX25_BUILD_CRDOP=ON`). See `plugins/devices/soft-crdop/`.
 
-This folder documents plugins that are **optional** and **external** to MAX25 releases:
+## ARDOP-plugin
 
-| Item | Status |
+| Item | Detail |
 |------|--------|
-| **ARDOP** (third-party modem / ardopcf wire format) | Optional attach only — never shipped |
-| Legacy `vendor/ardopcf` build | Dev-only: `-DCRDOP_VENDOR_ARDOPCF=ON` when tree present locally |
+| **Plugin** | **ARDOP-plugin** — optional MAX25-Stack plugin |
+| **Registry** | [ardop/plugin.yaml](ardop/plugin.yaml) |
+| **Enable** | `ardop_compat = true` on `soft-crdop` or in `crdop.ini` `[compat]` |
+| **Ports** | TCP :8515 (control) / :8516 (data) |
+| **Standard alternative** | Native CRDOP / M25-KISS host (default) |
 
-## ARDOP optional attach
+### Using ARDOP-plugin
 
-MAX25 does **not** ship ARDOP code or binaries. For operators who run a **third-party ARDOP** implementation instead of native MAX25-SoftModem:
+1. Install and run an ARDOP-capable modem host on the operator machine.
+2. Set `ardop_compat=true` in `max25d.ini` `[device.soft-crdop]` or CRDOP INI.
+3. Point `max25d` `soft-crdop` at TCP :8515/:8516.
 
-1. Install and run external ARDOP host/modem (not provided by MAX25).
-2. Set `ardop_compat = true` in `[device.soft-crdop]` (or `max25d.ini`).
-3. Point `max25d` `soft-crdop` device at TCP :8515/:8516 (ARDOP wire-compatible host interface).
+See [ardop/README.md](ardop/README.md) and [stacks/crdop/docs/MAX25-USAGE.md](../../stacks/crdop/docs/MAX25-USAGE.md).
 
-Registry metadata: [ardop/plugin.yaml](ardop/plugin.yaml).
-
-## Not external
+## MAX25 standard (not ARDOP-plugin)
 
 | Item | Role |
 |------|------|
 | **CRDOP / MAX25-SoftModem** | In-house standard — `MAX25_BUILD_CRDOP=ON` (default) |
-| `stacks/crdop/` | In-house subproject — INI, launcher, native M25 host, docs |
+| `stacks/crdop/` | CRDOP subproject — INI, launcher, native M25 host, docs |
 | `max25d` `crdop-tcp` backend | Standard integration (native M25/KISS by default) |

@@ -6,7 +6,7 @@
 
 **Stack dependency:** CRDOP sources live in `stacks/crdop/` and are **standalone-capable** in principle, but **MAX25-Stack is required for integration** (build, `max25d`, INI, operator tooling) until **CRDOP-v1.0.0** (or later) marks a mature standalone release. Current stack product: **MAX25-Stack-v1.0.0**.
 
-**Nature:** MAX25 in-house development — open development and test program for the kernel-ALSA sound-card modem. No vendored ARDOP in releases.
+**Nature:** MAX25 in-house development — open development and test program for the kernel-ALSA sound-card modem. **ARDOP-plugin** is optional; CRDOP is the standard modem.
 
 **Research synthesis:** 2026-07-13 — full vault analysis under `/home/akb/Code/0-RESEARCHES/` (see [Research vault coverage](#research-vault-coverage)). Actionable priorities below; depth stays in vault — **no duplicate re-copy** into this repo.
 
@@ -19,7 +19,7 @@
 | **A** | Classic AX.25 packet (HDLC, frequency-toggle line code) | **P0/P1/P2 targets** — 1200 AFSK, G3RUH, 300 HF |
 | **B** | AX.25 + FEC extension | **Reference** — FX.25 informs FEC block design |
 | **C** | New L2 (not AX.25 on-air) | **Reference** — IL2P lessons (no bit-stuffing, RS FEC) |
-| **D** | HF/VHF data modems (Winlink ecosystem) | **Out of scope** — VARA/PACTOR/ARDOP OTA; ARDOP host external only |
+| **D** | HF/VHF data modems (Winlink ecosystem) | **Out of scope** on-air — **ARDOP-plugin** optional for ARDOP wire |
 | **E** | Keyboard/chat modes (PSK31, RTTY, …) | **Out of scope** — boundary only |
 
 ---
@@ -69,7 +69,7 @@ Synthesized from research catalog — implementation order for CRDOP native DSP.
 | — | 2400/4800 AFSK | V.26/V.27 class | 2400–4800 | Audio | VHF | Low priority incremental |
 | 📋 | FX.25 / IL2P | FEC wrappers / new L2 | 1200+ | Audio or FSK PHY | VHF/HF | **Reference only** — inform FEC design |
 | ❌ | VARA / PACTOR / WINMOR | Proprietary DSP | various | Audio / SSB / hardware | HF/VHF/CB | **Out of scope** |
-| 📋 | ARDOP | 4FSK/PSK/QAM Winlink modes | adaptiv | Soundcard SSB | HF/VHF | **External plugin only** (`ardop_compat=true`) — never vendored |
+| 📋 | ARDOP | 4FSK/PSK/QAM Winlink modes | adaptiv | Soundcard SSB | HF/VHF | **ARDOP-plugin** (`ardop_compat=true`) |
 
 **Rule:** CRDOP on-air goal is **AX.25-compatible PHY + framing** at P0/P1/P2. Winlink-class protocols (VARA, PACTOR, ARDOP OTA) are **not** CRDOP targets.
 
@@ -118,7 +118,7 @@ What CRDOP implements per physical interface — hardware choice drives baud cei
 | **Standard packet** | **300 baud** AFSK/FSK, **200 Hz shift** |
 | **Common tone pairs** | 1600/1800 Hz (common default), 2110/2310 Hz, others — dial frequency must match pair |
 | **10 m exception** | 1200 AFSK on FM/USB for APRS — same PHY as VHF |
-| **Winlink boundary** | Proprietary HF mail modems (hardware FSK/PSK, sound-card DSP) = **separate ecosystems** — third-party attach only, **not** CRDOP OTA goals |
+| **Winlink boundary** | Proprietary HF mail modems = **separate protocol ecosystems** — not CRDOP OTA goals |
 | **CRDOP** | **P2 optional** — 300 bd after P0/P1 stable; SSB USB/LSB audio path |
 
 ### Satellite / space (reference)
@@ -214,10 +214,11 @@ Packet on CB/VHF (poor SNR, QRM, half-duplex collisions) favours **short UI fram
 
 | Component | Status |
 |-----------|--------|
+| Spec | **[HOST-PROTOCOL-SPEC.md](docs/HOST-PROTOCOL-SPEC.md)** — frozen v1.0.0 |
 | `max25d CrdopTcpBackend` (default) | `PROTOCOLMODE KISS`, `[CRDOP AX25 UI …]` display |
-| `ardop_compat=true` | Optional third-party ARDOP wire — never default |
-| `audio-dummyd` / `m25_host_protocol.py` | Bench M25 host — unify ports with `max25d` (Phase 0 exit) |
-| `crdopc` launcher | Starts `audio-dummyd` native path; external ARDOP only when `ardop_compat=yes` |
+| `m25_host_protocol.py` | Defaults **8515/8516** — matches `crdopc` INI |
+| `audio-dummyd` bench | Same ports via CLI; `audio-dummy` max25d **host** mode may use **8520** when :8515 busy |
+| `ardop_compat=true` | **ARDOP-plugin** wire mode — not default |
 
 ---
 
@@ -276,7 +277,7 @@ Honest mapping — 2026-07-13.
 | Hardware interface guide (generic spec) | In progress — [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFACE.md) |
 | Decode parity vs reference 1200 AFSK captures | Planned |
 
-**Exit criteria:** Verified AX.25 UI exchange with at least one external 1200 AFSK reference path (acoustic or line-level).
+**Exit criteria:** Verified AX.25 UI exchange with at least one reference 1200 AFSK path (acoustic or line-level).
 
 ### Phase 2 — G3RUH 9600–19200
 
@@ -340,8 +341,10 @@ Open-hardware documentation: [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFAC
 
 | Item | Policy |
 |------|--------|
-| Vendored **ARDOP / ardopcf** sources | Optional local build only (`CRDOP_VENDOR_ARDOPCF=ON`); **never** in release tarball |
-| **ARDOP binaries** | External operator install; `ardop_compat=true` attach only |
+| Item | Policy |
+|------|--------|
+| **ARDOP-plugin** | Optional — `ardop_compat=true`; operator ARDOP host |
+| `vendor/ardopcf` dev tree | Local dev only (`CRDOP_VENDOR_ARDOPCF=ON`); not in release install |
 | **libax25 / ax25-tools / ax25-apps** bundles | Reference tarballs only — not shipped as CRDOP dependency |
 | VARA / PACTOR / WINMOR implementations | Out of scope |
 | Speeds **>19200 baud** | Out of scope (current phase) |
@@ -395,11 +398,11 @@ Full analysis **2026-07-13** — vault root `/home/akb/Code/0-RESEARCHES/`. Oper
 | Scenario | CRDOP mode |
 |----------|------------|
 | CB packet QSO (FM audio) | **P0** — 1200 AFSK AX.25 |
-| CB net with heavy QRM | **P0** + short-frame FEC strategy; proprietary FM-narrow DSP = external |
+| CB net with heavy QRM | **P0** + short-frame FEC strategy; proprietary FM-narrow DSP = separate protocol |
 | VHF APRS / digipeater access | **P0** — 1200 AFSK |
 | VHF/UHF backbone | **P1** — G3RUH direct FSK (≤19200) |
 | HF packet 300 bd | **P2** optional |
-| HF mail / Winlink-class | **Out of scope** — third-party |
+| HF mail / Winlink-class | **Out of scope** — separate protocols |
 | MAX25 RF broadcast / soft-modem path | **P0** target — native CRDOP in stack |
 
 ---
@@ -443,6 +446,11 @@ External research vault — read for depth; synthesized above; do not duplicate 
 | [docs/DEVELOPER.md](docs/DEVELOPER.md) | Developer guide |
 | [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFACE.md) | Generic radio interface spec |
 | [docs/LICENSE-USAGE.md](docs/LICENSE-USAGE.md) | GPLv3 private + commercial |
+| [docs/HOST-PROTOCOL-SPEC.md](../stacks/crdop/docs/HOST-PROTOCOL-SPEC.md) | M25 host wire (frozen) |
+| [docs/ACOUSTIC-TEST-PROTOCOL.md](../stacks/crdop/docs/ACOUSTIC-TEST-PROTOCOL.md) | Phase 0 bench |
+| [docs/FEC-SPEC.md](../stacks/crdop/docs/FEC-SPEC.md) | FEC/duplex parameters |
+| [docs/SOUNDCARD-QUALIFICATION.md](../stacks/crdop/docs/SOUNDCARD-QUALIFICATION.md) | Audio interface QA |
+| [docs/G3RUH-DESIGN.md](../stacks/crdop/docs/G3RUH-DESIGN.md) | Phase 2 P1 |
 | [docs/CRDOP.md](../../docs/CRDOP.md) | Static project rule |
 | [docs/AUDIO-ARCHITECTURE.md](docs/AUDIO-ARCHITECTURE.md) | Kernel ALSA, sound-proxy |
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | Host TCP interface |

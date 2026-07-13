@@ -18,7 +18,7 @@ Version file `1.0.0`. Product label **MAX25-Stack-v1.0.0**.
 
 - **AX.25** — in-tree `ax25_codec.py` via `kiss_bridge.py`; `MAX25_BUNDLE_AX25` OFF; `third_party/ax25/` tarballs reference-only
 - **CRDOP** — in-house MAX25-SoftModem scaffold; `MAX25_BUILD_CRDOP` **ON** by default; no vendored ardopcf in release
-- **ARDOP** — external-only optional attach (`ardop_compat=true`); never shipped
+- **ARDOP-plugin** — optional MAX25-Stack plugin (`ardop_compat=true`)
 
 ### Stack
 

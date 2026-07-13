@@ -171,11 +171,11 @@ fi
 [[ -x "${BUILD_DIR}/bin/baycom_test" ]] && ok "baycom-pr tools built" || fail "baycom-pr build"
 [[ -x "${BUILD_DIR}/bin/max25-terminal" ]] && ok "max25-terminal built" || fail "max25-terminal build"
 [[ -f stacks/crdop/share/crdop.ini.example ]] && ok "CRDOP scaffold (MAX25-SoftModem)" || fail "CRDOP scaffold missing"
-[[ -f plugins/external/ardop/plugin.yaml ]] && ok "external ARDOP plugin metadata" || fail "missing plugins/external/ardop/plugin.yaml"
+[[ -f plugins/external/ardop/plugin.yaml ]] && ok "ARDOP-plugin metadata" || fail "missing plugins/external/ardop/plugin.yaml"
 if [[ -x "${BUILD_DIR}/bin/crdopc" ]]; then
   warn "vendor crdopc binary present (dev-only CRDOP_VENDOR_ARDOPCF build — not for release)"
 else
-  ok "no vendor crdopc binary (ARDOP not shipped)"
+  ok "no vendor crdopc binary (ARDOP-plugin uses operator ARDOP host)"
 fi
 if [[ -x "${BUILD_DIR}/bin/audio-dummyd" ]]; then
   ok "audio-dummyd binary (native SoftModem host)"
@@ -214,7 +214,7 @@ if [[ -x "${BUILD_DIR}/bin/crdopc" ]] && CRDOP_BIN="${PWD}/${BUILD_DIR}/bin/crdo
 elif [[ -x "${BUILD_DIR}/bin/crdopc" ]]; then
   fail "crdop smoke (vendor crdopc present but smoke failed)"
 else
-  ok "crdop vendor smoke skipped — ARDOP not shipped; native SoftModem default"
+  ok "crdop vendor smoke skipped — native SoftModem default; ARDOP-plugin optional"
 fi
 
 # --- discovery ---

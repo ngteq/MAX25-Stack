@@ -70,9 +70,9 @@ Pass extra args after port (reserved for future native modem flags):
 ./scripts/crdopc 8515
 ```
 
-## Optional third-party ARDOP attach (external)
+## ARDOP-plugin
 
-MAX25 does **not** ship ARDOP. To use an external ARDOP binary you installed separately:
+Enable **ARDOP-plugin** wire mode with `ardop_compat=yes` and an operator ARDOP host:
 
 ```ini
 [compat]
@@ -80,7 +80,7 @@ ardop_compat = yes
 ```
 
 ```bash
-CRDOP_BIN=/path/to/external/crdopc ./scripts/crdopc
+CRDOP_BIN=/path/to/ardopc ./scripts/crdopc
 ```
 
 ## Direct audio-dummyd (no launcher)
