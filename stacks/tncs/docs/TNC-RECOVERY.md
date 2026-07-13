@@ -8,9 +8,8 @@ Shared implementation: `stacks/tncs/tnc_serial_recovery.py` (used by `tnc2c-host
 
 | Situation | First action | Rescue (if software fails) |
 |-----------|--------------|----------------------------|
-| Echo-only (`INFO` → `INFO`, no banner) | `./tnc2c-host-reset.sh` | `./tnc2c-boot-wait.sh` + power cycle while DTR high |
-| Stuck in KISS / host (JHOST) | `./tnc2c-host-reset.sh --kiss` | Same boot-wait rescue |
-| After `max25d` attach fails (`error-host`) | `./tnc2c-boot-wait.sh --recover-only` | Boot-wait + power cycle |
+| Echo-only (`INFO` → `INFO`, no banner) | `max25d` serial watch / `./tnc2c-host-reset.sh` | `./tnc2c-boot-wait.sh` only if cold-boot without DTR |
+| After `max25d` prep deferred | Wait for serial watch retry (45s grace) | `./tnc2c-host-reset.sh --kiss` |
 | PK-TNC2 (9600 8N1) | `./pktnc2-boot-wait.sh --recover-only` | `./pktnc2-boot-wait.sh` + power cycle |
 | Cold boot, never saw `cmd:` | `./tnc2c-boot-wait.sh` (DTR before power-on) | Fix wiring (DTR/RTS, CTS bridge) |
 
@@ -18,12 +17,13 @@ Shared implementation: `stacks/tncs/tnc_serial_recovery.py` (used by `tnc2c-host
 
 Run with **DTR+RTS high** and the port open:
 
-1. Passive listen (~1.5 s)
-2. KISS return frame `0xC0 0xFF 0xC0`
+1. Passive listen (~1.5 s) + **DTR settle 2 s** after open (max25d)
+2. KISS return `0xC0 0xFF 0xC0` + ESC+`@K`
 3. JHOST 0 — 300× NUL + framed `JHOST 0\r`
-4. `kiss off` + `INFO` — stop if firmware banner appears
-5. 3× Ctrl-C + `RESTART` + `INFO`
-6. Buffer flush `^Q^X` + `kiss off` + `INFO`
+4. Buffer flush `^Q^X`
+5. `kiss off` + `INFO` (also combined `kiss off`+`INFO`)
+6. 3× Ctrl-C + `RESTART` / `@RESTART` + INFO
+7. ESC E 0 + second RESTART round + final flush
 
 Success markers: `TheFirmware`, `NORD`, `Version 2.7`, `Checksum`, `cmd:`.
 

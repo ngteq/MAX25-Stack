@@ -45,6 +45,7 @@ auto_start = yes
 serial_watch = yes
 serial_watch_interval = 60
 serial_repair_cooldown = 20
+serial_watch_startup_grace = 45
 ; max25d uses --recover-only for TNC stack prep (no power cycle on daemon start)
 stack_recover_only = yes
 stack_retry_interval = 120

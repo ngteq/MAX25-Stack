@@ -65,6 +65,7 @@ class DaemonConfig:
     serial_watch: bool = True
     serial_watch_interval: int = 60
     serial_repair_cooldown: int = 20
+    serial_watch_startup_grace: int = 45
     stack_recover_only: bool = True
     stack_retry_interval: int = 120
     bans_file: str = str(DEFAULT_BANS_FILE)
@@ -86,6 +87,7 @@ class DeviceRuntime:
     last_watch: float = 0.0
     last_repair: float = 0.0
     last_stack_retry: float = 0.0
+    prep_done: bool = False
 
 
 @dataclass
@@ -98,6 +100,7 @@ class DaemonState:
     clients: Set[socket.socket] = field(default_factory=set)
     bans: BanList = field(default_factory=BanList)
     lock: threading.Lock = field(default_factory=threading.Lock)
+    started_at: float = 0.0
 
 
 def log(msg: str) -> None:
@@ -229,6 +232,9 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
         cfg.serial_repair_cooldown = cp.getint(
             "stack", "serial_repair_cooldown", fallback=cfg.serial_repair_cooldown
         )
+        cfg.serial_watch_startup_grace = cp.getint(
+            "stack", "serial_watch_startup_grace", fallback=cfg.serial_watch_startup_grace
+        )
         if cp.has_option("stack", "stack_recover_only"):
             cfg.stack_recover_only = _truthy(cp.get("stack", "stack_recover_only"))
         cfg.stack_retry_interval = cp.getint(
@@ -294,17 +300,13 @@ def on_backend_rx(state: DaemonState, dev_id: str, line: str) -> None:
     broadcast(state, f"RX device={dev_id} {line}")
 
 
-BACKEND_RETRY_STATUSES = frozenset(
+BACKEND_POLL_OPEN_STATUSES = frozenset(
     {
         "closed",
         "error-open",
         "error-connect",
         "error-no-device",
         "error-no-path",
-        "error-host",
-        "error-kiss",
-        "error-tx",
-        "error-io",
     }
 )
 
@@ -317,6 +319,8 @@ SERIAL_REPAIR_STATUSES = frozenset(
         "error-config",
     }
 )
+
+BACKEND_RETRY_STATUSES = BACKEND_POLL_OPEN_STATUSES | SERIAL_REPAIR_STATUSES
 
 
 def uses_inline_tnc_prep(state: DaemonState, dev_id: str) -> bool:
@@ -341,20 +345,21 @@ def prep_inline_serial_device(state: DaemonState, dev_id: str) -> None:
     if stabilize is None:
         return
     ok = stabilize(state.cfg.callerid, force=False)
+    rt.prep_done = True
     rt.link_status = backend.status
     if ok:
         log(f"serial prep OK ({dev_id})")
     else:
         log(
-            f"serial prep failed ({dev_id}) status={backend.status} "
-            "— rescue: power-cycle with DTR high, then tnc2c-boot-wait.sh"
+            f"serial prep deferred ({dev_id}) status={backend.status} "
+            "— serial watch will retry (software ladder, no boot-wait subprocess)"
         )
 
 
 def backend_needs_open(backend: Optional[DeviceBackend]) -> bool:
     if backend is None:
         return True
-    return backend.status in BACKEND_RETRY_STATUSES
+    return backend.status in BACKEND_POLL_OPEN_STATUSES
 
 
 def open_backend(state: DaemonState, dev_id: str) -> bool:
@@ -365,6 +370,12 @@ def open_backend(state: DaemonState, dev_id: str) -> bool:
         return False
     if rt.backend is not None and rt.backend.status not in BACKEND_RETRY_STATUSES:
         return rt.backend.status in ("open", "ready")
+    if (
+        rt.backend is not None
+        and rt.backend.status in SERIAL_REPAIR_STATUSES
+        and rt.prep_done
+    ):
+        return rt.backend.status in ("open", "ready", "error-host", "error-kiss")
     if rt.backend is not None and rt.backend.status != "closed":
         rt.backend.close()
         rt.backend = None
@@ -662,6 +673,8 @@ def poll_serial_stability(state: DaemonState) -> None:
     if not cfg.serial_watch:
         return
     now = time.time()
+    if state.started_at and now - state.started_at < cfg.serial_watch_startup_grace:
+        return
     for dev_id in enabled_device_ids(state):
         if device_backend_kind(state, dev_id) != "kiss-serial":
             continue
@@ -982,6 +995,8 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
 
     if state.cfg.auto_start:
         start_stacks(state)
+
+    state.started_at = time.time()
 
     log(
         f"listening tcp={state.cfg.tcp_host}:{state.cfg.tcp_port} "

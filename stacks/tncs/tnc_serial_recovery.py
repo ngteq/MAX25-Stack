@@ -4,14 +4,17 @@ TheFirmware / TNC-2 class — terminal recovery without power cycle.
 Shared by tnc2c-host-reset, tnc2c-boot-wait, kiss_bridge (max25d).
 
 Recovery ladder (cumulative, stop on first banner):
-  1. Passive read
-  2. KISS return frame 0xC0 0xFF 0xC0  (gettoweb / TAPR)
-  3. JHOST 0 escape — 300× NUL + framed command  (gettoweb / WA8DED)
-  4. kiss off + INFO probe
-  5. 3× Ctrl-C + RESTART + INFO  (packet-radio.net / TF)
-  6. ^Q^X + kiss off + INFO  (buffer flush)
+  0. DTR+RTS high + settle (caller / max25d open)
+  1. Passive listen
+  2. KISS return 0xC0 0xFF 0xC0  +  ESC+@K
+  3. JHOST 0 (300× NUL + framed command)
+  4. Buffer flush ^Q^X
+  5. kiss off + INFO (+ combined kiss off\\rINFO\\r)
+  6. 3× Ctrl-C + RESTART (+ @RESTART) + INFO
+  7. Repeat RESTART round with longer wait
+  8. ESC E 0 (echo off) + INFO
 
-Power-cycle is only needed when DTR was low at cold boot (Landolt TNC2C).
+Power-cycle only when cold-boot happened without DTR (Landolt TNC2C).
 """
 
 from __future__ import annotations
@@ -64,6 +67,20 @@ def probe_info(
     return has_banner(combined), combined, only_echo
 
 
+def probe_combined(
+    write_flush: Callable[[bytes], None],
+    read_for: Callable[[float], bytes],
+) -> tuple[bool, bytes, bool]:
+    """Single write kiss off + INFO (gettoweb / forum pattern)."""
+    write_flush(b"kiss off\rINFO\r")
+    time.sleep(0.8)
+    reply = read_for(5.0)
+    only_echo = is_echo_only(b"kiss off\rINFO\r", reply) or (
+        is_echo_only(b"kiss off\r", reply[:20]) and is_echo_only(b"INFO\r", reply[-20:])
+    )
+    return has_banner(reply), reply, only_echo
+
+
 def send_jhost0(write_flush: Callable[[bytes], None]) -> None:
     """Leave WA8DED host mode → terminal (gettoweb.de / WA8DED guide)."""
     write_flush(b"\x00" * 300)
@@ -77,6 +94,18 @@ def send_kiss_return(write_flush: Callable[[bytes], None]) -> None:
     time.sleep(1.0)
 
 
+def send_esc_at_k(write_flush: Callable[[bytes], None]) -> None:
+    """Alternate KISS exit (TheFirmware / Symek)."""
+    write_flush(b"\x1b@K")
+    time.sleep(0.8)
+
+
+def send_echo_off(write_flush: Callable[[bytes], None]) -> None:
+    """TheFirmware ESC E 0 — disable terminal echo (TAPR double-echo)."""
+    write_flush(b"\x1bE0\r")
+    time.sleep(0.3)
+
+
 def send_restart_escape(write_flush: Callable[[bytes], None]) -> None:
     """Exit stuck KISS / sync terminal (packet-radio.net PK-88 pattern)."""
     for _ in range(3):
@@ -84,13 +113,34 @@ def send_restart_escape(write_flush: Callable[[bytes], None]) -> None:
         time.sleep(0.08)
     time.sleep(0.3)
     write_flush(b"RESTART\r")
-    time.sleep(1.5)
+    time.sleep(2.0)
+
+
+def send_at_restart(write_flush: Callable[[bytes], None]) -> None:
+    """TheFirmware @-prefix restart (some TF builds in transparent mode)."""
+    write_flush(b"@RESTART\r")
+    time.sleep(2.0)
 
 
 def send_buffer_flush(write_flush: Callable[[bytes], None]) -> None:
     """WA8DED host guide: ^Q^X before commands if junk in buffer."""
     write_flush(b"\x11\x18")  # DC1 + CAN
     time.sleep(0.2)
+
+
+def _try_probe(
+    write_flush: Callable[[bytes], None],
+    read_for: Callable[[float], bytes],
+    out: LogFn,
+    label: str,
+) -> tuple[bool, bytes]:
+    ok, probe, only_echo = probe_info(write_flush, read_for)
+    if ok:
+        out(f"recovery: OK after {label}")
+        return True, probe
+    if not only_echo and probe:
+        out(f"recovery: partial reply after {label}")
+    return False, probe
 
 
 def recover_terminal(
@@ -100,9 +150,7 @@ def recover_terminal(
     skip_kiss_frame: bool = False,
     log: LogFn | None = None,
 ) -> tuple[bool, bytes]:
-    """
-    Run full software recovery ladder. Returns (host_ok, all_rx_bytes).
-  """
+    """Run full software recovery ladder. Returns (host_ok, all_rx_bytes)."""
     out = log or (lambda _msg: None)
     received = b""
 
@@ -113,39 +161,71 @@ def recover_terminal(
         send_kiss_return(write_flush)
         received += read_for(1.0)
         out("recovery: KISS return frame")
+        send_esc_at_k(write_flush)
+        received += read_for(0.8)
+        out("recovery: ESC+@K")
 
     send_jhost0(write_flush)
     received += read_for(1.0)
     out("recovery: JHOST 0")
 
-    ok, probe, only_echo = probe_info(write_flush, read_for)
+    send_buffer_flush(write_flush)
+    received += read_for(0.3)
+    out("recovery: buffer flush")
+
+    ok, probe = _try_probe(write_flush, read_for, out, "kiss off + INFO")
     received += probe
     if ok:
-        out("recovery: OK after kiss off + INFO")
         return True, received
-    if not only_echo and probe:
-        out("recovery: partial reply (no banner yet)")
 
-    if only_echo or not ok:
-        send_restart_escape(write_flush)
-        received += read_for(2.0)
-        out("recovery: 3× Ctrl-C + RESTART")
-        ok, probe, only_echo = probe_info(write_flush, read_for)
-        received += probe
-        if ok:
-            out("recovery: OK after RESTART")
-            return True, received
+    ok, probe, _ = probe_combined(write_flush, read_for)
+    received += probe
+    if ok:
+        out("recovery: OK after combined kiss off + INFO")
+        return True, received
 
-    if only_echo:
-        send_buffer_flush(write_flush)
-        received += read_for(0.5)
-        ok, probe, only_echo = probe_info(write_flush, read_for)
-        received += probe
-        if ok:
-            out("recovery: OK after buffer flush")
-            return True, received
+    send_restart_escape(write_flush)
+    received += read_for(2.5)
+    out("recovery: 3× Ctrl-C + RESTART")
+    ok, probe = _try_probe(write_flush, read_for, out, "RESTART")
+    received += probe
+    if ok:
+        return True, received
 
-    out("recovery: FAILED — echo only or silent (power-cycle + DTR at boot may be required)")
+    send_at_restart(write_flush)
+    received += read_for(2.0)
+    out("recovery: @RESTART")
+    ok, probe = _try_probe(write_flush, read_for, out, "@RESTART")
+    received += probe
+    if ok:
+        return True, received
+
+    send_echo_off(write_flush)
+    received += read_for(0.3)
+    ok, probe = _try_probe(write_flush, read_for, out, "ESC E 0")
+    received += probe
+    if ok:
+        return True, received
+
+    send_restart_escape(write_flush)
+    received += read_for(3.0)
+    out("recovery: second RESTART round")
+    ok, probe = _try_probe(write_flush, read_for, out, "second RESTART")
+    received += probe
+    if ok:
+        return True, received
+
+    send_buffer_flush(write_flush)
+    received += read_for(0.5)
+    ok, probe = _try_probe(write_flush, read_for, out, "final buffer flush")
+    received += probe
+    if ok:
+        return True, received
+
+    out(
+        "recovery: FAILED — echo only or silent "
+        "(retry with DTR high; cold-boot without DTR may need one boot-wait)"
+    )
     return False, received
 
 

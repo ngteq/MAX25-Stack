@@ -344,6 +344,9 @@ class KissBridge:
         self._thread = threading.Thread(target=self._rx_loop, name="kiss-rx", daemon=True)
         self._thread.start()
         self._log(f"serial open {dev} {self.profile.baud} {self.profile.line.upper()}")
+        if self.profile.dtr_rts:
+            time.sleep(2.0)
+            self._log("serial: DTR settle (2s)")
         return True
 
     def close(self) -> None:
