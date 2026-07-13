@@ -4,6 +4,7 @@ __pycache__/
 *.a
 .DS_Store
 build/
+build-*/
 dist/
 *.log
 stacks/tncs/tnc2c-probe
@@ -14,6 +15,7 @@ stacks/baycom-pr/tools/baycom_test
 local/*
 !local/README.md
 third_party/ax25/*-rc5/
+third_party/_build-test/
 third_party/ax25/_build-test/
 third_party/ax25/**/build/
 .ax25-analysis/

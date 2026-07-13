@@ -29,6 +29,7 @@
 | Annotated tag `v1.0.0` | **Exists** on commit `7f81fb9` (2026-07-12) — **predates** current release-prep tree |
 | Retag after commit | **Needed** if this tree should be the official v1.0.0 — requires `git tag -d v1.0.0` + `git tag -a v1.0.0` (maintainer decision; not done automatically) |
 | Push | **Not done** — per project rules |
+| `third_party/_build-test/` in tree | **Removed** in follow-up commit — added to `.gitignore` |
 
 ## Remaining blockers (non-CI)
 
