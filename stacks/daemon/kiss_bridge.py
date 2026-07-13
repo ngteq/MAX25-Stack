@@ -364,43 +364,97 @@ class KissBridge:
             return False
         self._mycall = mycall.upper()
         with self._lock:
-            if not self._recover_terminal_unlocked():
-                self._log("serial: terminal recovery failed (echo mode?)")
-                self.status = "error-host"
-                return False
-            self._write_unlocked(b"kiss off\r")
-            time.sleep(0.3)
-            self._drain_unlocked(0.2)
-            if not self._set_mycall_unlocked(self._mycall):
-                self._log("serial: MYCALL may have failed")
-            if not self._enter_kiss_unlocked():
-                self.status = "error-kiss"
-                return False
-            self._kiss_active = True
+            return self._stabilize_unlocked(self._mycall, force_ladder=False)
+
+    def stabilize_session(self, mycall: str, *, force: bool = False) -> bool:
+        """Probe terminal/KISS health and repair without closing the port (keeps DTR)."""
+        if self._fd is None:
+            self.status = "error-open"
+            return False
+        self._mycall = mycall.upper()
+        with self._lock:
+            return self._stabilize_unlocked(self._mycall, force_ladder=force)
+
+    def _load_recovery_mod(self):
+        import importlib.util
+
+        path = Path(__file__).resolve().parents[1] / "tncs" / "tnc_serial_recovery.py"
+        if not path.is_file():
+            return None
+        spec = importlib.util.spec_from_file_location("tnc_serial_recovery", path)
+        if spec is None or spec.loader is None:
+            return None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def _recovery_io(self) -> tuple[Callable[[bytes], None], Callable[[float], bytes]]:
+        def wf(data: bytes) -> None:
+            self._write_unlocked(data)
+
+        def rf(seconds: float) -> bytes:
+            return self._drain_unlocked(seconds)
+
+        return wf, rf
+
+    def _leave_kiss_unlocked(self) -> None:
+        if not self._kiss_active:
+            return
+        self._write_unlocked(b"kiss off\r")
+        time.sleep(0.3)
+        self._drain_unlocked(0.2)
+        self._kiss_active = False
+
+    def _enter_kiss_session_unlocked(self) -> bool:
+        if not self._set_mycall_unlocked(self._mycall):
+            self._log("serial: MYCALL may have failed")
+        if not self._enter_kiss_unlocked():
+            self.status = "error-kiss"
+            self._kiss_active = False
+            return False
+        self._kiss_active = True
         self.status = "ready"
         return True
 
-    def _recover_terminal_unlocked(self) -> bool:
-        """Software recovery before KISS attach (skip if already in host mode)."""
+    def _stabilize_unlocked(self, mycall: str, *, force_ladder: bool) -> bool:
+        """Host probe, optional recovery ladder, MYCALL + KISS — port stays open."""
+        self._mycall = mycall.upper()
         try:
-            import importlib.util
-            from pathlib import Path
+            mod = self._load_recovery_mod()
+            wf, rf = self._recovery_io()
+            self._leave_kiss_unlocked()
 
-            path = Path(__file__).resolve().parents[1] / "tncs" / "tnc_serial_recovery.py"
-            if not path.is_file():
+            if mod is not None:
+                ok, _, only_echo = mod.probe_info(wf, rf, pause=0.25)
+                if ok and not only_echo and not force_ladder:
+                    return self._enter_kiss_session_unlocked()
+                if only_echo or not ok or force_ladder:
+                    label = "auto-repair" if force_ladder else "recovery ladder"
+                    self._log(f"serial: {label}")
+                    ok, _ = mod.recover_terminal(wf, rf, log=self._log)
+                    if not ok:
+                        self.status = "error-host"
+                        self._kiss_active = False
+                        return False
+                    return self._enter_kiss_session_unlocked()
+
+            self._write_unlocked(b"kiss off\r")
+            time.sleep(0.3)
+            self._drain_unlocked(0.2)
+            return self._enter_kiss_session_unlocked()
+        except OSError as exc:
+            self.status = "error-io"
+            self._kiss_active = False
+            self._log(f"serial: stabilize I/O error ({exc})")
+            return False
+
+    def _recover_terminal_unlocked(self) -> bool:
+        """Legacy hook — full ladder when probe fails."""
+        try:
+            mod = self._load_recovery_mod()
+            if mod is None:
                 return True
-            spec = importlib.util.spec_from_file_location("tnc_serial_recovery", path)
-            if spec is None or spec.loader is None:
-                return True
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-
-            def wf(data: bytes) -> None:
-                self._write_unlocked(data)
-
-            def rf(seconds: float) -> bytes:
-                return self._drain_unlocked(seconds)
-
+            wf, rf = self._recovery_io()
             ok, _, only_echo = mod.probe_info(wf, rf)
             if ok and not only_echo:
                 self._log("serial: terminal mode OK")
@@ -493,6 +547,8 @@ class KissBridge:
                 time.sleep(0.05)
                 continue
             except OSError:
+                self._log("serial: rx I/O error — watch will repair")
+                self.status = "error-io"
                 break
             if not chunk:
                 time.sleep(0.05)
