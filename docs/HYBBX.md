@@ -44,9 +44,9 @@ sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
 
 Full BayCom contract: [BAYCOM.md](BAYCOM.md) · `stacks/baycom-pr/docs/PLUGIN.md`.
 
-## CRDOP — CB/AR Digital Open Protocol (`crdop`)
+## CRDOP — MAX25-SoftModem (`crdop`)
 
-**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
+**CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`).
 
 **MAX25 prep:**
 

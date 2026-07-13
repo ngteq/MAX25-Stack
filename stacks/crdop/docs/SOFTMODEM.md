@@ -4,8 +4,8 @@
 
 ## Name and role
 
-- **Product:** MAX25-SoftModem (stack acronym **CRDOP** = **CB/AR Digital Open Protocol** — CB = Citizens Band, AR = Amateur Radio; plugin id `soft-crdop`)
-- **Product version:** **CRDOP-CUR999** (`CUR999`) — pre-release until **v0.5**
+- **Product:** MAX25-SoftModem (stack acronym **CRDOP**; plugin id `soft-crdop`)
+- **Stack version:** MAX25-Stack **v1.0.0** · **Dev track:** `CUR999` in `$SRC/stacks/crdop/VERSION`
 - **Stack:** MainAX25-Stack — **standard** component (built/installed unless `MAX25_BUILD_CRDOP=OFF`)
 - **Nature:** Pure MAX25 in-house development — in **development and test phase**, openly documented
 
@@ -110,7 +110,7 @@ Generic interface specification: [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE.md).
 
 ## Build / release (MAX25-Stack-v1.0.0)
 
-**CRDOP product:** **CRDOP-CUR999** (`CUR999`) — pre-release until v0.5.
+**CRDOP dev track:** `CUR999` in `$SRC/stacks/crdop/VERSION` (ships with MAX25-Stack v1.0.0).
 
 | Item | Shipped |
 |------|---------|

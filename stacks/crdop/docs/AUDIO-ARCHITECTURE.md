@@ -1,6 +1,6 @@
 # CRDOP audio architecture — kernel ALSA only
 
-**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
+**CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`).
 
 MAX25-SoftModem (CRDOP) talks to the radio **through the sound hardware directly**. There is **no PulseAudio**, **no PipeWire default route**, and **no desktop sound server** in the path.
 

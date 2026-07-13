@@ -6,7 +6,7 @@
 
 | Gate | Result |
 |------|--------|
-| `cmake` build + install (`build-release/`, prefix `/tmp/max25-v100-test`) | **Pass** |
+| `cmake` build + install (`$BUILD/`, prefix `$PREFIX` or `$BUILD/install-test`) | **Pass** |
 | `./scripts/release-check.sh` | **Pass** — 75 OK, 0 FAIL, 1 WARN (`tnc2c-probe`: no serial hardware) |
 | `test_crdop_backend.py` | **Pass** |
 | `test_audio_dummy_backend.py` | **Pass** |
@@ -15,7 +15,7 @@
 ## Consistency audit (fixed)
 
 - Version `1.0.0` (no `1.0.0.0`)
-- CRDOP product **CRDOP-CUR999** until separate v0.5
+- CRDOP dev track `CUR999` until standalone CRDOP v0.5 milestone
 - `MAX25_BUILD_CRDOP=ON` default documented everywhere
 - ARDOP-plugin documented; vendor tree not in release install path
 - `CrdopTcpBackend`: KISS default, `[CRDOP AX25 UI …]` display strings

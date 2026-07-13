@@ -1,6 +1,6 @@
 # Third-party notices
 
-**CRDOP (CB/AR Digital Open Protocol — MAX25-SoftModem)** — Copyright (c) 2026 ngteq, **GNU GPL v3** ([LICENSE](LICENSE), [../../LICENSE](../../LICENSE))
+**CRDOP (MAX25-SoftModem — MAX25-SoftModem)** — Copyright (c) 2026 ngteq, **GNU GPL v3** ([LICENSE](LICENSE), [../../LICENSE](../../LICENSE))
 
 In-house sound-card modem subproject of MainAX25-Stack. Sound-card based; kernel ALSA via MAX25 sound-proxy. Project rule: [docs/CRDOP.md](../../docs/CRDOP.md).
 

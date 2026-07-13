@@ -28,7 +28,7 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 ## Rules
 
 1. **Standalone-first** — MAX25 prepares hardware; HyBBX never replaces boot-wait or kernel modem lifecycle.
-2. **No personal/local paths** in docs or examples — use placeholders (`/dev/ttyUSB0`, `main.example.com`).
+2. **No personal/local paths** in docs or examples — use `$SRC`, `$VAULT`, `$PREFIX` ([docs/PATHS.md](docs/PATHS.md)) or placeholders (`/dev/ttyUSB0`, `main.example.com`).
 3. **Linux daemon only** — `max25d` + BayCom + full stack on Linux; host setup — [docs/LINUX-HOST-SETUP.md](docs/LINUX-HOST-SETUP.md); terminal — [docs/PLATFORMS.md](docs/PLATFORMS.md).
 4. **One official client** — `max25-terminal` / `max25-client` only; text + F10 menu; binding in [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md).
 5. **BayCom stays** — first-class on Linux daemon; not deprecated.
@@ -36,7 +36,7 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 7. **HyBBX external** — INI in `share/hybbx/` only.
 8. **Git** — only `ngteq <info@un1t.me>`; push via `~/.ssh/id_ed25519_ngteq`; commit/push when user asks.
 9. **English-only repo** — all shipped docs, UI, examples, and user-facing text in English.
-10. **CRDOP = CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio) — sound-card subproject **MAX25-SoftModem** at `stacks/crdop/`; **GNU GPLv3**; kernel ALSA only (MAX25 sound-proxy, no PulseAudio); full AX.25/KISS/TNC/modem compatibility goal; hardware-solution-first + pure-software deployment. **Static rule:** [docs/CRDOP.md](docs/CRDOP.md) — read before changing CRDOP code or docs.
+10. **CRDOP = MAX25-SoftModem** — stack acronym for the in-house sound-card AX.25 modem at `$SRC/stacks/crdop/` (device id `soft-crdop`); **GNU GPLv3**; kernel ALSA only (MAX25 sound-proxy, no PulseAudio); full AX.25/KISS/TNC/modem compatibility goal; hardware-solution-first + pure-software deployment. CB/amateur bands are use cases, not an acronym expansion. **Static rule:** [docs/CRDOP.md](docs/CRDOP.md) — read before changing CRDOP code or docs.
 11. **ARDOP-plugin** — Optional MAX25-Stack plugin for ARDOP wire mode on `soft-crdop` (`ardop_compat=true`). Default is native CRDOP/M25-KISS host. Registry: [plugins/external/ardop/plugin.yaml](plugins/external/ardop/plugin.yaml).
 
 ## Commands
@@ -58,7 +58,8 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 | [docs/HYBBX.md](docs/HYBBX.md) | HyBBX contract |
 | [docs/PACKET-RADIO.md](docs/PACKET-RADIO.md) | AX.25, KISS, TNC, BayCom |
 | [docs/BAYCOM.md](docs/BAYCOM.md) | BayCom operator guide (single default, dual opt-in) |
-| [docs/CRDOP.md](docs/CRDOP.md) | **CRDOP** = CB/AR Digital Open Protocol — MAX25-SoftModem subproject (GPLv3) |
+| [docs/CRDOP.md](docs/CRDOP.md) | **CRDOP** = MAX25-SoftModem (GPLv3) |
+| [docs/PATHS.md](docs/PATHS.md) | Doc path variables (`$SRC`, `$VAULT`, `$PREFIX`) |
 | [stacks/crdop/docs/INDEX.md](stacks/crdop/docs/INDEX.md) | CRDOP doc index — operators, developers, AI agents |
 | [stacks/crdop/docs/HOST-PROTOCOL-SPEC.md](stacks/crdop/docs/HOST-PROTOCOL-SPEC.md) | CRDOP M25 host wire (frozen v1.0.0) |
 | [docs/MAX25-OPERATOR-RUNBOOK.md](docs/MAX25-OPERATOR-RUNBOOK.md) | End-to-end operator workflow |

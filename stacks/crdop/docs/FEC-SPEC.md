@@ -4,7 +4,7 @@
 
 **Vault source:** `0-RESEARCHES/projects/max25-stack/2026-07-13-crdop-fec-duplex-strategy.md`, `l2-fec-protocols.md`.
 
-**Status:** **CRDOP-CUR999** — L1 optional FEC **planned**; operator-layer strategy **active now**.
+**Status:** MAX25-Stack **v1.0.0** / dev track `CUR999` — L1 optional FEC **planned**; operator-layer strategy **active now**.
 
 ---
 

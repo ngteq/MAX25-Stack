@@ -1,6 +1,6 @@
 # Hardware: Soft Modems
 
-Sound-card software modems — **MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol)** is the in-house standard. **CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
+Sound-card software modems — **MAX25-SoftModem (CRDOP — MAX25-SoftModem)** is the in-house standard. **CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`).
 
 | Device | Stack | HyBBX plugin | Protocol | v1 |
 |--------|-------|--------------|----------|-----|

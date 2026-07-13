@@ -17,7 +17,7 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | BayCom / PC-COM operator | [BAYCOM.md](BAYCOM.md) · `share/baycom/` examples |
 | Host / operator | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) · [HARDWARE-ACCEPTANCE.md](HARDWARE-ACCEPTANCE.md) |
 | AX.25 codec | [AX25-NATIVE-CODEC.md](AX25-NATIVE-CODEC.md) |
-| Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) |
+| Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) · [PATHS.md](PATHS.md) |
 | v1 release | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) |
 
 ## Technical reference
@@ -27,7 +27,7 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | Architecture & plugins | [ARCHITECTURE.md](ARCHITECTURE.md) · [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |
 | AX.25 / KISS / TNC | [PACKET-RADIO.md](PACKET-RADIO.md) · [include/max25/packet-radio.md](../include/max25/packet-radio.md) |
 | BayCom kernel modems | [BAYCOM.md](BAYCOM.md) |
-| **CRDOP / MAX25-SoftModem** (CB/AR Digital Open Protocol) | [CRDOP.md](CRDOP.md) · [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) · [stacks/crdop/README.md](../stacks/crdop/README.md) |
+| **CRDOP / MAX25-SoftModem** | [CRDOP.md](CRDOP.md) · [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) · [stacks/crdop/README.md](../stacks/crdop/README.md) |
 | Platforms | [PLATFORMS.md](PLATFORMS.md) |
 | *BSD deferred | [FREEBSD-AX25.md](FREEBSD-AX25.md) |
 | Merge archive | [MERGE-REPORT.md](MERGE-REPORT.md) |

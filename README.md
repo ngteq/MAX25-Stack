@@ -25,9 +25,9 @@ Operator                    Linux host (max25d)
 | Plugins | `plugins/` | Operating mode → hardware → device registry |
 | HyBBX attach | `share/hybbx/` | INI examples — HyBBX repo is external |
 
-## MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol) — standard component
+## MAX25-SoftModem (CRDOP) — standard component
 
-**CRDOP** (**CB/AR Digital Open Protocol**; CB = Citizens Band, AR = Amateur Radio) is our in-house **MAX25-SoftModem** — built and installed **by default** with every MAX25-Stack build. Disable only when you do not need a sound-card modem:
+**CRDOP** is the stack acronym for our in-house **MAX25-SoftModem** — built and installed **by default** with every MAX25-Stack build. Disable only when you do not need a sound-card modem:
 
 ```bash
 cmake -B build -DMAX25_BUILD_CRDOP=OFF

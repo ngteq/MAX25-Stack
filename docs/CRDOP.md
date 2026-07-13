@@ -1,13 +1,13 @@
-# CRDOP — CB/AR Digital Open Protocol (MAX25-SoftModem)
+# CRDOP — MAX25-SoftModem
 
-> **Static rule:** **CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio). This expansion is authoritative everywhere CRDOP is defined in MAX25-Stack.
+> **Static rule:** **CRDOP** is the stack acronym for **MAX25-SoftModem** — the in-house sound-card AX.25 modem (`stacks/crdop/`, device id `soft-crdop`). Citizens Band and amateur radio are **use cases**, not an acronym expansion. This file is authoritative for CRDOP naming in MAX25-Stack.
 
-**Status:** Static project rule · **License:** GNU GPL v3 · **Location:** `stacks/crdop/` (MAX25-Stack subproject)  
-**Product version:** **CRDOP-CUR999** (`CUR999` in `stacks/crdop/VERSION`) — pre-release until **v0.5**
+**Status:** MAX25-Stack **v1.0.0** standard component · **License:** GNU GPL v3  
+**Location:** `$SRC/stacks/crdop/` · **Dev track:** `CUR999` in `stacks/crdop/VERSION` (internal DSP scaffold id; not a separate product release)
 
 CRDOP is the **sound-card-based software modem** subproject of [MainAX25-Stack (MAX25-Stack)](../README.md). Product name: **MAX25-SoftModem**. Plugin/device id: `soft-crdop`.
 
-This document is the **authoritative project rule** for CRDOP. All design, documentation, and implementation must align with it.
+Research vault (modulation, FEC, hardware): `$VAULT/projects/max25-stack/` — see [docs/PATHS.md](PATHS.md).
 
 ---
 
@@ -15,10 +15,11 @@ This document is the **authoritative project rule** for CRDOP. All design, docum
 
 | Item | Value |
 |------|--------|
-| **Product label** | **CRDOP-CUR999** |
-| **Version file** | `CUR999` (`stacks/crdop/VERSION`) |
-| **Release target** | **v0.5** (first numbered release; not yet shipped) |
-| **Tree** | `stacks/crdop/` |
+| **Product name** | **MAX25-SoftModem** |
+| **Stack acronym** | **CRDOP** |
+| **Version file** | `CUR999` (`$SRC/stacks/crdop/VERSION`) — dev track only |
+| **Stack release** | **MAX25-Stack v1.0.0** (`VERSION` at repo root) |
+| **Tree** | `$SRC/stacks/crdop/` |
 | **Registry** | `plugins/devices/soft-crdop/`, `plugins/hardware/soft-modems/` |
 | **Daemon hook** | `max25d` → `CrdopTcpBackend` (`device_backends.py`) |
 | **Build** | **ON by default** — `MAX25_BUILD_CRDOP=ON`; disable with `-DMAX25_BUILD_CRDOP=OFF` |
@@ -27,7 +28,7 @@ This document is the **authoritative project rule** for CRDOP. All design, docum
 CRDOP is an **in-house GNU GPLv3 subproject** developed, tested, and documented inside MAX25-Stack, with its own headers, INI, launcher, and roadmap.
 
 ```
-MAX25-Stack/
+$SRC/
 ├── docs/CRDOP.md              ← this file (project rule)
 ├── stacks/crdop/              ← subproject root
 │   ├── include/crdop/         ← native API (sound-proxy, modem)
@@ -66,11 +67,11 @@ CRDOP targets **full compatibility** in the software-modem domain with establish
 
 **Primary speed:** 1200 baud. **Design range:** up to **19200 baud**. **Above 19200 baud:** not implemented in the current phase.
 
-**Modulation priorities** (P0 Bell 202 → P1 G3RUH → P2 HF 300, FEC strategy, RF paths, **full research vault coverage**): [stacks/crdop/ROADMAP.md](../stacks/crdop/ROADMAP.md).
+**Modulation priorities** (P0 Bell 202 → P1 G3RUH → P2 HF 300, FEC strategy, RF paths): [stacks/crdop/ROADMAP.md](../stacks/crdop/ROADMAP.md).
 
 **Duplex:** half-duplex and full-duplex, per radio and audio hardware capability.
 
-CRDOP behaves like a **hardware modem** from the operator’s view: sound IN/OUT + transceiver, integrated via `max25d` like serial or kernel modem paths.
+CRDOP behaves like a **hardware modem** from the operator's view: sound IN/OUT + transceiver, integrated via `max25d` like serial or kernel modem paths.
 
 ---
 
@@ -105,7 +106,7 @@ Both tracks share the **same GPLv3 codebase** and **same on-air compatibility go
 
 CRDOP is a **GNU GPLv3** project:
 
-- Source in `stacks/crdop/` is licensed under **GPL-3.0-or-later** (see [LICENSE](../stacks/crdop/LICENSE) and repository root [LICENSE](../LICENSE)).
+- Source in `$SRC/stacks/crdop/` is licensed under **GPL-3.0-or-later** (see [LICENSE](../stacks/crdop/LICENSE) and repository root [LICENSE](../LICENSE)).
 - Derivative hardware documentation that ships with the repo follows the same free-software intent.
 - **ARDOP-plugin** is an optional MAX25-Stack plugin — enable with `ardop_compat=true` on `soft-crdop`. Registry: [plugins/external/ardop/README.md](../plugins/external/ardop/README.md).
 
@@ -123,6 +124,7 @@ Contributors grant rights consistent with GPLv3 copyleft.
 | Kernel AX.25 replacement | CRDOP is a **modem**, not `libax25` |
 | HyBBX session logic | External — attach after stack is up |
 | Speeds > 19200 baud | Out of scope (current phase) |
+| Acronym expansion “CB/AR Digital Open Protocol” | **Deprecated** — use **MAX25-SoftModem** |
 
 ---
 
@@ -145,13 +147,14 @@ See [stacks/crdop/ROADMAP.md](../stacks/crdop/ROADMAP.md).
 ## 8. Operator quick reference
 
 ```bash
+cd $SRC
 ./scripts/build.sh
 # Acoustic bench (no RF):
 python3 stacks/crdop/tools/max25-signal-sniffer.py --loopback
 # max25d with audio-dummy:
 #   [devices] audio-dummy = audio:loopback
 ./scripts/max25-ctl start --hardware acoustic-bench --device audio-dummy
-max25-terminal -U /run/max25/modem.sock
+max25-terminal -U $RUN_MAX25/modem.sock
 ```
 
 ### Acoustic bench tools
@@ -164,9 +167,9 @@ max25-terminal -U /run/max25/modem.sock
 
 ---
 
-## 10. Documentation index
+## 9. Documentation index
 
-**Compact entry:** [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) — full table of CRDOP docs for developers, operators, and hardware builders.
+**Compact entry:** [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md)
 
 | Audience | Start here |
 |----------|------------|
@@ -174,22 +177,8 @@ max25-terminal -U /run/max25/modem.sock
 | MAX25 operator | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) · [HARDWARE-ACCEPTANCE.md](HARDWARE-ACCEPTANCE.md) |
 | Developer | [stacks/crdop/docs/DEVELOPER.md](../stacks/crdop/docs/DEVELOPER.md) |
 | Hardware builder | [stacks/crdop/docs/HARDWARE-INTERFACE.md](../stacks/crdop/docs/HARDWARE-INTERFACE.md) |
+| Path conventions | [PATHS.md](PATHS.md) |
 | License / distribution | [stacks/crdop/docs/LICENSE-USAGE.md](../stacks/crdop/docs/LICENSE-USAGE.md) |
-
-## 11. Related documents
-
-| Document | Topic |
-|----------|--------|
-| [stacks/crdop/README.md](../stacks/crdop/README.md) | Subproject entry |
-| [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) | Documentation index |
-| [stacks/crdop/docs/SOFTMODEM.md](../stacks/crdop/docs/SOFTMODEM.md) | Product definition |
-| [stacks/crdop/docs/AUDIO-ARCHITECTURE.md](../stacks/crdop/docs/AUDIO-ARCHITECTURE.md) | Kernel ALSA, sound-proxy |
-| [stacks/crdop/docs/CONFIG.md](../stacks/crdop/docs/CONFIG.md) | INI keys |
-| [stacks/crdop/docs/HOST-PROTOCOL-SPEC.md](../stacks/crdop/docs/HOST-PROTOCOL-SPEC.md) | M25 host wire (frozen) |
-| [stacks/crdop/docs/PROTOCOL.md](../stacks/crdop/docs/PROTOCOL.md) | Host TCP summary |
-| [stacks/crdop/ROADMAP.md](../stacks/crdop/ROADMAP.md) | P0/P1/P2 phases, RF paths, FEC |
-| [PACKET-RADIO.md](PACKET-RADIO.md) | AX.25 / KISS context in MAX25 |
-| [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) | Release scope |
 
 ---
 

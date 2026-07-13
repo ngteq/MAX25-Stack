@@ -1,6 +1,6 @@
 # Build
 
-Standalone CRDOP (**CB/AR Digital Open Protocol** — MAX25-SoftModem) — embedded `vendor/ardopcf/`, no submodules.
+Standalone CRDOP (**MAX25-SoftModem** — MAX25-SoftModem) — embedded `vendor/ardopcf/`, no submodules.
 
 ## Requirements
 

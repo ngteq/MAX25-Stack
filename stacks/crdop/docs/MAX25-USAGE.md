@@ -2,9 +2,9 @@
 
 Complete operator and integrator workflow for **MAX25-SoftModem (CRDOP)** inside MainAX25-Stack.
 
-**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio). Project rule: [docs/CRDOP.md](../../../docs/CRDOP.md).
+**CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`). Project rule: [docs/CRDOP.md](../../../docs/CRDOP.md).
 
-**Versions:** MAX25-Stack **v1.0.0** · CRDOP **CUR999** (pre-release until **v0.5**).
+**Versions:** MAX25-Stack **v1.0.0** · CRDOP dev track **CUR999** (`$SRC/stacks/crdop/VERSION`).
 
 **Dependency:** CRDOP sources are standalone-capable in principle, but **MAX25-Stack is required** for build, `max25d`, INI, operator tooling, and plugin registry until **CRDOP-v1.0.0** marks a mature standalone release.
 

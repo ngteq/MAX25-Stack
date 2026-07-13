@@ -1,6 +1,6 @@
 # CRDOP developer guide
 
-**CRDOP** = **CB/AR Digital Open Protocol**. In-house GPLv3 sound-card modem (`stacks/crdop/`). Project rule: [docs/CRDOP.md](../../../docs/CRDOP.md).
+**CRDOP** = **MAX25-SoftModem**. In-house GPLv3 sound-card modem (`stacks/crdop/`). Project rule: [docs/CRDOP.md](../../../docs/CRDOP.md).
 
 ---
 

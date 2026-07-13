@@ -36,7 +36,7 @@ sudo cp local/hybbx.ini /usr/local/hybbx/hybbx.ini
 ### Start order (cold boot)
 
 ```bash
-# Modems powered → then e.g. /home/hybbx/start-hybbx.sh:
+# Modems powered → then site start script (e.g. $HYBBX_HOME/start-hybbx.sh):
 #   pktnc2-boot-wait → tnc2c-boot-wait → max25d → hybbx-start
 sudo -u hybbx max25d -c /etc/max25/max25d.ini &
 # wait for 127.0.0.1:7325

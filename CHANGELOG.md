@@ -43,4 +43,4 @@ Version file `1.0.0`. Product label **MAX25-Stack-v1.0.0**.
 ### Upstream stack versions
 
 - BayCom PR-Stack `1.0.0`
-- CRDOP **CRDOP-CUR999** (`CUR999` in `stacks/crdop/VERSION`) — pre-release until v0.5
+- CRDOP dev track `CUR999` (`$SRC/stacks/crdop/VERSION`) — ships with MAX25-Stack v1.0.0

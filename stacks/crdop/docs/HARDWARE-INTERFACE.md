@@ -2,7 +2,7 @@
 
 Generic specification for builders who manufacture **radio ↔ sound-card interfaces** for CRDOP (MAX25-SoftModem). **No product-specific wiring examples** — apply these rules to your own design.
 
-**CRDOP** = **CB/AR Digital Open Protocol**. Project rule: [docs/CRDOP.md](../../../docs/CRDOP.md).
+**CRDOP** = **MAX25-SoftModem**. Project rule: [docs/CRDOP.md](../../../docs/CRDOP.md).
 
 ---
 
@@ -180,11 +180,11 @@ Private notes — not shipped in MAX25-Stack:
 
 | Topic | Path |
 |-------|------|
-| Acoustic / interface hardware | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/acoustic-coupling-hardware.md` |
-| Sound-card requirements | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/soundcard-requirements.md` |
-| Bell 202 / 1200 AFSK | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/bell-202-afsk-1200.md` |
-| G3RUH 9600–19200 | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/g3ruh-fsk-9600-19200.md` |
-| Modulation reference | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/MODULATION-REFERENCE.md` |
+| Acoustic / interface hardware | `$VAULT/reference/modems-packet-radio/acoustic-coupling-hardware.md` |
+| Sound-card requirements | `$VAULT/reference/modems-packet-radio/soundcard-requirements.md` |
+| Bell 202 / 1200 AFSK | `$VAULT/reference/modems-packet-radio/bell-202-afsk-1200.md` |
+| G3RUH 9600–19200 | `$VAULT/reference/modems-packet-radio/g3ruh-fsk-9600-19200.md` |
+| Modulation reference | `$VAULT/reference/modems-packet-radio/MODULATION-REFERENCE.md` |
 
 ---
 

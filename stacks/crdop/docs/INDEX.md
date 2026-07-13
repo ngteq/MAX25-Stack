@@ -1,6 +1,6 @@
 # CRDOP documentation index
 
-**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio). Product: **MAX25-SoftModem** (`stacks/crdop/`). Version: **CRDOP-CUR999** until **v0.5**.
+**CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`). Product: **MAX25-SoftModem** (`stacks/crdop/`). Version: MAX25-Stack **v1.0.0**; dev track `CUR999` in `$SRC/stacks/crdop/VERSION`.
 
 **Project rule (authoritative):** [docs/CRDOP.md](../../../docs/CRDOP.md)  
 **AI agent map:** [AGENTS.md](../../../AGENTS.md) (repo root)

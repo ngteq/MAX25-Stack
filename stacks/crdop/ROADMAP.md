@@ -1,14 +1,14 @@
 # MAX25-SoftModem (CRDOP) — development roadmap
 
-> **Static rule:** **CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio). Authoritative everywhere CRDOP is named in MAX25-Stack.
+> **Static rule:** **CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`). Authoritative everywhere CRDOP is named in MAX25-Stack.
 
-**Product version:** **CRDOP-CUR999** (`CUR999` in `stacks/crdop/VERSION`) — pre-release development track until **v0.5** ships.
+**Stack version:** MAX25-Stack **v1.0.0** · **Dev track:** `CUR999` in `$SRC/stacks/crdop/VERSION`
 
 **Stack dependency:** CRDOP sources live in `stacks/crdop/` and are **standalone-capable** in principle, but **MAX25-Stack is required for integration** (build, `max25d`, INI, operator tooling) until **CRDOP-v1.0.0** (or later) marks a mature standalone release. Current stack product: **MAX25-Stack-v1.0.0**.
 
 **Nature:** MAX25 in-house development — open development and test program for the kernel-ALSA sound-card modem. **ARDOP-plugin** is optional; CRDOP is the standard modem.
 
-**Research synthesis:** 2026-07-13 — full vault analysis under `/home/akb/Code/0-RESEARCHES/` (see [Research vault coverage](#research-vault-coverage)). Actionable priorities below; depth stays in vault — **no duplicate re-copy** into this repo.
+**Research synthesis:** 2026-07-13 — full vault analysis under `$VAULT/` (see [Research vault coverage](#research-vault-coverage)). Actionable priorities below; depth stays in vault — **no duplicate re-copy** into this repo.
 
 ---
 
@@ -365,7 +365,7 @@ Open-hardware documentation: [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFAC
 
 ## Research vault coverage
 
-Full analysis **2026-07-13** — vault root `/home/akb/Code/0-RESEARCHES/`. Operator hardware runbooks and site-specific INI stay in vault only (not re-copied into CRDOP tree).
+Full analysis **2026-07-13** — vault root `$VAULT/`. Operator hardware runbooks and site-specific INI stay in vault only (not re-copied into CRDOP tree).
 
 | Vault document | Synthesized in this ROADMAP |
 |----------------|----------------------------|
@@ -413,28 +413,28 @@ External research vault — read for depth; synthesized above; do not duplicate 
 
 | Topic | Path |
 |-------|------|
-| **Vault index** | `/home/akb/Code/0-RESEARCHES/INDEX.md` |
-| **Modem catalog index** | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/README.md` |
-| **Master catalog** | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/MASTER-SOLUTIONS-CATALOG.md` |
-| CB packet solutions | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/cb-packet-solutions.md` |
-| VHF/UHF solutions | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/amateur-vhf-uhf-solutions.md` |
-| HF packet solutions | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/amateur-hf-packet-solutions.md` |
-| HF 300 bd AFSK detail | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/hf-300-baud-afsk.md` |
-| L2 / FEC (FX.25, IL2P) | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/l2-fec-protocols.md` |
-| Modern softmodems (comparison) | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/modern-softmodems.md` |
-| Bell 202 / 1200 AFSK | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/bell-202-afsk-1200.md` |
-| G3RUH 9600–19200 | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/g3ruh-fsk-9600-19200.md` |
-| HDLC / AX.25 layers | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/nrzi-hdlc-ax25-layers.md` |
-| Modulation parameter table | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/MODULATION-REFERENCE.md` |
-| Sound-card requirements | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/soundcard-requirements.md` |
-| Acoustic / interface hardware | `/home/akb/Code/0-RESEARCHES/reference/modems-packet-radio/acoustic-coupling-hardware.md` |
-| Packet radio fundamentals | `/home/akb/Code/0-RESEARCHES/reference/2026-07-12-packet-radio-fundamentals.md` |
-| Linux modems survey | `/home/akb/Code/0-RESEARCHES/reference/2026-07-12-modems-linux.md` |
-| Linux AX.25 ecosystem | `/home/akb/Code/0-RESEARCHES/reference/2026-07-12-linux-ax25-ecosystem.md` |
-| CRDOP development master | `/home/akb/Code/0-RESEARCHES/projects/max25-stack/2026-07-13-crdop-development-master.md` |
-| FEC / duplex strategy | `/home/akb/Code/0-RESEARCHES/projects/max25-stack/2026-07-13-crdop-fec-duplex-strategy.md` |
-| MAX25 ↔ HyBBX boundary | `/home/akb/Code/0-RESEARCHES/projects/integration/2026-07-12-max25-hybbx-boundary-final.md` |
-| EU CB packet context | `/home/akb/Code/0-RESEARCHES/reference/2026-07-12-cb-eu-packet.md` |
+| **Vault index** | `$VAULT/INDEX.md` |
+| **Modem catalog index** | `$VAULT/reference/modems-packet-radio/README.md` |
+| **Master catalog** | `$VAULT/reference/modems-packet-radio/MASTER-SOLUTIONS-CATALOG.md` |
+| CB packet solutions | `$VAULT/reference/modems-packet-radio/cb-packet-solutions.md` |
+| VHF/UHF solutions | `$VAULT/reference/modems-packet-radio/amateur-vhf-uhf-solutions.md` |
+| HF packet solutions | `$VAULT/reference/modems-packet-radio/amateur-hf-packet-solutions.md` |
+| HF 300 bd AFSK detail | `$VAULT/reference/modems-packet-radio/hf-300-baud-afsk.md` |
+| L2 / FEC (FX.25, IL2P) | `$VAULT/reference/modems-packet-radio/l2-fec-protocols.md` |
+| Modern softmodems (comparison) | `$VAULT/reference/modems-packet-radio/modern-softmodems.md` |
+| Bell 202 / 1200 AFSK | `$VAULT/reference/modems-packet-radio/bell-202-afsk-1200.md` |
+| G3RUH 9600–19200 | `$VAULT/reference/modems-packet-radio/g3ruh-fsk-9600-19200.md` |
+| HDLC / AX.25 layers | `$VAULT/reference/modems-packet-radio/nrzi-hdlc-ax25-layers.md` |
+| Modulation parameter table | `$VAULT/reference/modems-packet-radio/MODULATION-REFERENCE.md` |
+| Sound-card requirements | `$VAULT/reference/modems-packet-radio/soundcard-requirements.md` |
+| Acoustic / interface hardware | `$VAULT/reference/modems-packet-radio/acoustic-coupling-hardware.md` |
+| Packet radio fundamentals | `$VAULT/reference/2026-07-12-packet-radio-fundamentals.md` |
+| Linux modems survey | `$VAULT/reference/2026-07-12-modems-linux.md` |
+| Linux AX.25 ecosystem | `$VAULT/reference/2026-07-12-linux-ax25-ecosystem.md` |
+| CRDOP development master | `$VAULT/projects/max25-stack/2026-07-13-crdop-development-master.md` |
+| FEC / duplex strategy | `$VAULT/projects/max25-stack/2026-07-13-crdop-fec-duplex-strategy.md` |
+| MAX25 ↔ HyBBX boundary | `$VAULT/projects/integration/2026-07-12-max25-hybbx-boundary-final.md` |
+| EU CB packet context | `$VAULT/reference/2026-07-12-cb-eu-packet.md` |
 
 ### In-repo technical docs
 
@@ -458,4 +458,4 @@ External research vault — read for depth; synthesized above; do not duplicate 
 
 ---
 
-*Roadmap synthesized 2026-07-13 from full `/home/akb/Code/0-RESEARCHES/` vault analysis (modem catalog + MAX25 project notes). Update when phase gates close or modulation priorities change.*
+*Roadmap synthesized 2026-07-13 from full `$VAULT/` vault analysis (modem catalog + MAX25 project notes). Update when phase gates close or modulation priorities change.*

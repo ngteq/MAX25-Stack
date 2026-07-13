@@ -1,6 +1,6 @@
 # M25 SoftModem host protocol — implementation spec (frozen for v1.0.0)
 
-**CRDOP** = **CB/AR Digital Open Protocol** · Native host wire for MAX25-SoftModem · **Not** ARDOP FEC/ARQ.
+**CRDOP** = **MAX25-SoftModem** · Native host wire for MAX25-SoftModem · **Not** ARDOP FEC/ARQ.
 
 **Normative code:** `stacks/crdop/lib/m25_host_protocol.py` · **Consumer:** `max25d` `CrdopTcpBackend`, `audio-dummyd`, `crdopc` launcher.
 
@@ -102,4 +102,4 @@ Same rule as KISS `0x00` DATA frames in `kiss_bridge.py`.
 
 ## Version
 
-Frozen for **MAX25-Stack-v1.0.0** / **CRDOP-CUR999**. Changes require bump in this file + `PROTOCOL.md` + `test_crdop_backend.py`.
+Frozen for **MAX25-Stack v1.0.0** (dev track `CUR999`). Changes require bump in this file + `PROTOCOL.md` + `test_crdop_backend.py`.

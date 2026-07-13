@@ -14,7 +14,7 @@ Example INI: `share/max25/max25d.ini.host.example`
 | **`max25-terminal`** | Yes | Local UI via Unix socket or `127.0.0.1:7325` |
 | **TNC2C / USB TNC** | Yes | `/dev/ttyUSB*`, `/dev/ttyACM*` |
 | **BayCom SER12** | Yes | UART or USB-serial; kernel modules need headers |
-| **CRDOP** — CB/AR Digital Open Protocol (`soft-crdop`) | Yes | ALSA sound device |
+| **CRDOP** — MAX25-SoftModem (`soft-crdop`) | Yes | ALSA sound device |
 | **HyBBX attach** | Yes | After MAX25 prep — [HYBBX.md](HYBBX.md) |
 
 Remote operators use **`max25-terminal`** over the network to this host’s `max25d` (TCP port **7325**).
@@ -231,7 +231,7 @@ sudo max25d -c /etc/max25/max25d.ini
 
 See [BAYCOM.md](BAYCOM.md).
 
-### CRDOP (CB/AR Digital Open Protocol) + USB sound
+### CRDOP (MAX25-SoftModem) + USB sound
 
 ```bash
 ./scripts/build.sh

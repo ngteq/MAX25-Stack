@@ -1,6 +1,6 @@
 # CRDOP documentation
 
-**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
+**CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`).
 
 **MAX25-SoftModem** — in-house sound-card modem subproject (`stacks/crdop/`).
 

@@ -2,7 +2,7 @@
 
 Normative wire: **[HOST-PROTOCOL-SPEC.md](HOST-PROTOCOL-SPEC.md)** (frozen v1.0.0).
 
-CRDOP (**CB/AR Digital Open Protocol** — MAX25-SoftModem) uses the **native MAX25 M25/KISS host protocol** on TCP :8515 (control) / :8516 (data).
+CRDOP (**MAX25-SoftModem** — MAX25-SoftModem) uses the **native MAX25 M25/KISS host protocol** on TCP :8515 (control) / :8516 (data).
 
 **ARDOP-plugin** is an optional MAX25-Stack plugin for ARDOP wire mode (`ardop_compat=true`).
 

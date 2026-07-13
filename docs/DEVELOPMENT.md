@@ -6,7 +6,9 @@
 
 Linux primary. GCC or Clang, CMake 3.16+, bash, Python 3.
 
-**Default build:** `stacks/tncs`, `stacks/baycom-pr`, **MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol) scaffold**, `max25d` (native `ax25_codec.py`), `max25-terminal`.
+**Paths in docs:** [PATHS.md](PATHS.md) (`$SRC`, `$VAULT`, `$PREFIX`, …).
+
+**Default build:** `stacks/tncs`, `stacks/baycom-pr`, **MAX25-SoftModem (CRDOP — MAX25-SoftModem) scaffold**, `max25d` (native `ax25_codec.py`), `max25-terminal`.
 
 **CMake flags:**
 

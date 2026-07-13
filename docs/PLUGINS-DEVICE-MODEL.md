@@ -166,7 +166,7 @@ Dual M25/1 ids: `baycom-a` / `baycom-b` — template `share/max25/max25d.dual-ba
 
 ## CRDOP (`hardware/soft-modems`) — MAX25-SoftModem standard
 
-**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio). CRDOP follows the same five-step model. Native M25/KISS host on TCP :8515/:8516 (acoustically AX.25-compatible).
+**CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`). CRDOP follows the same five-step model. Native M25/KISS host on TCP :8515/:8516 (acoustically AX.25-compatible).
 
 **ARDOP-plugin** is an optional MAX25-Stack plugin. Set `ardop_compat=true` for ARDOP wire mode on `soft-crdop`.
 

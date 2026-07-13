@@ -35,7 +35,7 @@ MAX25-Stack/
 ├── stacks/
 │   ├── tncs/          Serial TNC tools (TNC2C, PK-TNC2 planned)
 │   ├── baycom-pr/     Kernel BayCom lifecycle
-│   ├── crdop/         MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol) — sound-card AX.25 modem
+│   ├── crdop/         MAX25-SoftModem (CRDOP — MAX25-SoftModem) — sound-card AX.25 modem
 │   ├── daemon/        max25d + kiss_bridge.py
 │   └── terminal/      max25-terminal / max25-client
 ├── scripts/           build.sh, max25-ctl, discover-plugins, release-check

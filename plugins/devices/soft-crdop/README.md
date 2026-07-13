@@ -1,6 +1,6 @@
-# Device: soft-crdop (MAX25-SoftModem / CRDOP — CB/AR Digital Open Protocol)
+# Device: soft-crdop (MAX25-SoftModem / CRDOP — MAX25-SoftModem)
 
-**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
+**CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`).
 
 **Status:** `active` — MAX25-Stack **standard subproject** (`stacks/crdop/`).
 
