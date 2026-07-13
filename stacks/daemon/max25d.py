@@ -364,6 +364,17 @@ def prep_inline_serial_device(state: DaemonState, dev_id: str) -> None:
     rt.link_status = backend.status
     if ok:
         log(f"serial prep OK ({dev_id})")
+    elif (
+        backend.status == "error-host"
+        and state.cfg.serial_bootwait_escalate
+        and rt.stack_proc is None
+    ):
+        log(
+            f"serial prep failed ({dev_id}) status=error-host "
+            "— inline ladder exhausted, escalating to boot-wait"
+        )
+        rt.last_bootwait_escalate = time.time()
+        escalate_to_bootwait_stack(state, dev_id)
     else:
         log(
             f"serial prep deferred ({dev_id}) status={backend.status} "

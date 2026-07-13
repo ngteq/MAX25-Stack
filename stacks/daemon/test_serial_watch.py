@@ -145,6 +145,28 @@ def test_bootwait_escalate_config() -> None:
     assert cfg.serial_bootwait_escalate_cooldown == 300
 
 
+def test_prep_escalates_on_error_host() -> None:
+    mod = load_max25d()
+    cfg = mod.DaemonConfig(stack_recover_only=True, serial_bootwait_escalate=True)
+    state = mod.DaemonState(cfg=cfg)
+    from device_backends import DeviceBackendConfig  # noqa: E402
+
+    state.devices["tnc2c"] = mod.DeviceRuntime(
+        cfg=DeviceBackendConfig(device_id="tnc2c", backend_type="kiss-serial")
+    )
+    backend = MagicMock()
+    backend.status = "error-host"
+    backend.stabilize_session.return_value = False
+    rt = state.devices["tnc2c"]
+    rt.backend = backend
+
+    with patch.object(mod, "open_backend", return_value=True), patch.object(
+        mod, "escalate_to_bootwait_stack"
+    ) as escalate:
+        mod.prep_inline_serial_device(state, "tnc2c")
+    escalate.assert_called_once_with(state, "tnc2c")
+
+
 def main() -> int:
     test_stack_serial_watch_config()
     print("OK test_stack_serial_watch_config")
@@ -160,6 +182,8 @@ def main() -> int:
     print("OK test_stabilize_stops_rx_during_recovery")
     test_bootwait_escalate_config()
     print("OK test_bootwait_escalate_config")
+    test_prep_escalates_on_error_host()
+    print("OK test_prep_escalates_on_error_host")
     print("All serial watch tests passed")
     return 0
 

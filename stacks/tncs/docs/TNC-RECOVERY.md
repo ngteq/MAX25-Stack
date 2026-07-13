@@ -9,7 +9,7 @@ Shared implementation: `stacks/tncs/tnc_serial_recovery.py` (used by `tnc2c-host
 | Situation | First action | Rescue (if software fails) |
 |-----------|--------------|----------------------------|
 | Echo-only (`INFO` → `INFO`, no banner) | `max25d` serial watch / `./tnc2c-host-reset.sh` | `./tnc2c-boot-wait.sh` only if cold-boot without DTR |
-| After `max25d` prep deferred | Wait for serial watch retry (45s grace) | `./tnc2c-host-reset.sh --kiss` |
+| After `max25d` prep `error-host` | Auto boot-wait escalate (power OFF 10s → ON) | `./tnc2c-boot-wait.sh` if escalate disabled |
 | PK-TNC2 (9600 8N1) | `./pktnc2-boot-wait.sh --recover-only` | `./pktnc2-boot-wait.sh` + power cycle |
 | Cold boot, never saw `cmd:` | `./tnc2c-boot-wait.sh` (DTR before power-on) | Fix wiring (DTR/RTS, CTS bridge) |
 
@@ -73,7 +73,7 @@ When `[stack] serial_watch = yes` and `stack_recover_only = yes` (default), max2
 | `serial_bootwait_escalate_after` | 3 | Inline `error-host` failures before boot-wait |
 | `serial_bootwait_escalate_cooldown` | 300 | Minimum seconds between boot-wait escalations |
 
-Triggers: periodic interval, `error-host` / `error-kiss` / `error-tx` / `error-io`, failed TX (one auto-retry). After `serial_bootwait_escalate_after` consecutive `error-host` inline failures, max25d releases the port and runs `tnc2c-boot-wait.sh` / `pktnc2-boot-wait.sh` **without** `--recover-only` (operator should power-cycle while script runs). Manual rescue remains: `stacks/tncs/tnc2c-boot-wait.sh`.
+Triggers: initial prep `error-host` (immediate boot-wait escalate), periodic interval, `error-host` / `error-kiss` / `error-tx` / `error-io`, failed TX (one auto-retry). Serial watch still escalates after `serial_bootwait_escalate_after` consecutive inline failures if prep did not already escalate.
 
 ## Power-cycle rescue (only when needed)
 
