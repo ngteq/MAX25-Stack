@@ -17,7 +17,7 @@
 | Hardware builder | [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE.md) | Generic radio/audio interface specification |
 | Legal / distribution | [LICENSE-USAGE.md](LICENSE-USAGE.md) | GPLv3 — private and commercial use rights |
 
-## Implementation specs (vault → repo, v1.0.0)
+## Implementation specs (v1.0.0)
 
 | Doc | One-line purpose |
 |-----|------------------|
@@ -46,7 +46,7 @@
 
 | Doc | One-line purpose |
 |-----|------------------|
-| [ROADMAP.md](../ROADMAP.md) | P0/P1/P2 modulation, RF paths, FEC, phased milestones — **full research vault synthesis** (`0-RESEARCHES/reference/modems-packet-radio/`) |
+| [ROADMAP.md](../ROADMAP.md) | P0/P1/P2 modulation, RF paths, FEC, phased milestones |
 
 ---
 
@@ -74,4 +74,4 @@
 
 ---
 
-*Compact index — depth in linked docs. Research vault paths listed in [ROADMAP.md](../ROADMAP.md#reference-index).*
+*Compact index — depth in linked docs. Roadmap: [ROADMAP.md](../ROADMAP.md).*

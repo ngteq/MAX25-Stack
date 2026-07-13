@@ -2,7 +2,7 @@
 
 **Principle:** *Send more often with shorter frames rather than one long payload.*
 
-**Vault source:** `0-RESEARCHES/projects/max25-stack/2026-07-13-crdop-fec-duplex-strategy.md`, `l2-fec-protocols.md`.
+**Related:** [ROADMAP.md](../ROADMAP.md) FEC section · [docs/CRDOP.md](../../../docs/CRDOP.md)
 
 **Status:** MAX25-Stack **v1.0.0** / dev track `CUR999` — L1 optional FEC **planned**; operator-layer strategy **active now**.
 

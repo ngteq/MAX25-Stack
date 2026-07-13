@@ -6,7 +6,7 @@
 
 Linux primary. GCC or Clang, CMake 3.16+, bash, Python 3.
 
-**Paths in docs:** [PATHS.md](PATHS.md) (`$SRC`, `$VAULT`, `$PREFIX`, …).
+**Paths in docs:** [PATHS.md](PATHS.md) (`$SRC`, `$PREFIX`, …).
 
 **Default build:** `stacks/tncs`, `stacks/baycom-pr`, **MAX25-SoftModem (CRDOP — MAX25-SoftModem) scaffold**, `max25d` (native `ax25_codec.py`), `max25-terminal`.
 

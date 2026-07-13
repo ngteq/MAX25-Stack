@@ -1,7 +1,7 @@
 """
 TheFirmware TF 2.7 — terminal recovery without power cycle.
 
-Native command set (NORD><LINK source / ALAS — see 0-RESEARCHES vault).
+Native command set (NORD><LINK source / ALAS — see stacks/tncs/docs/TNC-RECOVERY.md).
 TAPR strings (kiss off, INFO, RESTART) are not primary; kept as last-resort legacy.
 
 Recovery ladder (stop on first banner):

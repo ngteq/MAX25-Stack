@@ -21,7 +21,7 @@
 - `CrdopTcpBackend`: KISS default, `[CRDOP AX25 UI …]` display strings
 - German user-facing strings in shipped docs/YAML → English
 - `stacks/crdop/docs/INDEX.md` linked from `AGENTS.md` and `docs/README.md`
-- **Vault → repo:** implementable specs in `stacks/crdop/docs/*-SPEC.md`, `docs/HARDWARE-ACCEPTANCE.md`, `docs/MAX25-OPERATOR-RUNBOOK.md`, `docs/AX25-NATIVE-CODEC.md`
+- **In-repo specs:** `stacks/crdop/docs/*-SPEC.md`, `docs/HARDWARE-ACCEPTANCE.md`, `docs/MAX25-OPERATOR-RUNBOOK.md`, `docs/AX25-NATIVE-CODEC.md`
 - Host protocol ports unified: **8515/8516** in `m25_host_protocol.py` + [HOST-PROTOCOL-SPEC.md](stacks/crdop/docs/HOST-PROTOCOL-SPEC.md)
 
 ## Tag status

@@ -28,7 +28,7 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 ## Rules
 
 1. **Standalone-first** — MAX25 prepares hardware; HyBBX never replaces boot-wait or kernel modem lifecycle.
-2. **No personal/local paths** in docs or examples — use `$SRC`, `$VAULT`, `$PREFIX` ([docs/PATHS.md](docs/PATHS.md)) or placeholders (`/dev/ttyUSB0`, `main.example.com`).
+2. **No personal/local paths** in docs or examples — use `$SRC`, `$PREFIX` ([docs/PATHS.md](docs/PATHS.md)) or placeholders (`/dev/ttyUSB0`, `main.example.com`).
 3. **Linux daemon only** — `max25d` + BayCom + full stack on Linux; host setup — [docs/LINUX-HOST-SETUP.md](docs/LINUX-HOST-SETUP.md); terminal — [docs/PLATFORMS.md](docs/PLATFORMS.md).
 4. **One official client** — `max25-terminal` / `max25-client` only; text + F10 menu; binding in [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md).
 5. **BayCom stays** — first-class on Linux daemon; not deprecated.
@@ -59,7 +59,7 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 | [docs/PACKET-RADIO.md](docs/PACKET-RADIO.md) | AX.25, KISS, TNC, BayCom |
 | [docs/BAYCOM.md](docs/BAYCOM.md) | BayCom operator guide (single default, dual opt-in) |
 | [docs/CRDOP.md](docs/CRDOP.md) | **CRDOP** = MAX25-SoftModem (GPLv3) |
-| [docs/PATHS.md](docs/PATHS.md) | Doc path variables (`$SRC`, `$VAULT`, `$PREFIX`) |
+| [docs/PATHS.md](docs/PATHS.md) | Doc path variables (`$SRC`, `$PREFIX`, …) |
 | [stacks/crdop/docs/INDEX.md](stacks/crdop/docs/INDEX.md) | CRDOP doc index — operators, developers, AI agents |
 | [stacks/crdop/docs/HOST-PROTOCOL-SPEC.md](stacks/crdop/docs/HOST-PROTOCOL-SPEC.md) | CRDOP M25 host wire (frozen v1.0.0) |
 | [docs/MAX25-OPERATOR-RUNBOOK.md](docs/MAX25-OPERATOR-RUNBOOK.md) | End-to-end operator workflow |

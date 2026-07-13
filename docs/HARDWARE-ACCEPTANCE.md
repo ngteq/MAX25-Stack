@@ -35,7 +35,7 @@
 | 3 | `max25d` with `tnc2c` device | `status: open` |
 | 4 | Send UI via terminal | `[AX25 UI …]` or KISS loopback |
 
-Recovery: `tnc_serial_recovery.py` — vault runbook `operations/runbooks/tnc-recovery-without-power-cycle.md`.
+Recovery: [`tnc_serial_recovery.py`](../stacks/tncs/tnc_serial_recovery.py) — [stacks/tncs/docs/TNC-RECOVERY.md](../stacks/tncs/docs/TNC-RECOVERY.md).
 
 ---
 

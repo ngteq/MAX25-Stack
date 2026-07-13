@@ -174,17 +174,14 @@ CRDOP documentation does **not** constitute legal advice. Check local regulation
 
 ---
 
-## Deeper reading (external research vault)
+## Related in-repo docs
 
-Private notes — not shipped in MAX25-Stack:
-
-| Topic | Path |
-|-------|------|
-| Acoustic / interface hardware | `$VAULT/reference/modems-packet-radio/acoustic-coupling-hardware.md` |
-| Sound-card requirements | `$VAULT/reference/modems-packet-radio/soundcard-requirements.md` |
-| Bell 202 / 1200 AFSK | `$VAULT/reference/modems-packet-radio/bell-202-afsk-1200.md` |
-| G3RUH 9600–19200 | `$VAULT/reference/modems-packet-radio/g3ruh-fsk-9600-19200.md` |
-| Modulation reference | `$VAULT/reference/modems-packet-radio/MODULATION-REFERENCE.md` |
+| Topic | Document |
+|-------|----------|
+| Sound-card requirements | [SOUNDCARD-QUALIFICATION.md](SOUNDCARD-QUALIFICATION.md) |
+| Bell 202 / 1200 AFSK (P0) | [ROADMAP.md](../ROADMAP.md) · [SOFTMODEM.md](SOFTMODEM.md) |
+| G3RUH 9600–19200 (P1) | [G3RUH-DESIGN.md](G3RUH-DESIGN.md) |
+| AX.25 / packet context | [docs/PACKET-RADIO.md](../../../docs/PACKET-RADIO.md) |
 
 ---
 

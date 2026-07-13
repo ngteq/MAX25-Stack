@@ -29,7 +29,7 @@ Success markers: `TheFirmware`, `NORD`, `Version 2.7`, `Checksum`, `cmd:`.
 
 Then enter KISS: **ESC `@K`** (`0x1B 40 4B`). MYCALL: **ESC I** `<call>`.
 
-Vault reference: `0-RESEARCHES/projects/max25-stack/2026-07-13-thefirmware-native-recovery-sequence.md`
+Native TF sequence: see [Software recovery ladder](#software-recovery-ladder-thefirmware-tf-27-native) above.
 
 ## Operator commands
 

@@ -77,7 +77,7 @@ MAX25 must run **first** (boot-wait, KISS PTY, serial ownership).
 2. Merge `share/hybbx/crdop-host.ini.example` or TNC examples.
 3. Start HyBBX with `kiss_entry=none`, `[max25] check=yes`.
 
-Boundary: [HYBBX.md](HYBBX.md) · vault `max25-hybbx-boundary-final.md`.
+Boundary: [HYBBX.md](HYBBX.md) · [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md).
 
 ---
 

@@ -72,4 +72,3 @@ cp ../share/max25/serial/pktnc2-serial.env.example pktnc2-serial.env
 
 - [docs/BAYCOM.md](../docs/BAYCOM.md)
 - [docs/LINUX-HOST-SETUP.md](../docs/LINUX-HOST-SETUP.md)
-- HyBBX research copy: `~/Code/0-RESEARCHES/hybbx/ax25srv-un1tme.ini`

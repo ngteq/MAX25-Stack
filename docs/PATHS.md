@@ -5,7 +5,6 @@ Use these **variables** in docs — never hardcode operator home directories (`/
 | Variable | Meaning | Typical value |
 |----------|---------|----------------|
 | **`$SRC`** | MAX25-Stack repository root (this checkout) | `git clone` directory |
-| **`$VAULT`** | External research vault (`0-RESEARCHES`) | Sibling of `$SRC` or `$VAULT` env |
 | **`$PREFIX`** | CMake install prefix | `/usr/local` or `~/.local` |
 | **`$BUILD`** | Out-of-tree build directory | `$SRC/build` |
 | **`$ETC_MAX25`** | Site daemon config (FHS) | `/etc/max25` |
@@ -15,18 +14,13 @@ Use these **variables** in docs — never hardcode operator home directories (`/
 
 | Instead of | Write |
 |------------|--------|
-| `$SRC/...` | `$SRC/...` |
-| `$VAULT/...` | `$VAULT/...` |
-| `/tmp/max25-v100-test` | `$BUILD/install-test` or `$PREFIX` after `cmake --install` |
+| `/home/…/MAX25-Stack/...` | `$SRC/...` |
+| `/tmp/max25-*` | `$BUILD/install-test` or `$PREFIX` after `cmake --install` |
 | `/home/hybbx/start-hybbx.sh` | site operator script (e.g. `$HYBBX_HOME/start-hybbx.sh`) |
 
 ## Repo-relative links
 
-Inside MAX25-Stack markdown, prefer **relative links** (`stacks/crdop/...`, `docs/...`) over absolute paths.
-
-## Vault references
-
-Research lives outside this repo. Point to `$VAULT/<path>` or cite the vault filename only — do not assume a fixed home directory.
+Inside MAX25-Stack markdown, prefer **relative links** (`stacks/crdop/...`, `docs/...`) over absolute paths. This repo is self-contained — do not reference external research trees in shipped docs.
 
 ## Install paths (allowed literals)
 

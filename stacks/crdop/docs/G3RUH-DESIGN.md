@@ -4,7 +4,7 @@
 
 **Prerequisite:** Phase 1 (1200 AFSK) stable. **Not** CB FM mic path.
 
-**Vault:** `0-RESEARCHES/reference/modems-packet-radio/g3ruh-fsk-9600-19200.md`
+See [ROADMAP.md](../ROADMAP.md) Phase 2 (P1).
 
 ---
 

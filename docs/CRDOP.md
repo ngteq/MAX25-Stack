@@ -7,7 +7,7 @@
 
 CRDOP is the **sound-card-based software modem** subproject of [MainAX25-Stack (MAX25-Stack)](../README.md). Product name: **MAX25-SoftModem**. Plugin/device id: `soft-crdop`.
 
-Research vault (modulation, FEC, hardware): `$VAULT/projects/max25-stack/` — see [docs/PATHS.md](PATHS.md).
+Path conventions: [PATHS.md](PATHS.md).
 
 ---
 

@@ -8,7 +8,7 @@
 
 **Nature:** MAX25 in-house development — open development and test program for the kernel-ALSA sound-card modem. **ARDOP-plugin** is optional; CRDOP is the standard modem.
 
-**Research synthesis:** 2026-07-13 — full vault analysis under `$VAULT/` (see [Research vault coverage](#research-vault-coverage)). Actionable priorities below; depth stays in vault — **no duplicate re-copy** into this repo.
+**Research synthesis:** 2026-07-13 — modem and integration priorities synthesized into this ROADMAP and linked in-repo docs below. **No duplicate re-copy** of external notes into this tree.
 
 ---
 
@@ -35,7 +35,7 @@
 | **HyBBX** | External consumer — serial ownership boundary; CRDOP via host TCP attach |
 | **Docs entry** | [docs/INDEX.md](docs/INDEX.md) · project rule [docs/CRDOP.md](../../docs/CRDOP.md) |
 
-Vault: `projects/integration/2026-07-12-max25-hybbx-boundary-final.md`
+HyBBX boundary: [docs/HYBBX.md](../../docs/HYBBX.md) · [docs/PLUGINS-DEVICE-MODEL.md](../../docs/PLUGINS-DEVICE-MODEL.md)
 
 ---
 
@@ -201,7 +201,7 @@ Packet on CB/VHF (poor SNR, QRM, half-duplex collisions) favours **short UI fram
 | **Application** | Frequent beacons, staggered dual-TNC | HyBBX / max25d INI |
 | **Reference** | FX.25 (RS wrapper), IL2P (new L2) | Inform design; not mandatory on-air |
 
-### FEC design takeaways (from vault `l2-fec-protocols.md`)
+### FEC design takeaways (see [docs/FEC-SPEC.md](docs/FEC-SPEC.md))
 
 | Source | Lesson for CRDOP |
 |--------|------------------|
@@ -321,7 +321,7 @@ Interop validation uses **reference signal classes**, not product endorsements.
 | **Multi-mode HF TNC** | 300 HF + 1200 VHF | Multi-mode serial | Phase 3 optional |
 | **Sound-card reference decoder** | 300–9600+ | ALSA | Software decode parity (1200) |
 
-Open-hardware documentation: [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFACE.md). Research depth: `acoustic-coupling-hardware.md` in vault (see [Reference index](#reference-index)).
+Open-hardware documentation: [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFACE.md). Audio QA: [docs/SOUNDCARD-QUALIFICATION.md](docs/SOUNDCARD-QUALIFICATION.md).
 
 ---
 
@@ -363,11 +363,11 @@ Open-hardware documentation: [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFAC
 
 ---
 
-## Research vault coverage
+## Research synthesis (document map)
 
-Full analysis **2026-07-13** — vault root `$VAULT/`. Operator hardware runbooks and site-specific INI stay in vault only (not re-copied into CRDOP tree).
+Synthesis **2026-07-13** — topics below are covered in this ROADMAP and in-repo CRDOP docs. Site-specific operator INI and lab hardware runbooks stay outside this tree.
 
-| Vault document | Synthesized in this ROADMAP |
+| Source topic | Synthesized in this ROADMAP |
 |----------------|----------------------------|
 | `reference/modems-packet-radio/MASTER-SOLUTIONS-CATALOG.md` | Taxonomy, baud table, RF matrix, CRDOP priorities |
 | `cb-packet-solutions.md` | CB band context, K24/K25, legal, 1200-only rationale |
@@ -389,9 +389,9 @@ Full analysis **2026-07-13** — vault root `$VAULT/`. Operator hardware runbook
 | `reference/2026-07-12-modems-linux.md` | Linux sound-modem landscape — reference |
 | `reference/2026-07-12-linux-ax25-ecosystem.md` | Kernel AX.25 deprecation context |
 | `projects/integration/2026-07-12-max25-hybbx-boundary-final.md` | HyBBX attach / serial ownership |
-| `DEVELOPMENT.md` (vault root) | Operator P0–P2 — parallel to stack release, not duplicated |
+| `DEVELOPMENT.md` (operator P0–P2) | Parallel to stack release — see [docs/DEVELOPER.md](docs/DEVELOPER.md) |
 
-**Not ingested into CRDOP docs:** `hardware/tnc2c/*`, `operations/ini/*`, site-specific serial tests — vault SSoT for lab hardware only.
+**Not in CRDOP tree:** site TNC hardware runbooks, production INI, serial acceptance logs — operator-local only.
 
 ### Scenario → CRDOP mode (generic, from research)
 
@@ -407,36 +407,7 @@ Full analysis **2026-07-13** — vault root `$VAULT/`. Operator hardware runbook
 
 ---
 
-## Reference index
-
-External research vault — read for depth; synthesized above; do not duplicate full text into repo.
-
-| Topic | Path |
-|-------|------|
-| **Vault index** | `$VAULT/INDEX.md` |
-| **Modem catalog index** | `$VAULT/reference/modems-packet-radio/README.md` |
-| **Master catalog** | `$VAULT/reference/modems-packet-radio/MASTER-SOLUTIONS-CATALOG.md` |
-| CB packet solutions | `$VAULT/reference/modems-packet-radio/cb-packet-solutions.md` |
-| VHF/UHF solutions | `$VAULT/reference/modems-packet-radio/amateur-vhf-uhf-solutions.md` |
-| HF packet solutions | `$VAULT/reference/modems-packet-radio/amateur-hf-packet-solutions.md` |
-| HF 300 bd AFSK detail | `$VAULT/reference/modems-packet-radio/hf-300-baud-afsk.md` |
-| L2 / FEC (FX.25, IL2P) | `$VAULT/reference/modems-packet-radio/l2-fec-protocols.md` |
-| Modern softmodems (comparison) | `$VAULT/reference/modems-packet-radio/modern-softmodems.md` |
-| Bell 202 / 1200 AFSK | `$VAULT/reference/modems-packet-radio/bell-202-afsk-1200.md` |
-| G3RUH 9600–19200 | `$VAULT/reference/modems-packet-radio/g3ruh-fsk-9600-19200.md` |
-| HDLC / AX.25 layers | `$VAULT/reference/modems-packet-radio/nrzi-hdlc-ax25-layers.md` |
-| Modulation parameter table | `$VAULT/reference/modems-packet-radio/MODULATION-REFERENCE.md` |
-| Sound-card requirements | `$VAULT/reference/modems-packet-radio/soundcard-requirements.md` |
-| Acoustic / interface hardware | `$VAULT/reference/modems-packet-radio/acoustic-coupling-hardware.md` |
-| Packet radio fundamentals | `$VAULT/reference/2026-07-12-packet-radio-fundamentals.md` |
-| Linux modems survey | `$VAULT/reference/2026-07-12-modems-linux.md` |
-| Linux AX.25 ecosystem | `$VAULT/reference/2026-07-12-linux-ax25-ecosystem.md` |
-| CRDOP development master | `$VAULT/projects/max25-stack/2026-07-13-crdop-development-master.md` |
-| FEC / duplex strategy | `$VAULT/projects/max25-stack/2026-07-13-crdop-fec-duplex-strategy.md` |
-| MAX25 ↔ HyBBX boundary | `$VAULT/projects/integration/2026-07-12-max25-hybbx-boundary-final.md` |
-| EU CB packet context | `$VAULT/reference/2026-07-12-cb-eu-packet.md` |
-
-### In-repo technical docs
+## In-repo technical docs
 
 | Document | Topic |
 |----------|--------|
@@ -458,4 +429,4 @@ External research vault — read for depth; synthesized above; do not duplicate 
 
 ---
 
-*Roadmap synthesized 2026-07-13 from full `$VAULT/` vault analysis (modem catalog + MAX25 project notes). Update when phase gates close or modulation priorities change.*
+*Roadmap synthesized 2026-07-13 from modem catalog and MAX25 integration notes. Update when phase gates close or modulation priorities change.*

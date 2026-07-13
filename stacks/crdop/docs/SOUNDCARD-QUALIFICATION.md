@@ -2,7 +2,7 @@
 
 **Purpose:** Measurable criteria for interface hardware used with CRDOP. No product endorsements — class-based requirements.
 
-**Vault:** `0-RESEARCHES/reference/modems-packet-radio/soundcard-requirements.md`
+See also [ROADMAP.md](../ROADMAP.md) (P0/P1 audio requirements).
 
 ---
 

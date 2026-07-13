@@ -69,7 +69,8 @@ Dedicated `test_ax25_codec.py` — add when extending I-frame support.
 
 ---
 
-## Vault references
+## Related docs
 
-- `0-RESEARCHES/reference/modems-packet-radio/nrzi-hdlc-ax25-layers.md`
-- `0-RESEARCHES/notes/2026-07-13-max25-ax25-crdop-externalization.md`
+- [PACKET-RADIO.md](PACKET-RADIO.md) — AX.25 / KISS context
+- [include/max25/packet-radio.md](../include/max25/packet-radio.md) — protocol summary
+- `stacks/daemon/ax25_codec.py` — implementation
