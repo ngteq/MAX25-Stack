@@ -105,3 +105,16 @@ serial_bootwait_escalate_cooldown = 300
 ; listen = yes
 ; ardop_compat = no   ; yes = ARDOP-plugin wire mode
 ; fecmode = 4FSK.500.100S   ; only when ardop_compat = yes
+
+; --- Virtual IP netdev (TUN max25d — planned near term) ---
+; Full doc: docs/NETDEV.md · Example: share/max25/max25d.netdev.ini.example
+; [netdev]
+; enabled = no
+; interface = max25d
+; mode = tun
+; ipv4 = 127.0.0.25/8
+; ipv6 = ::25/128
+; extra_ipv4 =
+; extra_ipv6 =
+; encap = ax25-ui
+; m25_unix = /run/max25/modem.sock

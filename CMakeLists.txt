@@ -101,6 +101,7 @@ install(FILES
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.host.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.full-station.ini.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.dual-baycom.ini.example"
+    "${CMAKE_SOURCE_DIR}/share/max25/max25d.netdev.ini.example"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/max25"
 )
 

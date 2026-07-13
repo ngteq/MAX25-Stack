@@ -1,0 +1,19 @@
+; MAX25 virtual netdev (TUN) — merge into max25d.ini or include via site layout
+; Planned: max25-tun sidecar reads [netdev] and creates interface "max25d"
+
+[netdev]
+enabled = no
+interface = max25d
+mode = tun
+
+; Standard MAX25 addresses (changeable)
+ipv4 = 127.0.0.25/8
+ipv6 = ::25/128
+; ipv4_netmask = 255.0.0.0
+
+; Additional IPs on the same TUN (comma-separated CIDR)
+; extra_ipv4 = 10.73.25.1/24
+; extra_ipv6 = fd25::1/64
+
+encap = ax25-ui
+m25_unix = /run/max25/modem.sock

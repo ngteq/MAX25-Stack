@@ -95,6 +95,7 @@ Hardware tests manual — [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md).
 | HyBBX attach | [HYBBX.md](HYBBX.md) + `share/hybbx/` |
 | Platform limits | [PLATFORMS.md](PLATFORMS.md) |
 | v1 scope | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md), `VERSION`, `release-check.sh` |
+| Virtual netdev (TUN) | [NETDEV.md](NETDEV.md) |
 | New doc file | [README.md](README.md) index + `release-check.sh` required list |
 
 **Archive:** [MERGE-REPORT.md](MERGE-REPORT.md) — do not extend.

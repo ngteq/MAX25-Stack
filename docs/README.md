@@ -20,6 +20,7 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | **All devices (full list)** | [DEVICES-LIST-FULL.md](DEVICES-LIST-FULL.md) |
 | AX.25 codec | [AX25-NATIVE-CODEC.md](AX25-NATIVE-CODEC.md) |
 | Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) · [PATHS.md](PATHS.md) |
+| Virtual netdev `max25d` (TUN, IPv4/IPv6) | [NETDEV.md](NETDEV.md) |
 | v1 release | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) |
 
 ## Technical reference
