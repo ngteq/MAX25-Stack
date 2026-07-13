@@ -1,6 +1,8 @@
 # Configuration
 
-`scripts/crdopc` reads INI → builds ARDOP `-H` host command string.
+`scripts/crdopc` reads INI → starts native `audio-dummyd` (M25/KISS host) by default.
+
+When `[compat] ardop_compat = yes`, launcher requires an **external** ARDOP vendor binary (`CRDOP_BIN`) — never shipped by MAX25.
 
 ## INI search order
 
@@ -28,17 +30,30 @@ Templates: `share/crdop.ini.example` · `share/crdop-dual.ini.example` · `share
 
 ### `[host]` · `[mycall]` · `[audio]`
 
-| Section | Key | Default |
-|---------|-----|---------|
-| host | `port` | `8515` |
-| mycall | `call` | `NOCALL-0` |
-| audio | capture / playback | passed as CLI args after port |
+| Section | Key | Default | Notes |
+|---------|-----|---------|-------|
+| host | `port` | `8515` | TCP control |
+| mycall | `call` | `NOCALL-0` | On-air ID |
+| audio | `backend` | `alsa-kernel` | Kernel ALSA only — see [AUDIO-ARCHITECTURE.md](AUDIO-ARCHITECTURE.md) |
+| audio | `no_pulse` | `yes` | Reject PulseAudio/PipeWire pseudo devices |
+| audio | `capture` | _(required)_ | e.g. `hw:1,0` from `arecord -l` |
+| audio | `playback` | _(required)_ | e.g. `hw:1,0` from `aplay -l` |
+| audio | `sample_rate` | modem default | Hz |
+| audio | `period_frames` | auto | Buffer tuning |
+
+### `[compat]`
+
+| Key | Default | Notes |
+|-----|---------|-------|
+| `ardop_compat` | `no` | `yes` = external third-party ARDOP binary required (`CRDOP_BIN`) |
+
+**No PulseAudio** in the production path. The **MAX25 sound-proxy** opens ALSA directly; `scripts/crdopc` clears Pulse/PipeWire session env when `no_pulse=yes`.
 
 ## Environment
 
 | Variable | Purpose |
 |----------|---------|
 | `CRDOP_INI` | Config file path |
-| `CRDOP_BIN` | Path to `crdopc` binary |
+| `CRDOP_BIN` | Path to external ARDOP vendor binary (only when `ardop_compat=yes`) |
 
 Examples: [EXAMPLES.md](EXAMPLES.md)

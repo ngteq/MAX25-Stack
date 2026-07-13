@@ -1,33 +1,27 @@
 # CRDOP documentation
 
-Standalone **CB Radio Digital Open Protocol** modem (`crdopc`).
+**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
 
-## Index
+**MAX25-SoftModem** — in-house sound-card modem subproject (`stacks/crdop/`).
 
-| Doc | Contents |
-|-----|----------|
-| [EXAMPLES.md](EXAMPLES.md) | Build, run, profiles |
-| [CONFIG.md](CONFIG.md) | INI / launcher |
-| [PROTOCOL.md](PROTOCOL.md) | ARDOP compatibility |
-| [BUILD.md](BUILD.md) | Build, install, platforms |
-| [CHANGELOG.md](CHANGELOG.md) | Releases |
+## Entry point
 
-## Fork
+**[INDEX.md](INDEX.md)** — complete table of all CRDOP docs with one-line purpose.
 
-CRDOP is an independent ngteq project based on **[pflarue/ardop](https://github.com/pflarue/ardop)** (ardopcf, MIT).
+Project rule: [docs/CRDOP.md](../../../docs/CRDOP.md)
+
+## Policy
 
 | Rule | |
 |------|--|
-| Protocol | Full ARDOP compatibility |
+| Standard | Native MAX25 M25/KISS host on TCP :8515/:8516 |
+| ARDOP | Optional third-party attach only — never vendored in MAX25 |
 | Focus | CB-first; `dual` and `amateur` are presets |
 | Scope | Modem only — no host application |
 
-## Upstream
+## Dev-only vendor tree
 
-| Repo | Role | In CRDOP |
-|------|------|----------|
-| [pflarue/ardop](https://github.com/pflarue/ardop) | Fork base (MIT) | `vendor/ardopcf/` |
-| [g8bpq/ardop](https://github.com/g8bpq/ardop) | Reference only (GPL) | not vendored |
+Legacy **[pflarue/ardop](https://github.com/pflarue/ardop)** (ardopcf, MIT) may exist under `vendor/ardopcf/` for local dev builds (`-DCRDOP_VENDOR_ARDOPCF=ON`). **Never installed in MAX25 releases.**
 
 Pin: `a7c9228` · record: `vendor/ardopcf.ref`
 

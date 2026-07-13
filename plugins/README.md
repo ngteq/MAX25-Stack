@@ -2,7 +2,7 @@
 
 Packet Radio / AX.25 plugin registry. HyBBX connects to a **running** stack — it does not replace these layers.
 
-**Unified operator workflow:** [docs/PLUGINS-DEVICE-MODEL.md](../docs/PLUGINS-DEVICE-MODEL.md) — TNC is the reference pattern; BayCom and CRDOP follow the same five steps and M25/1 session commands (`SET DEVICE` → `CONNECT` → `SEND`).
+**Unified operator workflow:** [docs/PLUGINS-DEVICE-MODEL.md](../docs/PLUGINS-DEVICE-MODEL.md) — TNC is the reference pattern; BayCom follows the same five steps and M25/1 session commands (`SET DEVICE` → `CONNECT` → `SEND`).
 
 ## Hierarchy
 
@@ -17,6 +17,7 @@ Operating mode (`betriebsform/`)
 | Operating mode | `betriebsform/` | Standalone, service, HyBBX host |
 | Hardware | `hardware/` | Device family — TNCs, BayCom, soft modems |
 | Device | `devices/` | Concrete profile and HyBBX INI mapping |
+| External optional | `external/` | Third-party attach only (ARDOP — never shipped) |
 
 ## Discovery
 
@@ -39,13 +40,19 @@ Registry: `manifest.yaml`
 
 See [docs/HYBBX.md](../docs/HYBBX.md).
 
-## v1 active devices
+## v1 active devices (MAX25-Stack-v1.0.0)
 
 | Device | Hardware | Status |
 |--------|----------|--------|
 | `tnc2c` | `tncs` | active |
 | `baycom-ser12` | `modems` | active |
-| `soft-crdop` | `soft-modems` | active (CB profile only) |
+| `soft-crdop` | `soft-modems` | active — MAX25-SoftModem (CRDOP) standard |
+
+## External optional (never shipped)
+
+| Plugin | Notes |
+|--------|-------|
+| **ARDOP** | Third-party wire compat only — see [external/README.md](external/README.md) |
 
 ## Deferred (v1.1+)
 
@@ -55,8 +62,6 @@ See [docs/HYBBX.md](../docs/HYBBX.md).
 | `baycom-par96` | `modems` | scaffold | LPT 9600 — kernel `CONFIG_BAYCOM_PAR` |
 | `baycom-kiss` | `modems` | scaffold | USB/async KISS serial |
 
-CRDOP amateur and dual profiles: INI templates ship; operator workflow deferred to v1.1+. See [docs/V1.0.0-SCOPE.md](../docs/V1.0.0-SCOPE.md).
-
 Terminal client profiles: [share/clients/](../share/clients/README.md) · BayCom hardware via `baycom-pr.ini` ([share/baycom/](../share/baycom/README.md)); client YAML is operator reference.
 
 ## Operator quick reference (v1 active)
@@ -65,6 +70,5 @@ Terminal client profiles: [share/clients/](../share/clients/README.md) · BayCom
 |--------|-------------------|-------------|-------------|
 | `tnc2c` | `--hardware tncs --device tnc2c` | `share/max25/serial/tnc2c-serial.env.example` | `share/clients/tnc2c.yaml` |
 | `baycom-ser12` | `--hardware modems --device baycom-ser12` | `share/baycom/baycom-pr.pccom-ttyS0-only.ini.example` | `share/clients/baycom-ser12.yaml` (reference) |
-| `soft-crdop` | `--hardware soft-modems --device soft-crdop` | `stacks/crdop/share/crdop.ini.example` | `share/clients/soft-crdop.yaml` |
 
 BayCom default: **single PC-COM** (shipped template). Dual kernel-ser12 is **global opt-in** via `--baycom-profile dual` — see [docs/BAYCOM.md](../docs/BAYCOM.md).

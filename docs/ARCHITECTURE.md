@@ -21,7 +21,7 @@
 ├─────────────────────────────────────────────────────────┤
 │  Device — tnc2c | baycom-ser12 | soft-crdop | …         │
 ├─────────────────────────────────────────────────────────┤
-│  Protocol — KISS | kernel hdlcdrv | AX.25 UI | ARDOP    │
+│  Protocol — KISS | kernel hdlcdrv | AX.25 UI | CRDOP M25 host │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -35,7 +35,7 @@ MAX25-Stack/
 ├── stacks/
 │   ├── tncs/          Serial TNC tools (TNC2C, PK-TNC2 planned)
 │   ├── baycom-pr/     Kernel BayCom lifecycle
-│   ├── crdop/         Sound-card ARDOP soft modem
+│   ├── crdop/         MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol) — sound-card AX.25 modem
 │   ├── daemon/        max25d + kiss_bridge.py
 │   └── terminal/      max25-terminal / max25-client
 ├── scripts/           build.sh, max25-ctl, discover-plugins, release-check
@@ -72,7 +72,7 @@ Config: `share/max25/max25d.ini.example`. Daemon README: [stacks/daemon/README.m
 |-------|------|--------------|
 | `stacks/tncs` | TNC2C boot-wait, probe, health | HyBBX sessions |
 | `stacks/baycom-pr` | Kernel module, KISS PTY, AX.25 port sync | HyBBX HBX |
-| `stacks/crdop` | `crdopc` TCP modem (original ARDOP-compatible; MAX25 orchestrates, no fork) | AX.25 / KISS |
+| `stacks/crdop` | MAX25-SoftModem (CRDOP) — sound IN/OUT, acoustic AX.25, max25d TCP | KISS serial to TNC |
 
 Link stack READMEs — do not duplicate operator detail here.
 

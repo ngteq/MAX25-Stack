@@ -37,7 +37,11 @@ hardware:
     path: hardware/soft-modems
     stack: stacks/crdop
     hybbx_plugin: crdop
-    description: Sound-card software modems (CRDOP/ARDOP — no kernel driver)
+    description: MAX25-SoftModem (CRDOP) — in-house standard; built unless MAX25_BUILD_CRDOP=OFF
+  - id: acoustic-bench
+    path: hardware/acoustic-bench
+    stack: stacks/crdop
+    description: Acoustic bench — audio-dummy, signal sniffer, DSP loopback (dev/test)
   - id: terminal
     path: hardware/terminal
     stack: stacks/terminal
@@ -76,7 +80,12 @@ devices:
     hardware: soft-modems
     hybbx_plugin: crdop
     status: active
-    note: v1 active profile CB (crdop.ini.example); amateur/dual INI templates deferred to v1.1+
+    note: MAX25-SoftModem (CRDOP) — standard; development/test phase; 1200–19200 baud; acoustic AX.25; sound card required
+  - id: audio-dummy
+    path: devices/audio-dummy
+    hardware: acoustic-bench
+    status: active
+    note: Acoustic bench dummy — loopback/ALSA sniff/M25 host; signal sniffer for on-host evaluation
   - id: max25-terminal
     path: devices/max25-terminal
     hardware: terminal

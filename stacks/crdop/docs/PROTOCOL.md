@@ -1,36 +1,44 @@
 # Protocol
 
-CRDOP speaks **standard ARDOP** — same as ardopcf. Product name and launch presets differ; air and host layers do not.
+CRDOP (**CB/AR Digital Open Protocol** — MAX25-SoftModem) uses the **native MAX25 M25/KISS host protocol** on TCP :8515 (control) / :8516 (data).
 
-## Stack
+**ARDOP wire format** is optional third-party compat only (`ardop_compat=true`) — never shipped by MAX25.
+
+## Stack (default)
 
 ```
-[Radio] ↔ [audio] ↔ crdopc (DSP, ARQ) ↔ TCP :8515 ctrl, :8516 data ↔ [host app]
+[Radio] ↔ [audio/ALSA] ↔ audio-dummyd / native modem ↔ TCP :8515 ctrl, :8516 data ↔ max25d
 ```
 
 ## Over-the-air
 
-From ardopcf: ARQ, bandwidth negotiation (`200MAX`–`2000MAX`), CRC, retransmission. CRDOP profiles only set **initial** `-H` defaults.
+AX.25-compatible AFSK tones (1200 baud primary, up to 19200 baud design range). See [SOFTMODEM.md](SOFTMODEM.md).
 
-## Host TCP
+## Host TCP (native M25 — default)
 
 | Port | Role |
 |------|------|
-| 8515 | Control |
-| 8516 | Data |
+| 8515 | Control (line-oriented ASCII, `\n` terminated) |
+| 8516 | Data (AX.25 UI body without HDLC/FCS) |
 
-CRC-16 **`0x8810`**. Commands terminated with `CR`.
+Common commands: `INITIALIZE` · `PROTOCOLMODE KISS` · `MYCALL` · `LISTEN` · `STATUS` · `PING`
 
-Common commands: `INITIALIZE` · `PROTOCOLMODE ARQ` · `ARQBW` · `MYCALL` · `LISTEN` · `ARQCALL` · `EXTRADELAY` · `BUSYDET` · `DISCONNECT`
+Implementation reference: `stacks/crdop/lib/m25_host_protocol.py`
 
-Full reference: [pflarue/ardop Host_Interface_Commands.md](https://github.com/pflarue/ardop/blob/master/docs/Host_Interface_Commands.md)
+## Optional ARDOP wire compat (external only)
 
-## CRDOP launch presets
+When `ardop_compat=true` on `soft-crdop` or in `crdop.ini` `[compat]`, operators may attach a **third-party ARDOP** host on the same ports. Commands use `\r` termination and ARDOP FEC/ARQ modes.
 
-| Profile | Default `-H` extras |
-|---------|---------------------|
-| `cb` | `500MAX`, `BUSYDET 1`, `EXTRADELAY 150`, `ARQTIMEOUT 30` |
-| `dual` | `500MAX`, `BUSYDET 1`, `EXTRADELAY 200`, `ARQTIMEOUT 35` |
-| `amateur` | `1000MAX`, `EXTRADELAY 80`, `ARQTIMEOUT 45` |
+MAX25 does **not** ship ARDOP sources or binaries. See [plugins/external/ardop/plugin.yaml](../../plugins/external/ardop/plugin.yaml).
 
-Runtime overrides via host TCP or `-H` on the command line always apply.
+Full ARDOP reference: [pflarue/ardop Host_Interface_Commands.md](https://github.com/pflarue/ardop/blob/master/docs/Host_Interface_Commands.md)
+
+## CRDOP launch presets (native)
+
+| Profile | Role |
+|---------|------|
+| `cb` | Default — CB / 500MAX class |
+| `dual` | CB ↔ amateur turnaround |
+| `amateur` | Amateur bandwidth class |
+
+Runtime overrides via host TCP or `crdop.ini` always apply.

@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "stacks" / "daemon"))
 
 from device_backends import BayComKissBackend, DeviceBackendConfig  # noqa: E402
-from kiss_bridge import KissDecoder, ax25_build_ui, ax25_parse_ui, kiss_data_frame  # noqa: E402
+from ax25_codec import ax25_build_ui, ax25_parse_ui  # noqa: E402
+from kiss_bridge import KissDecoder, format_rx_line, kiss_data_frame  # noqa: E402
 
 
 def test_baycom_kiss_default_link() -> None:

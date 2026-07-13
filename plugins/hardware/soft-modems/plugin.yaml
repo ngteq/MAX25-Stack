@@ -1,19 +1,37 @@
 id: soft-modems
 type: hardware
 parent_stack: MainAX25-Stack (MAX25-Stack)
-label: Soft Modems
-description: Sound-card software modems — no kernel TNC/driver required
+label: Soft Modems (MAX25-SoftModem / CRDOP)
+description: |
+  MAX25-SoftModem (CRDOP) — in-house sound-card modem, MAX25-Stack STANDARD.
+  Development and test phase. 1200 baud+, half/full duplex.
+  Acoustically AX.25/Packet-Radio compatible with TNCs and BayCom modems.
+  Sound card IN/OUT + radio — use like a hardware modem.
+  Good sound card required (tone accuracy; higher baud = stricter audio).
+  Built and installed unless MAX25_BUILD_CRDOP=OFF.
 
 stack_path: stacks/crdop
 hybbx_plugin: crdop
 hybbx_doc: ../../docs/HYBBX.md#crdop
 
+status: active
+phase: development_and_testing
+shipped_default: true
+
 protocols:
-  - ardop
+  - max25-softmodem
+  - ax25-afsk-acoustic
+
+requirements:
+  sound_card: required
+  baud_primary: 1200
+  baud_max: 19200
+  duplex: [half, full]
+  coupling: [line_level, acoustic]
 
 build:
-  makefile: stacks/crdop/Makefile
-  targets: [all, test, smoke]
+  cmake_option: MAX25_BUILD_CRDOP
+  default: ON
 
 ctl:
   build: stacks/crdop/scripts/build-crdop.sh
@@ -22,3 +40,9 @@ ctl:
 
 devices:
   - soft-crdop
+
+docs:
+  - stacks/crdop/docs/INDEX.md
+  - stacks/crdop/README.md
+  - stacks/crdop/docs/SOFTMODEM.md
+  - stacks/crdop/ROADMAP.md

@@ -20,7 +20,7 @@ New here? Read [GLOSSARY.md](GLOSSARY.md) for terms. Connect examples: [CONNECTS
 | Build tools | `gcc`, `make`, `python3` |
 | Runtime tools | `setserial` (ser12), `ip`, root for `start` |
 | Kernel (ser12) | `CONFIG_AX25`, `CONFIG_BAYCOM_SER_FDX` |
-| AX.25 tools (on-air) | `listen`, `call` from ax25-tools package |
+| AX.25 tools (on-air) | `listen`, `call` from **ax25-apps**; `kissattach` from **ax25-tools** (or MAX25 bundle build) |
 
 ---
 

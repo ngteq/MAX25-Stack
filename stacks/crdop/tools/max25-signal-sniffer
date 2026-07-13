@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# MAX25 signal sniffer launcher
+set -euo pipefail
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
+exec python3 "${ROOT}/stacks/crdop/tools/max25-signal-sniffer.py" "$@"

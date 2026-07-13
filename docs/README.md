@@ -25,6 +25,7 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | Architecture & plugins | [ARCHITECTURE.md](ARCHITECTURE.md) · [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |
 | AX.25 / KISS / TNC | [PACKET-RADIO.md](PACKET-RADIO.md) · [include/max25/packet-radio.md](../include/max25/packet-radio.md) |
 | BayCom kernel modems | [BAYCOM.md](BAYCOM.md) |
+| **CRDOP / MAX25-SoftModem** (CB/AR Digital Open Protocol) | [CRDOP.md](CRDOP.md) · [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) · [stacks/crdop/README.md](../stacks/crdop/README.md) |
 | Platforms | [PLATFORMS.md](PLATFORMS.md) |
 | *BSD deferred | [FREEBSD-AX25.md](FREEBSD-AX25.md) |
 | Merge archive | [MERGE-REPORT.md](MERGE-REPORT.md) |
@@ -35,7 +36,7 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 |-------|------|
 | TNC tools | [stacks/tncs/README.md](../stacks/tncs/README.md) |
 | BayCom | [stacks/baycom-pr/README.md](../stacks/baycom-pr/README.md) |
-| CRDOP | [stacks/crdop/README.md](../stacks/crdop/README.md) |
+| CRDOP | [CRDOP.md](CRDOP.md) · [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) · [stacks/crdop/README.md](../stacks/crdop/README.md) |
 | Daemon (`max25d`) | [stacks/daemon/README.md](../stacks/daemon/README.md) |
 | Terminal | [stacks/terminal/README.md](../stacks/terminal/README.md) |
 

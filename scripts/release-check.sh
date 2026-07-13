@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MainAX25-Stack (MAX25-Stack) — v1.0.0 release gates (offline, no root).
+# MainAX25-Stack (MAX25-Stack-v1.0.0) — release gates (offline, no root).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -33,7 +33,7 @@ else
 fi
 
 # --- required docs ---
-for doc in README.md CONTRIBUTING.md docs/README.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/BAYCOM.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/LINUX-HOST-SETUP.md docs/PACKET-RADIO.md stacks/daemon/README.md; do
+for doc in README.md CONTRIBUTING.md docs/README.md docs/ARCHITECTURE.md docs/DEVELOPMENT.md docs/HYBBX.md docs/PLATFORMS.md docs/V1.0.0-SCOPE.md docs/BAYCOM.md docs/CRDOP.md docs/MERGE-REPORT.md docs/MAX25-TERMINAL.md docs/MAX25-CLIENT.md docs/LINUX-HOST-SETUP.md docs/PACKET-RADIO.md stacks/daemon/README.md; do
   [[ -f "$doc" ]] && ok "doc $doc" || fail "missing $doc"
 done
 
@@ -46,16 +46,28 @@ for script in scripts/discover-plugins.sh scripts/build-all.sh scripts/build.sh 
   fi
 done
 
-if [[ -x stacks/daemon/max25d ]]; then
-  ok "executable stacks/daemon/max25d"
+if [[ -x stacks/daemon/max25d ]] && [[ -f stacks/daemon/max25d.py ]]; then
+  ok "executable stacks/daemon/max25d launcher + max25d.py"
 else
-  fail "stacks/daemon/max25d not executable"
+  fail "stacks/daemon/max25d launcher or max25d.py missing"
 fi
 
 if [[ -f stacks/daemon/kiss_bridge.py ]]; then
   ok "stacks/daemon/kiss_bridge.py"
 else
   fail "missing stacks/daemon/kiss_bridge.py"
+fi
+
+if [[ -f stacks/daemon/ax25_codec.py ]]; then
+  ok "stacks/daemon/ax25_codec.py (native AX.25 codec)"
+else
+  fail "missing stacks/daemon/ax25_codec.py"
+fi
+
+if python3 stacks/daemon/test_ax25_codec.py >/dev/null 2>&1; then
+  ok "ax25_codec unit tests"
+else
+  fail "ax25_codec unit tests"
 fi
 
 if [[ -f share/max25/max25d.ini.example ]]; then
@@ -117,6 +129,12 @@ for dev in tnc2c baycom-ser12 soft-crdop; do
   fi
 done
 
+if grep -A6 "id: soft-modems" plugins/manifest.yaml | grep -q 'optional: true'; then
+  fail "hardware soft-modems should not be optional-only"
+else
+  ok "hardware soft-modems is MAX25-SoftModem standard group"
+fi
+
 # --- planned/scaffold devices stay out of v1 active set ---
 for dev in pktnc2 baycom-par96 baycom-kiss; do
   if grep -A6 "id: ${dev}" plugins/manifest.yaml | grep -Eq 'status: (planned|scaffold)'; then
@@ -136,14 +154,53 @@ for ini in stacks/tncs/hybbx-tnc2c.ini \
 done
 
 # --- build artifacts (CMake) ---
-cmake -B build -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1 \
-  && cmake --build build -j"$(nproc 2>/dev/null || echo 2)" >/dev/null 2>&1 \
-  && ok "cmake build (build/bin/)" \
-  || fail "cmake build"
-[[ -x build/bin/tnc2c-probe ]] && ok "tnc2c-probe built" || fail "tnc2c-probe build"
-[[ -x build/bin/baycom_test ]] && ok "baycom-pr tools built" || fail "baycom-pr build"
-[[ -x build/bin/crdopc ]] && ok "crdopc built" || fail "crdopc missing"
-[[ -x build/bin/max25-terminal ]] && ok "max25-terminal built" || fail "max25-terminal build"
+BUILD_DIR="build"
+if ! cmake -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release \
+     -DMAX25_BUNDLE_AX25=OFF >/dev/null 2>&1; then
+  BUILD_DIR="build-default"
+  cmake -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release \
+    -DMAX25_BUNDLE_AX25=OFF >/dev/null 2>&1 \
+    || fail "cmake configure"
+fi
+if cmake --build "${BUILD_DIR}" -j"$(nproc 2>/dev/null || echo 2)" >/dev/null 2>&1; then
+  ok "cmake build (${BUILD_DIR}/bin/, CRDOP default ON)"
+else
+  fail "cmake build"
+fi
+[[ -x "${BUILD_DIR}/bin/tnc2c-probe" ]] && ok "tnc2c-probe built" || fail "tnc2c-probe build"
+[[ -x "${BUILD_DIR}/bin/baycom_test" ]] && ok "baycom-pr tools built" || fail "baycom-pr build"
+[[ -x "${BUILD_DIR}/bin/max25-terminal" ]] && ok "max25-terminal built" || fail "max25-terminal build"
+[[ -f stacks/crdop/share/crdop.ini.example ]] && ok "CRDOP scaffold (MAX25-SoftModem)" || fail "CRDOP scaffold missing"
+[[ -f plugins/external/ardop/plugin.yaml ]] && ok "external ARDOP plugin metadata" || fail "missing plugins/external/ardop/plugin.yaml"
+if [[ -x "${BUILD_DIR}/bin/crdopc" ]]; then
+  warn "vendor crdopc binary present (dev-only CRDOP_VENDOR_ARDOPCF build — not for release)"
+else
+  ok "no vendor crdopc binary (ARDOP not shipped)"
+fi
+if [[ -x "${BUILD_DIR}/bin/audio-dummyd" ]]; then
+  ok "audio-dummyd binary (native SoftModem host)"
+else
+  ok "audio-dummyd not in build dir (launcher uses source tree path)"
+fi
+
+# --- ARDOP must not appear in default install tree ---
+INSTALL_DIR="${BUILD_DIR}/install-release-check"
+rm -rf "${INSTALL_DIR}"
+if cmake --install "${BUILD_DIR}" --prefix "${INSTALL_DIR}" >/dev/null 2>&1; then
+  ok "cmake --install prefix"
+  if find "${INSTALL_DIR}" \( -path '*/vendor/ardopcf/*' -o -name 'ardopcf' -o -name 'crdopc' \) 2>/dev/null | grep -q .; then
+    fail "ARDOP vendor artifacts in install tree (forbidden in release)"
+  else
+    ok "install tree free of ARDOP vendor binaries/sources"
+  fi
+  if find "${INSTALL_DIR}" -type f -exec grep -l 'ardopcf' {} + 2>/dev/null | grep -q .; then
+    warn "install tree contains files mentioning ardopcf (review)"
+  else
+    ok "install tree has no ardopcf references"
+  fi
+else
+  warn "cmake --install skipped (non-fatal for dev trees)"
+fi
 
 # --- offline tests ---
 if bash stacks/baycom-pr/scripts/test-all.sh >/dev/null 2>&1; then
@@ -152,10 +209,12 @@ else
   fail "baycom-pr test-all"
 fi
 
-if CRDOP_BIN="${PWD}/build/bin/crdopc" bash stacks/crdop/scripts/test-smoke.sh >/dev/null 2>&1; then
-  ok "crdop smoke"
+if [[ -x "${BUILD_DIR}/bin/crdopc" ]] && CRDOP_BIN="${PWD}/${BUILD_DIR}/bin/crdopc" bash stacks/crdop/scripts/test-smoke.sh >/dev/null 2>&1; then
+  ok "crdop smoke (dev vendor build only)"
+elif [[ -x "${BUILD_DIR}/bin/crdopc" ]]; then
+  fail "crdop smoke (vendor crdopc present but smoke failed)"
 else
-  fail "crdop smoke"
+  ok "crdop vendor smoke skipped — ARDOP not shipped; native SoftModem default"
 fi
 
 # --- discovery ---
@@ -166,14 +225,14 @@ else
 fi
 
 # --- max25d + terminal ---
-chmod +x stacks/daemon/max25d 2>/dev/null || true
-[[ -x stacks/daemon/max25d ]] && ok "max25d ready" || fail "max25d"
-if [[ -L build/bin/max25-client ]] || [[ -x build/bin/max25-client ]]; then
+chmod +x stacks/daemon/max25d stacks/daemon/max25d.py 2>/dev/null || true
+[[ -x stacks/daemon/max25d ]] && [[ -f stacks/daemon/max25d.py ]] && ok "max25d ready" || fail "max25d"
+if [[ -L "${BUILD_DIR}/bin/max25-client" ]] || [[ -x "${BUILD_DIR}/bin/max25-client" ]]; then
   ok "max25-client symlink"
 else
   warn "max25-client symlink missing until cmake --install"
 fi
-if MAX25_TERMINAL="${PWD}/build/bin/max25-terminal" \
+if MAX25_TERMINAL="${PWD}/${BUILD_DIR}/bin/max25-terminal" \
    bash stacks/terminal/test-terminal.sh >/dev/null 2>&1; then
   ok "max25-terminal TCP probe"
 else
@@ -221,7 +280,7 @@ fi
 [[ -f .github/workflows/ci.yml ]] && ok "ci workflow" || fail "missing .github/workflows/ci.yml"
 
 # --- tncs probe (warn without hardware) ---
-if build/bin/tnc2c-probe >/dev/null 2>&1; then
+if "${BUILD_DIR}/bin/tnc2c-probe" >/dev/null 2>&1; then
   ok "tnc2c-probe (serial found)"
 else
   warn "tnc2c-probe: no serial devices (OK for CI without hardware)"

@@ -1,61 +1,36 @@
-# CRDOP 0.5.0 - experimental
+# CRDOP — CB/AR Digital Open Protocol (MAX25-SoftModem)
 
-**CB Radio Digital Open Protocol** — standalone ARDOP-compatible sound-card modem.
+**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
+
+Sound-card software modem subproject of MAX25-Stack.
+
+**Product version:** **CRDOP-CUR999** (`CUR999`) — pre-release until **v0.5**.
+
+**Canonical project rule:** [docs/CRDOP.md](../../docs/CRDOP.md)  
+**License:** GNU GPL v3 — [LICENSE](LICENSE)
+
+## Summary
 
 | | |
 |---|---|
-| Project | [github.com/ngteq/CRDOP](https://github.com/ngteq/CRDOP) |
-| Binary | `crdopc` |
-| License | MIT (ngteq) |
+| Type | MAX25-Stack **subproject** (`stacks/crdop/`) |
+| Interface | Sound card IN/OUT → kernel ALSA → MAX25 sound-proxy |
+| Goal | **AX.25 / KISS / TNC / modem compatible** software modem |
+| Mission | **Hardware solutions** (primary) + **pure software** on computers |
+| Build | Default ON (`MAX25_BUILD_CRDOP=ON`) |
 
-## What it is
+Read [docs/CRDOP.md](../../docs/CRDOP.md) before changing modem, audio, or plugin code.
 
-CRDOP is an **independent project** forked from **[pflarue/ardop](https://github.com/pflarue/ardop)** (ardopcf). Same ARDOP over-the-air and host TCP behaviour; CRDOP adds CB-first profiles, packaging, and multi-platform build.
+## Technical docs
 
-```
-Radio ↔ audio ↔ crdopc ↔ TCP :8515 / :8516 ↔ any ARDOP host
-```
-
-Modem only — no host application in this repo.
-
-**Platforms:** Linux and *BSD tested (GCC, Clang). Windows and macOS build in-tree but **not yet tested**.
-
-## Quick start
-
-```bash
-git clone https://github.com/ngteq/CRDOP.git && cd CRDOP
-./scripts/build-crdop.sh
-./scripts/install-crdop.sh    # optional → /usr/local/bin/crdopc + crdop
-./scripts/crdopc
-```
-
-CB profile with example INI:
-
-```bash
-CRDOP_INI=share/crdop.ini.example ./scripts/crdopc
-```
-
-## Profiles
-
-| Profile | Use | BW | Half-duplex delay | ARQ timeout |
-|---------|-----|-----|-------------------|-------------|
-| `cb` | CB radio (default) | 500MAX | 150 ms | 30 s |
-| `dual` | CB ↔ amateur | 500MAX | 200 ms | 35 s |
-| `amateur` | Ham (secondary) | 1000MAX | 80 ms | 45 s |
-
-INI: `share/crdop*.ini.example` · Config: [docs/CONFIG.md](docs/CONFIG.md) · Examples: [docs/EXAMPLES.md](docs/EXAMPLES.md)
-
-## Docs
+**Index:** [docs/INDEX.md](docs/INDEX.md)
 
 | Doc | Topic |
 |-----|--------|
-| [docs/README.md](docs/README.md) | Index · fork · upstream sources |
-| [docs/EXAMPLES.md](docs/EXAMPLES.md) | Usage examples |
+| [docs/MAX25-USAGE.md](docs/MAX25-USAGE.md) | MAX25-Stack operator guide |
+| [docs/DEVELOPER.md](docs/DEVELOPER.md) | Source tree, modules, tests |
+| [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFACE.md) | Generic radio interface spec |
+| [docs/SOFTMODEM.md](docs/SOFTMODEM.md) | Baud, duplex, acoustic AX.25 |
+| [docs/AUDIO-ARCHITECTURE.md](docs/AUDIO-ARCHITECTURE.md) | Kernel ALSA only, no PulseAudio |
 | [docs/CONFIG.md](docs/CONFIG.md) | INI / launcher |
-| [docs/PROTOCOL.md](docs/PROTOCOL.md) | ARDOP compatibility |
-| [docs/BUILD.md](docs/BUILD.md) | Build · test · platforms |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Release history |
-
-Legal: [NOTICE.md](NOTICE.md) · [LICENSE](LICENSE)
-
-Operator responsible for band, power, and cross-service legality.
+| [ROADMAP.md](ROADMAP.md) | P0/P1/P2 milestones |

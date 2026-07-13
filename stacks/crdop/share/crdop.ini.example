@@ -1,14 +1,19 @@
-; CRDOP — CB profile (default)
+; MAX25-SoftModem (CRDOP) — CB profile (default)
 ; Copy: cp share/crdop.ini.example ~/.config/crdop/crdop.ini
-; Docs: docs/EXAMPLES.md · docs/CONFIG.md
+; Docs: docs/SOFTMODEM.md · docs/AUDIO-ARCHITECTURE.md · docs/CONFIG.md
+;
+; Development/test phase — in-house MAX25-Stack standard.
+; Audio: kernel ALSA ONLY via MAX25 sound-proxy — NO PulseAudio / PipeWire route.
+; Good sound card REQUIRED (accurate tones; stricter at higher baud).
+; 1200 baud primary, max 19200 baud. Duplex: half | full
 
 [profile]
 radio_profile = cb
 
 [modem]
-arq_bandwidth = 500MAX
+speed_baud = 1200
 duplex = half
-; extra_delay_ms =
+max_speed_baud = 19200
 
 [host]
 port = 8515
@@ -17,5 +22,19 @@ port = 8515
 call = NOCALL-0
 
 [audio]
-; capture = plughw:0,0
-; playback = plughw:0,0
+; MAX25 sound-proxy → libasound → kernel ALSA → hardware (direct)
+backend = alsa-kernel
+; Reject pulse/pipewire pseudo devices — production path is kernel-only
+no_pulse = yes
+; REQUIRED: explicit hw: or plughw: from arecord -l / aplay -l
+; capture = hw:1,0
+; playback = hw:1,0
+; sample_rate = 48000
+; period_frames = 256
+
+[coupling]
+; line | acoustic — radio or TNC/BayCom reference path
+mode = line
+
+[compat]
+; ardop_compat = no   ; yes = third-party ARDOP wire format (external, never shipped by MAX25)

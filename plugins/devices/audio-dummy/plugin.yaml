@@ -1,0 +1,26 @@
+id: audio-dummy
+type: device
+parent_stack: MainAX25-Stack (MAX25-Stack)
+hardware: acoustic-bench
+label: Audio Dummy (acoustic bench)
+status: active
+
+product:
+  name: MAX25-Audio-Dummy
+  purpose: sniff_test_evaluate_acoustic_signals_on_host
+  protocol: m25-kiss-host
+  license: GPL-3.0-or-later
+
+note: |
+  Main dummy device for Bell 202 AFSK bench — loopback, ALSA sniff, or host TCP.
+  No RF required. Used before field tests against TNC2C/BayCom.
+
+runtime:
+  modes: [loopback, alsa, host]
+  sniffer: stacks/crdop/tools/max25-signal-sniffer
+  daemon: stacks/crdop/tools/audio-dummyd
+  default_spec: audio:loopback
+
+docs:
+  - docs/CRDOP.md
+  - stacks/crdop/docs/AUDIO-ARCHITECTURE.md

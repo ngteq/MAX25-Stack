@@ -15,20 +15,21 @@ Operator
    → max25-terminal (text lines, CALLERID/CALLID, --ax25-ui)
    → max25d (M25/1, plugin lifecycle, KISS/serial/kernel)
    → Hardware stack (tncs | baycom-pr | crdop)
-   → RF (AFSK 1200 / G3RUH 9600 / ARDOP — device dependent)
+   → RF (AFSK 1200 / G3RUH 9600 / SoftModem AFSK — device dependent)
 ```
 
 | Layer | MAX25 owns | Examples |
 |-------|------------|----------|
 | Operator UI | `max25-terminal` | F10 menu, live IDs, line pacing |
 | Session / IPC | `max25d` | M25/1, CONNECT, SEND |
-| Device prep | `max25d` + `stacks/*` | boot-wait, `modprobe`, KISS PTY, `crdopc` |
-| AX.25 UI build/parse | `max25d` (target) | dest/source/digi, CRC, KISS DATA |
+| Device prep | `max25d` + `stacks/*` | boot-wait, `modprobe`, KISS PTY |
+| AX.25 codec | `stacks/daemon/ax25_codec.py` | FCS, address encode/decode via `kiss_bridge.py` |
+| AX.25 terminal clients | **host** `ax25-apps` | `listen`, `call` on BayCom kernel ports (optional; future MAX25-native) |
 | KISS framing | `max25d` → TNC | FEND/FESC, port nibble |
 | Kernel AX.25 | `stacks/baycom-pr` | `hdlcdrv`, `bcsf0`, `AF_PACKET` |
 | HyBBX attach | external | After stack is up — INI in `share/hybbx/` |
 
-**CRDOP / ARDOP** (`soft-crdop`) is **not AX.25** — TCP sound-card modem parallel to packet radio. v1 ships the **CB profile** only (`stacks/crdop/share/crdop.ini.example`); amateur and dual profiles are deferred to v1.1+. MAX25 orchestrates upstream **`crdopc`** — no ARDOP fork; host TCP **:8515/:8516** and wire protocol remain **original ARDOP-compatible**. See `stacks/crdop/`.
+**MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol)** (`soft-crdop`) is the in-house sound-card modem — **CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio); **MAX25-Stack standard** (built unless `MAX25_BUILD_CRDOP=OFF`). Development/test phase: acoustically AX.25-compatible at 1200 baud+, half/full duplex, max 19200 baud. Native M25/KISS host TCP; `max25d` `CrdopTcpBackend`. ARDOP wire-compat is optional third-party only (`ardop_compat=true`) — never vendored. See [stacks/crdop/docs/SOFTMODEM.md](../stacks/crdop/docs/SOFTMODEM.md).
 
 ---
 
@@ -254,7 +255,7 @@ soft-crdop = crdop:default
 | `tnc2c`, `pktnc2` | `kiss-serial` | Serial KISS after boot-wait |
 | `baycom-ser12`, `baycom-par96` | `baycom-kiss` | KISS PTY `/var/run/baycom-pr/kiss` |
 | `baycom-kiss` | `kiss-raw-serial` | USB/async KISS serial |
-| `soft-crdop` | `crdop-tcp` | ARDOP TCP `:8515` / `:8516` |
+| `soft-crdop` | `crdop-tcp` | CRDOP M25 host TCP `:8515` / `:8516` |
 
 Full station example: `share/max25/max25d.full-station.ini.example`.
 
@@ -288,7 +289,7 @@ M25/1: `devices=` in `STATUS`, `SET DEVICE <id>` for TX routing, `RX device=<id>
 | Serial KISS bridge (TNC2C/PK-TNC2) | **max25d** `kiss_bridge.py` |
 | Multi-device backends (5+ concurrent) | **max25d** `device_backends.py` |
 | BayCom KISS PTY attach | **max25d** `BayComKissBackend` → `/var/run/baycom-pr/kiss` |
-| CRDOP ARDOP TCP attach | **max25d** `CrdopTcpBackend` → `:8515/:8516` |
+| CRDOP M25 host TCP attach | **max25d** `CrdopTcpBackend` → `:8515/:8516` (native); optional ARDOP via `ardop_compat` |
 | MYCALL + kiss entry per profile | **max25d** / stack scripts |
 | Kernel BayCom TX/RX | **stacks/baycom-pr** (mature) |
 | TNC2C boot-wait | **stacks/tncs** (mature) |

@@ -4,13 +4,25 @@
 
 ## Toolchain
 
-Linux primary. GCC or Clang, CMake 3.16+, bash, Python 3. CRDOP needs ALSA dev headers.
+Linux primary. GCC or Clang, CMake 3.16+, bash, Python 3.
+
+**Default build:** `stacks/tncs`, `stacks/baycom-pr`, **MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol) scaffold**, `max25d` (native `ax25_codec.py`), `max25-terminal`.
+
+**CMake flags:**
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `MAX25_BUILD_CRDOP` | **ON** | Build/install MAX25-SoftModem (CRDOP) — set OFF to skip |
+| `MAX25_BUNDLE_AX25` | OFF | Deprecated — use distro `ax25-apps` or `scripts/build-ax25-deps.sh` manually |
 
 ```bash
 ./scripts/build.sh
 cmake --install build --prefix /usr/local
 ./scripts/test.sh
 ./scripts/release-check.sh
+
+# Skip SoftModem:
+cmake -B build -DMAX25_BUILD_CRDOP=OFF && cmake --build build -j$(nproc)
 ```
 
 Host example: [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md). *BSD porting deferred — [PLATFORMS.md](PLATFORMS.md).

@@ -15,9 +15,10 @@ from device_backends import CrdopTcpBackend, DeviceBackendConfig  # noqa: E402
 class _MockSock:
     """Minimal socket double for ctrl/data channels."""
 
-    def __init__(self) -> None:
+    def __init__(self, term: str = "\n") -> None:
         self.sent: list[bytes] = []
         self._closed = False
+        self._term = term
 
     def settimeout(self, _t: float) -> None:
         return None
@@ -28,7 +29,7 @@ class _MockSock:
     def recv(self, _n: int) -> bytes:
         if self._closed:
             return b""
-        return b"OK\r"
+        return f"OK{self._term}".encode("ascii")
 
     def close(self) -> None:
         self._closed = True
@@ -58,7 +59,6 @@ def test_crdop_backend_open_and_attach() -> None:
         backend_type="crdop-tcp",
         crdop_host="127.0.0.1",
         crdop_port=8515,
-        crdop_fecmode="4FSK.500.100S",
         crdop_listen=True,
     )
     backend = CrdopTcpBackend(cfg, on_rx=lambda _l: None)
@@ -69,6 +69,7 @@ def test_crdop_backend_open_and_attach() -> None:
     assert backend.status == "ready"
     joined = b"".join(ctrl.sent).decode("ascii")
     assert "INITIALIZE" in joined
+    assert "PROTOCOLMODE KISS" in joined
     assert "LISTEN TRUE" in joined
     backend.close()
     assert backend.status == "closed"
@@ -90,11 +91,35 @@ def test_crdop_backend_transmit() -> None:
         assert backend.attach_session("CB-0")
         ok, display = backend.transmit("CB-0", "QST", "hello", ax25_ui=True)
     assert ok, display
-    assert any(s == b"hello" for s in data.sent)
-    assert "FECSEND TRUE" in b"".join(ctrl.sent).decode("ascii")
-    assert "[ARDOP FEC CB-0>QST]" in display
+    assert len(data.sent) == 1
+    assert "FECSEND" not in b"".join(ctrl.sent).decode("ascii")
+    assert "[CRDOP AX25 UI CB-0>QST]" in display
     backend.close()
     assert backend.status == "closed"
+
+
+def test_crdop_backend_ardop_compat() -> None:
+    ctrl = _MockSock(term="\r")
+    data = _MockSock(term="\r")
+    cfg = DeviceBackendConfig(
+        device_id="soft-crdop",
+        backend_type="crdop-tcp",
+        crdop_host="127.0.0.1",
+        crdop_port=8515,
+        crdop_fecmode="4FSK.500.100S",
+        crdop_ardop_compat=True,
+    )
+    backend = CrdopTcpBackend(cfg, on_rx=lambda _l: None)
+    p_sock, p_thread = _open_ctx(ctrl, data)
+    with p_sock, p_thread:
+        assert backend.open()
+        assert backend.attach_session("CB-0")
+        ok, display = backend.transmit("CB-0", "QST", "hello", ax25_ui=True)
+    assert ok, display
+    assert any(s == b"hello" for s in data.sent)
+    assert "FECSEND TRUE" in b"".join(ctrl.sent).decode("ascii")
+    assert "[CRDOP AX25 UI CB-0>QST]" in display
+    backend.close()
 
 
 def test_crdop_backend_connect_failure() -> None:
@@ -120,6 +145,7 @@ def main() -> int:
     test_crdop_backend_connect_failure()
     test_crdop_backend_open_and_attach()
     test_crdop_backend_transmit()
+    test_crdop_backend_ardop_compat()
     test_crdop_registry_tested()
     print("OK: crdop backend tests")
     return 0

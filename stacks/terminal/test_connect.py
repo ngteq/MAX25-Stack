@@ -46,7 +46,7 @@ def main() -> int:
 
     port = free_port()
     proc = subprocess.Popen(
-        [sys.executable, str(DAEMON), "--no-stack", "-c", str(INI), "--tcp-port", str(port)],
+        [str(DAEMON), "--no-stack", "-c", str(INI), "--tcp-port", str(port)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

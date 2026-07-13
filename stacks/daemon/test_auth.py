@@ -46,7 +46,7 @@ def main() -> int:
         ini_path = Path(tmp.name)
 
     proc = subprocess.Popen(
-        [sys.executable, str(DAEMON), "--no-stack", "-c", str(ini_path), "--tcp-port", str(port)],
+        [str(DAEMON), "--no-stack", "-c", str(ini_path), "--tcp-port", str(port)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         text=True,

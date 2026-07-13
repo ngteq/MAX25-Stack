@@ -79,8 +79,8 @@ kiss_entry = kiss_on
 ; [device.soft-crdop]
 ; host = 127.0.0.1
 ; port = 8515
-; fecmode = 4FSK.500.100S
 ; listen = yes
+; ardop_compat = no
 ; Prep: cp stacks/crdop/share/crdop.ini.example ~/.config/crdop/crdop.ini (CB / 500MAX)
 
 ; Serial env search: /etc/max25/ → local/ → share/max25/serial/ → stacks/tncs/

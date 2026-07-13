@@ -12,7 +12,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
-DAEMON = ROOT / "stacks/daemon/max25d"
+LAUNCHER = ROOT / "stacks/daemon/max25d"
+DAEMON = ROOT / "stacks/daemon/max25d.py"
 
 sys.path.insert(0, str(DAEMON.parent))
 from banlist import BanList, callsign_banned, extract_ax25_source  # noqa: E402
@@ -57,7 +58,7 @@ def test_extract_ax25_source() -> None:
     assert extract_ax25_source("[AX25 UI DG1ABC>QST] 73") == "DG1ABC"
     assert extract_ax25_source("[AX25 UI DK0WC-7>CB-0] hi") == "DK0WC-7"
     assert extract_ax25_source("plain text") is None
-    assert extract_ax25_source("[ARDOP RX soft-crdop] hello") is None
+    assert extract_ax25_source("[CRDOP RX soft-crdop] hello") is None
 
 
 def test_callsign_banned_matching() -> None:
@@ -131,8 +132,7 @@ auto_start = no
 
         proc = subprocess.Popen(
             [
-                sys.executable,
-                str(DAEMON),
+                str(LAUNCHER),
                 "--no-stack",
                 "--no-serial",
                 "-c",

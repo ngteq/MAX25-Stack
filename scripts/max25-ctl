@@ -83,7 +83,8 @@ Commands:
   test              Offline tests (no root)
 
 Daemon (Linux):
-  stacks/daemon/max25d   Long-running supervisor + M25/1 IPC for max25-terminal
+  stacks/daemon/max25d   Launcher (ps shows this path, not python3)
+  stacks/daemon/max25d.py   M25/1 daemon implementation
   stacks/terminal/max25-terminal   Operator UI (F10 menu, CALLERID/CALLID)
 
 Options (start/stop/status):

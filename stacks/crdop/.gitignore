@@ -6,4 +6,5 @@ build-*/
 *.exe
 *.log
 .DS_Store
+vendor/ardopcf/
 vendor/ardopcf/.crdop-patches-applied

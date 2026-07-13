@@ -18,7 +18,7 @@ jobs:
           sudo apt-get install -y build-essential cmake libasound2-dev pkg-config libncurses-dev
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMAX25_BUNDLE_AX25=OFF
 
       - name: Build merged stacks
         run: cmake --build build -j$(nproc)

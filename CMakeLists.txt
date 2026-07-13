@@ -11,9 +11,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+include(MAX25Ax25)
+
 option(MAX25_BUILD_TNCS "Build stacks/tncs tools" ON)
 option(MAX25_BUILD_BAYCOM "Build stacks/baycom-pr tools" ON)
-option(MAX25_BUILD_CRDOP "Build stacks/crdop (crdopc)" ON)
+option(MAX25_BUILD_CRDOP "Build and install MAX25-SoftModem (CRDOP) — disable only if not needed" ON)
 option(MAX25_BUILD_TERMINAL "Build max25-terminal / max25-client" ON)
 option(MAX25_BUILD_DAEMON "Install max25d" ON)
 
@@ -35,12 +38,18 @@ endif()
 
 if(MAX25_BUILD_DAEMON)
     execute_process(
-        COMMAND "${CMAKE_COMMAND}" -E chmod u+x "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d"
+        COMMAND "${CMAKE_COMMAND}" -E chmod u+x
+                "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d"
+                "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d.py"
         ERROR_QUIET
     )
     install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d.py"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/kiss_bridge.py"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/ax25_codec.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/device_backends.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
@@ -53,7 +62,6 @@ if(MAX25_BUILD_DAEMON)
         stacks/tncs/tnc2c-boot-wait.sh
         stacks/tncs/tnc2c-host-reset.sh
         stacks/tncs/pktnc2-boot-wait.sh
-        stacks/crdop/scripts/crdopc
     )
     set(_MAX25_STACK_DATA
         stacks/tncs/tnc2c-boot-wait.py
@@ -151,6 +159,8 @@ add_custom_target(max25_daemon_smoke
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_auth.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_ax25_codec.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_kiss_bridge.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_baycom_backend.py"
@@ -163,7 +173,9 @@ add_custom_target(max25_daemon_smoke
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/tncs/test_tnc_serial_recovery.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
-            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_serial_watch.py"
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_audio_dummy_backend.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/crdop/lib/test_bell202_line_code.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "max25d M25/1 smoke tests"
 )
@@ -181,12 +193,12 @@ add_custom_target(max25_test
     DEPENDS max25_daemon_smoke baycom_pr_test
 )
 
-if(TARGET crdop_smoke)
-    add_dependencies(max25_test crdop_smoke)
-endif()
-
 if(TARGET max25-terminal)
     add_dependencies(max25_test max25_terminal_test)
+endif()
+
+if(TARGET crdop_smoke)
+    add_dependencies(max25_test crdop_smoke)
 endif()
 
 message(STATUS "MainAX25-Stack → ${CMAKE_BINARY_DIR}/bin (install prefix: ${CMAKE_INSTALL_PREFIX})")

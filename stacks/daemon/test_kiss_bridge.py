@@ -7,15 +7,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from ax25_codec import ax25_build_ui, ax25_crc, ax25_parse_ui, parse_callsign  # noqa: E402
 from kiss_bridge import (  # noqa: E402
     KissDecoder,
-    ax25_build_ui,
-    ax25_crc,
-    ax25_parse_ui,
     format_rx_line,
     kiss_data_frame,
     kiss_encode,
-    parse_callsign,
     serial_profile_for_device,
 )
 
@@ -83,8 +80,25 @@ def test_serial_profile_pktnc2() -> None:
 
 
 def test_crc_known_vector() -> None:
-    body = b"\x03\xf0"
-    assert ax25_crc(body) != 0xFFFF
+    body = bytes(range(256))
+    assert ax25_crc(body) == 0x303C
+
+
+def test_kiss_non_data_ignored() -> None:
+    pkt = kiss_encode(0, 0x06, b"ignored")  # TXDELAY cmd
+    dec = KissDecoder()
+    assert dec.feed(pkt) == []
+
+
+def test_invalid_callsign_tx() -> None:
+    from kiss_bridge import KissBridge, SerialProfile
+
+    bridge = KissBridge(SerialProfile(), on_rx=lambda _m: None)
+    bridge._kiss_active = True
+    bridge._fd = -1  # not used — validate before write
+    ok, msg = bridge.transmit("BAD!", "CQ", "hi", ax25_ui=True)
+    assert not ok
+    assert "invalid" in msg.lower()
 
 
 def main() -> int:
@@ -97,6 +111,8 @@ def main() -> int:
         test_serial_profile_tnc2c,
         test_serial_profile_pktnc2,
         test_crc_known_vector,
+        test_kiss_non_data_ignored,
+        test_invalid_callsign_tx,
     ]
     for fn in tests:
         fn()

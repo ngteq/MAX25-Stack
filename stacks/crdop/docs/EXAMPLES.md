@@ -1,5 +1,7 @@
 # Examples
 
+MAX25-Stack integration (plugins, `max25d`, terminal): [MAX25-USAGE.md](MAX25-USAGE.md).
+
 ## Build
 
 ```bash
@@ -10,13 +12,15 @@ CRDOP_BUILD_TESTS=ON ./scripts/test-all.sh    # needs libcmocka-dev
 
 Cross-build (Linux host): see [BUILD.md](BUILD.md).
 
-## Run — CB (default)
+## Run — CB (default, native M25 host)
 
 ```bash
 ./scripts/crdopc
 # or explicit example INI:
 CRDOP_INI=share/crdop.ini.example ./scripts/crdopc
 ```
+
+This starts `audio-dummyd` with native M25/KISS host on TCP :8515/:8516.
 
 Copy config for daily use:
 
@@ -49,13 +53,6 @@ duplex = full
 arq_bandwidth = 500MAX
 ```
 
-Or override delay only:
-
-```ini
-[modem]
-extra_delay_ms = 0
-```
-
 ## Custom call / ALSA devices
 
 ```ini
@@ -67,35 +64,41 @@ capture = plughw:1,0
 playback = plughw:1,0
 ```
 
-Pass extra args after port (ALSA device names, etc.):
+Pass extra args after port (reserved for future native modem flags):
 
 ```bash
-./scripts/crdopc 8515 plughw:1,0 plughw:1,0
+./scripts/crdopc 8515
 ```
 
-## Direct binary (no launcher)
+## Optional third-party ARDOP attach (external)
+
+MAX25 does **not** ship ARDOP. To use an external ARDOP binary you installed separately:
+
+```ini
+[compat]
+ardop_compat = yes
+```
 
 ```bash
-./build/crdopc 8515 -H "INITIALIZE;PROTOCOLMODE ARQ;ARQBW 500MAX;MYCALL CB01-0;EXTRADELAY 150;BUSYDET 1;LISTEN"
+CRDOP_BIN=/path/to/external/crdopc ./scripts/crdopc
 ```
 
-## Install
+## Direct audio-dummyd (no launcher)
 
 ```bash
-./scripts/install-crdop.sh
-# → bin/crdopc (modem) + bin/crdop (launcher) + share/crdop/
+./build/bin/audio-dummyd --ctrl-port 8515 --data-port 8516
 ```
 
-Or manually: `cmake --install build --prefix /usr/local`
+## max25d integration
 
-## Host application
+```ini
+[devices]
+soft-crdop = crdop:default
 
-Connect your ARDOP client to **8515** (control) and **8516** (data). CRDOP does not ship a host — any ARDOP-compatible program works.
-
-## Environment
-
-```bash
-export CRDOP_INI=~/.config/crdop/crdop.ini
-export CRDOP_BIN=/usr/local/bin/crdopc
-./scripts/crdopc
+[device.soft-crdop]
+host = 127.0.0.1
+port = 8515
+listen = yes
 ```
+
+See [../../docs/PLUGINS-DEVICE-MODEL.md](../../docs/PLUGINS-DEVICE-MODEL.md).

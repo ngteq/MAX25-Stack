@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
-DAEMON = ROOT / "stacks/daemon/max25d"
+DAEMON = ROOT / "stacks/daemon/max25d.py"
 
 
 def load_max25d():

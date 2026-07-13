@@ -2,14 +2,27 @@ id: soft-crdop
 type: device
 parent_stack: MainAX25-Stack (MAX25-Stack)
 hardware: soft-modems
-label: CRDOP Sound-Card Modem
+label: MAX25-SoftModem (CRDOP — CB/AR Digital Open Protocol)
 status: active
 
-upstream:
-  project: CRDOP
-  repo: https://github.com/ngteq/CRDOP
-  binary: crdopc
-  note: Plugin id soft-crdop wraps upstream CRDOP/crdopc — wire-compatible with original ARDOP (no fork)
+product:
+  name: MAX25-SoftModem
+  phase: development_and_testing
+  development: in-house
+  baud_primary: 1200
+  baud_max: 19200
+  duplex: [half, full]
+  ax25_packet_radio: acoustically_compatible
+  use_like_hardware_modem: true
+  protocol_primary: max25-softmodem
+  audio_hardware: required
+
+note: |
+  CRDOP = CB/AR Digital Open Protocol (CB = Citizens Band, AR = Amateur Radio).
+  MAX25-Stack STANDARD subproject (stacks/crdop/) — GNU GPLv3.
+  Sound-card based; kernel ALSA + MAX25 sound-proxy; no PulseAudio.
+  Full AX.25/KISS/TNC/modem compatibility goal. Hardware-solution-first.
+  Static project rule: docs/CRDOP.md
 
 hybbx:
   plugin: crdop
@@ -19,16 +32,35 @@ hybbx:
   profile: cb
 
 modem:
-  protocol: ardop
+  protocol: max25-softmodem
   duplex: half
-  default_bandwidth: 500MAX
+  duplex_modes: [half, full]
+  default_speed_baud: 1200
+  max_speed_baud: 19200
+  ax25_acoustic: true
+  packet_radio_compatible: true
   audio: alsa
+  audio_backend: alsa-kernel
+  audio_path: max25-sound-proxy
+  no_pulseaudio: true
+  audio_required: true
+  coupling: [line_level, acoustic]
+
+ardop_compat:
+  optional: true
+  ini_flag: ardop_compat
+  ini_sections:
+    - device.soft-crdop   # max25d.ini
+    - compat              # crdop.ini
+  note: Third-party ARDOP host wire format — opt-in only; never vendored in MAX25
 
 runtime:
   ctl_start: stacks/crdop/scripts/crdopc
   default_ini: stacks/crdop/share/crdop.ini.example
   env:
     - CRDOP_INI
+  cmake_option_off: MAX25_BUILD_CRDOP
+  shipped_default: true
 
 ini:
   - stacks/crdop/share/crdop.ini.example
@@ -39,10 +71,14 @@ ini:
 client:
   - share/clients/soft-crdop.yaml
 
+license: GPL-3.0-or-later
+
 docs:
-  - stacks/crdop/README.md
+  - docs/CRDOP.md
+  - stacks/crdop/docs/SOFTMODEM.md
+  - stacks/crdop/docs/AUDIO-ARCHITECTURE.md
   - stacks/crdop/docs/CONFIG.md
-  - stacks/crdop/docs/EXAMPLES.md
+  - stacks/crdop/ROADMAP.md
 
 scripts:
   build: stacks/crdop/scripts/build-crdop.sh

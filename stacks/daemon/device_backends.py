@@ -40,6 +40,7 @@ DEVICE_REGISTRY: dict[str, dict[str, str | bool]] = {
     "baycom-par96": {"hardware": "modems", "backend": "baycom-kiss", "tested": False},
     "baycom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
     "soft-crdop": {"hardware": "soft-modems", "backend": "crdop-tcp", "tested": True},
+    "audio-dummy": {"hardware": "acoustic-bench", "backend": "audio-dummy", "tested": True},
 }
 
 
@@ -89,6 +90,13 @@ class DeviceBackendConfig:
     crdop_profile: str = "default"
     crdop_fecmode: str = "4FSK.500.100S"
     crdop_listen: bool = True
+    crdop_ardop_compat: bool = False
+    # Acoustic bench / audio-dummy
+    audio_mode: str = "loopback"  # loopback | alsa | host
+    audio_capture: str = ""
+    audio_playback: str = ""
+    audio_sample_rate: int = 48000
+    audio_host_port: int = 8520
 
 
 class DeviceBackend(ABC):
@@ -412,7 +420,11 @@ class KissRawSerialBackend(KissRawBackend):
 
 
 class CrdopTcpBackend(DeviceBackend):
-    """CRDOP / ARDOP sound-card modem via TCP host interface (:8515 / :8516)."""
+    """MAX25-SoftModem (CRDOP) via TCP host interface (:8515 / :8516).
+
+    Default: native M25/KISS host protocol (MAX25-SoftModem).
+    Optional: third-party ARDOP wire-compat when crdop_ardop_compat=true.
+    """
 
     backend_type = "crdop-tcp"
 
@@ -434,6 +446,9 @@ class CrdopTcpBackend(DeviceBackend):
         self._mycall = ""
         self._connected = False
         self.status = "closed"
+
+    def _line_term(self) -> str:
+        return "\r" if self._cfg.crdop_ardop_compat else "\n"
 
     def open(self) -> bool:
         host = self._cfg.crdop_host
@@ -479,7 +494,8 @@ class CrdopTcpBackend(DeviceBackend):
     def _cmd(self, text: str) -> str:
         if self._ctrl is None:
             return ""
-        payload = (text.rstrip("\r") + "\r").encode("ascii", errors="replace")
+        term = self._line_term()
+        payload = (text.rstrip(term) + term).encode("ascii", errors="replace")
         with self._lock:
             self._ctrl.sendall(payload)
             return self._read_line_unlocked()
@@ -487,6 +503,8 @@ class CrdopTcpBackend(DeviceBackend):
     def _read_line_unlocked(self) -> str:
         if self._ctrl is None:
             return ""
+        term = self._line_term()
+        term_b = term.encode("ascii")
         buf = b""
         deadline = time.time() + 3.0
         while time.time() < deadline:
@@ -499,8 +517,8 @@ class CrdopTcpBackend(DeviceBackend):
             if not chunk:
                 break
             buf += chunk
-            while b"\r" in buf:
-                raw, buf = buf.split(b"\r", 1)
+            while term_b in buf:
+                raw, buf = buf.split(term_b, 1)
                 line = raw.decode("ascii", errors="replace").strip()
                 if line:
                     return line
@@ -510,13 +528,20 @@ class CrdopTcpBackend(DeviceBackend):
         if self._ctrl is None:
             return False
         self._mycall = mycall.upper()
-        cmds = [
-            "INITIALIZE",
-            "PROTOCOLMODE FEC",
-            f"MYCALL {self._mycall}",
-            f"FECMODE {self._cfg.crdop_fecmode}",
-            "FECREPEATS 1",
-        ]
+        if self._cfg.crdop_ardop_compat:
+            cmds = [
+                "INITIALIZE",
+                "PROTOCOLMODE FEC",
+                f"MYCALL {self._mycall}",
+                f"FECMODE {self._cfg.crdop_fecmode}",
+                "FECREPEATS 1",
+            ]
+        else:
+            cmds = [
+                "INITIALIZE",
+                "PROTOCOLMODE KISS",
+                f"MYCALL {self._mycall}",
+            ]
         if self._cfg.crdop_listen:
             cmds.append("LISTEN TRUE")
         for cmd in cmds:
@@ -541,15 +566,21 @@ class CrdopTcpBackend(DeviceBackend):
             return False, "payload too long"
         with self._lock:
             try:
-                self._data.sendall(payload)
-                self._cmd("PURGEBUFFER")
-                reply = self._cmd("FECSEND TRUE")
+                if self._cfg.crdop_ardop_compat:
+                    self._data.sendall(payload)
+                    self._cmd("PURGEBUFFER")
+                    reply = self._cmd("FECSEND TRUE")
+                    self._log(f"{self.device_id}: FECSEND → {reply}")
+                else:
+                    body = ax25_build_ui(src, dst, payload)
+                    if len(body) >= 2:
+                        body = body[:-2]
+                    self._data.sendall(body)
             except OSError as exc:
                 self.status = "error-tx"
                 return False, f"tx failed: {exc}"
-        self._log(f"{self.device_id}: FECSEND → {reply}")
         if ax25_ui:
-            display = f"[ARDOP FEC {src}>{dst}] {text}"
+            display = f"[CRDOP AX25 UI {src}>{dst}] {text}"
         else:
             display = text
         return True, display
@@ -569,14 +600,244 @@ class CrdopTcpBackend(DeviceBackend):
             if not chunk:
                 time.sleep(0.05)
                 continue
-            for line in chunk.decode("ascii", errors="replace").split("\r"):
+            term = self._line_term()
+            for line in chunk.decode("ascii", errors="replace").split(term):
                 line = line.strip()
                 if not line:
                     continue
-                if line.startswith("STATUS ") and "frame received OK" in line:
-                    self._on_rx(f"[ARDOP RX {self.device_id}] {line[7:]}")
-                elif line.startswith("FEC") and "data" in line.lower():
-                    self._on_rx(f"[ARDOP RX {self.device_id}] {line}")
+                if self._cfg.crdop_ardop_compat:
+                    if line.startswith("STATUS ") and "frame received OK" in line:
+                        self._on_rx(f"[ARDOP RX {self.device_id}] {line[7:]}")
+                    elif line.startswith("FEC") and "data" in line.lower():
+                        self._on_rx(f"[ARDOP RX {self.device_id}] {line}")
+                elif line.startswith("STATUS"):
+                    self._on_rx(f"[CRDOP RX {self.device_id}] {line}")
+
+
+class AudioDummyBackend(DeviceBackend):
+    """Acoustic bench dummy — loopback, ALSA sniff, or M25 host TCP (no ARDOP FEC)."""
+
+    backend_type = "audio-dummy"
+
+    def __init__(
+        self,
+        cfg: DeviceBackendConfig,
+        on_rx: RxFn,
+        log: Optional[LogFn] = None,
+    ) -> None:
+        self.device_id = cfg.device_id
+        self._cfg = cfg
+        self._on_rx = on_rx
+        self._log = log or (lambda _m: None)
+        self._ctrl: Optional[socket.socket] = None
+        self._data: Optional[socket.socket] = None
+        self._thread: Optional[threading.Thread] = None
+        self._stop = threading.Event()
+        self._lock = threading.RLock()
+        self._mycall = ""
+        self._connected = False
+        self._engine = None
+        self.status = "closed"
+
+    def _import_engine(self):
+        import sys
+        from pathlib import Path
+
+        lib = Path(__file__).resolve().parents[1] / "crdop" / "lib"
+        if str(lib) not in sys.path:
+            sys.path.insert(0, str(lib))
+        from acoustic_engine import AcousticEngine  # noqa: WPS433
+        from sound_proxy import SoundConfig  # noqa: WPS433
+
+        sound = SoundConfig(
+            capture=self._cfg.audio_capture or "default",
+            playback=self._cfg.audio_playback or self._cfg.audio_capture or "default",
+            sample_rate=self._cfg.audio_sample_rate,
+        )
+        return AcousticEngine(sample_rate=self._cfg.audio_sample_rate, sound=sound)
+
+    def open(self) -> bool:
+        mode = (self._cfg.audio_mode or "loopback").lower()
+        if mode == "host":
+            host = "127.0.0.1"
+            port = self._cfg.audio_host_port
+            try:
+                ctrl = socket.create_connection((host, port), timeout=3.0)
+                ctrl.settimeout(0.5)
+                data = socket.create_connection((host, port + 1), timeout=3.0)
+                data.settimeout(0.5)
+            except OSError as exc:
+                self.status = "error-connect"
+                self._log(f"{self.device_id}: audio-dummy host connect failed: {exc}")
+                return False
+            self._ctrl = ctrl
+            self._data = data
+            self._stop.clear()
+            self._thread = threading.Thread(
+                target=self._host_rx_loop,
+                name=f"audio-dummy-{self.device_id}",
+                daemon=True,
+            )
+            self._thread.start()
+            self.status = "open"
+            self._log(f"{self.device_id}: audio-dummy host {host}:{port}")
+            return True
+
+        try:
+            self._engine = self._import_engine()
+        except Exception as exc:
+            self.status = "error-engine"
+            self._log(f"{self.device_id}: audio engine load failed: {exc}")
+            return False
+
+        if mode == "alsa" and self._cfg.audio_capture:
+            self._stop.clear()
+            self._thread = threading.Thread(
+                target=self._alsa_sniff_loop,
+                name=f"audio-sniff-{self.device_id}",
+                daemon=True,
+            )
+            self._thread.start()
+        self.status = "open"
+        self._log(f"{self.device_id}: audio-dummy mode={mode}")
+        return True
+
+    def close(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+            self._thread = None
+        for sock in (self._ctrl, self._data):
+            if sock is not None:
+                try:
+                    sock.close()
+                except OSError:
+                    pass
+        self._ctrl = None
+        self._data = None
+        self._connected = False
+        self.status = "closed"
+
+    def _host_cmd(self, text: str) -> str:
+        if self._ctrl is None:
+            return ""
+        payload = (text.rstrip("\n") + "\n").encode("ascii", errors="replace")
+        with self._lock:
+            self._ctrl.sendall(payload)
+            buf = b""
+            deadline = time.time() + 2.0
+            while time.time() < deadline:
+                try:
+                    chunk = self._ctrl.recv(4096)
+                except socket.timeout:
+                    continue
+                if not chunk:
+                    break
+                buf += chunk
+                if b"\n" in buf:
+                    line, _ = buf.split(b"\n", 1)
+                    return line.decode("ascii", errors="replace").strip()
+        return ""
+
+    def attach_session(self, mycall: str) -> bool:
+        self._mycall = mycall.upper()
+        if self._ctrl is not None:
+            for cmd in (
+                "INITIALIZE",
+                "PROTOCOLMODE KISS",
+                f"MYCALL {self._mycall}",
+                "LISTEN TRUE",
+            ):
+                reply = self._host_cmd(cmd)
+                self._log(f"{self.device_id}: {cmd} → {reply or '(no reply)'}")
+        self._connected = True
+        self.status = "ready"
+        return True
+
+    def detach_session(self) -> None:
+        self._connected = False
+        if self._ctrl is not None:
+            self.status = "open"
+        else:
+            self.status = "closed"
+
+    def transmit(self, src: str, dst: str, text: str, ax25_ui: bool) -> tuple[bool, str]:
+        if not self._connected:
+            return False, "audio-dummy not ready"
+        payload = text.encode("utf-8")
+        if len(payload) > MAX_PAYLOAD:
+            return False, "payload too long"
+
+        if self._engine is not None:
+            pcm = self._engine.encode_ax25_ui(src, dst, text)
+            rep = self._engine.analyze_pcm(pcm)
+            for line in rep.decode_lines:
+                self._on_rx(f"[AUDIO RX {self.device_id}] {line}")
+            display = f"[AX25 UI {src}>{dst}] {text}" if ax25_ui else text
+            return True, display
+
+        if self._data is None:
+            return False, "no data channel"
+        import sys
+        from pathlib import Path
+
+        lib = Path(__file__).resolve().parents[1] / "crdop" / "lib"
+        if str(lib) not in sys.path:
+            sys.path.insert(0, str(lib))
+        from ax25_codec import ax25_build_ui  # noqa: WPS433
+
+        body = ax25_build_ui(src, dst, payload)
+        if len(body) >= 2:
+            body = body[:-2]
+        try:
+            with self._lock:
+                self._data.sendall(body)
+        except OSError as exc:
+            return False, f"tx failed: {exc}"
+        display = f"[AX25 UI {src}>{dst}] {text}" if ax25_ui else text
+        return True, display
+
+    def _alsa_sniff_loop(self) -> None:
+        import sys
+        from pathlib import Path
+
+        lib = Path(__file__).resolve().parents[1] / "crdop" / "lib"
+        if str(lib) not in sys.path:
+            sys.path.insert(0, str(lib))
+        from sound_proxy import SoundProxy  # noqa: WPS433
+
+        if self._engine is None:
+            return
+        proxy = SoundProxy(self._engine.sound)
+
+        def on_pcm(chunk: bytes) -> None:
+            rep = self._engine.analyze_pcm(chunk)
+            for line in rep.decode_lines:
+                self._on_rx(f"[SNIFF {self.device_id}] {line}")
+
+        try:
+            proxy.sniff_loop(chunk_symbols=40, on_pcm=on_pcm, stop=self._stop)
+        except Exception as exc:
+            self._log(f"{self.device_id}: sniff error: {exc}")
+
+    def _host_rx_loop(self) -> None:
+        while not self._stop.is_set():
+            if self._ctrl is None:
+                break
+            try:
+                ready, _, _ = select.select([self._ctrl], [], [], 0.5)
+                if not ready:
+                    continue
+                chunk = self._ctrl.recv(4096)
+            except (OSError, socket.timeout):
+                continue
+            if not chunk:
+                time.sleep(0.05)
+                continue
+            for line in chunk.decode("ascii", errors="replace").split("\n"):
+                line = line.strip()
+                if line.startswith("STATUS"):
+                    self._on_rx(f"[AUDIO RX {self.device_id}] {line}")
 
 
 def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> DeviceBackendConfig:
@@ -606,6 +867,10 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
         dev.backend_type = "crdop-tcp"
         dev.crdop_profile = spec.split(":", 1)[1].strip() or "default"
         dev.hardware = "soft-modems"
+    elif spec.startswith("audio:"):
+        dev.backend_type = "audio-dummy"
+        dev.audio_mode = spec.split(":", 1)[1].strip() or "loopback"
+        dev.hardware = "acoustic-bench"
     elif spec.startswith("/") or spec.startswith("dev:"):
         if dev.backend_type in ("baycom-kiss",):
             dev.kiss_link = spec
@@ -630,6 +895,18 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
         dev.crdop_fecmode = sec_opts["fecmode"]
     if sec_opts.get("listen"):
         dev.crdop_listen = sec_opts["listen"].lower() in ("1", "yes", "true", "on")
+    if sec_opts.get("ardop_compat"):
+        dev.crdop_ardop_compat = sec_opts["ardop_compat"].lower() in ("1", "yes", "true", "on")
+    if sec_opts.get("mode"):
+        dev.audio_mode = sec_opts["mode"]
+    if sec_opts.get("capture"):
+        dev.audio_capture = sec_opts["capture"]
+    if sec_opts.get("playback"):
+        dev.audio_playback = sec_opts["playback"]
+    if sec_opts.get("sample_rate"):
+        dev.audio_sample_rate = int(sec_opts["sample_rate"])
+    if sec_opts.get("host_port"):
+        dev.audio_host_port = int(sec_opts["host_port"])
 
     serial_sec = f"serial.{device_id}"
     if cp.has_section(serial_sec):
@@ -663,11 +940,13 @@ def create_backend(
         return KissRawSerialBackend(dev_cfg, root, on_rx, log)
     if kind == "crdop-tcp":
         return CrdopTcpBackend(dev_cfg, on_rx, log)
+    if kind == "audio-dummy":
+        return AudioDummyBackend(dev_cfg, on_rx, log)
     return KissSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix)
 
 
 def backend_needs_stack(kind: str) -> bool:
-    return kind in ("kiss-serial", "baycom-kiss", "kiss-raw-serial", "crdop-tcp")
+    return kind in ("kiss-serial", "baycom-kiss", "kiss-raw-serial", "crdop-tcp", "audio-dummy")
 
 
 def backend_serial_label(backend: Optional[DeviceBackend]) -> str:

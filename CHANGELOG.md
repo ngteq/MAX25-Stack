@@ -2,7 +2,9 @@
 
 All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
 
-## [1.0.0] — 2026-07-12
+## [MAX25-Stack-v1.0.0] — 2026-07-13
+
+Version file `1.0.0`. Product label **MAX25-Stack-v1.0.0**.
 
 **First production release** — standalone Packet Radio / AX.25 hardware lifecycle.
 
@@ -10,7 +12,13 @@ All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
 
 - **tnc2c** — Landolt TNC2C serial KISS (boot-wait, HyBBX `packet_radio`)
 - **baycom-ser12** — kernel BayCom SER12 / PC-COM (single-modem default; dual opt-in)
-- **soft-crdop** — CRDOP sound-card modem, CB profile (`crdop.ini.example`); wraps upstream `crdopc` (original ARDOP-compatible, no fork)
+- **soft-crdop** — MAX25-SoftModem (CRDOP), CB profile (`crdop.ini.example`); native M25/KISS host via `CrdopTcpBackend` (KISS default, `[CRDOP AX25 UI …]` display)
+
+### Architecture
+
+- **AX.25** — in-tree `ax25_codec.py` via `kiss_bridge.py`; `MAX25_BUNDLE_AX25` OFF; `third_party/ax25/` tarballs reference-only
+- **CRDOP** — in-house MAX25-SoftModem scaffold; `MAX25_BUILD_CRDOP` **ON** by default; no vendored ardopcf in release
+- **ARDOP** — external-only optional attach (`ardop_compat=true`); never shipped
 
 ### Stack
 
@@ -35,4 +43,4 @@ All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
 ### Upstream stack versions
 
 - BayCom PR-Stack `1.0.0`
-- CRDOP `0.5.0` (embedded ardopcf)
+- CRDOP **CRDOP-CUR999** (`CUR999` in `stacks/crdop/VERSION`) — pre-release until v0.5

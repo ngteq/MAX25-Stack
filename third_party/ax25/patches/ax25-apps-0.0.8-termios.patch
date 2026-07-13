@@ -1,0 +1,70 @@
+--- a/ax25ipd/io.c
++++ b/ax25ipd/io.c
+@@ -19,7 +19,8 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <syslog.h>
+-#include <termio.h>
++#include <termios.h>
++#include <sys/ioctl.h>
+ #include <time.h>
+ #include <unistd.h>
+ #include <arpa/inet.h>
+@@ -32,7 +33,7 @@
+ 
+ #include "ax25ipd.h"
+ 
+-static struct termio nterm;
++static struct termios nterm;
+ 
+ int ttyfd = -1;
+ static int udpsock = -1;
+@@ -339,7 +340,7 @@ int open_io(void)
+ 		set_bpq_dev_call_and_up(ttydevice);
+ 		goto behind_normal_tty;
+ 	}
+-	if (ioctl(ttyfd, TCGETA, &nterm) < 0) {
++	if (tcgetattr(ttyfd, &nterm) < 0) {
+ 		perror("fetching tty device parameters");
+ 		exit(1);
+ 	}
+@@ -476,7 +477,7 @@ int open_io(void)
+ 	nterm.c_cc[VMIN] = 0;
+ 	nterm.c_cc[VTIME] = 0;
+ 
+-	if (ioctl(ttyfd, TCSETA, &nterm) < 0) {
++	if (tcsetattr(ttyfd, TCSANOW, &nterm) < 0) {
+ 		perror("setting tty device parameters");
+ 		exit(1);
+ 	}
+--- a/ax25rtd/ax25rtd.c
++++ b/ax25rtd/ax25rtd.c
+@@ -33,6 +33,7 @@
+ 
+ #include <stdlib.h>
+ #include <stdio.h>
++#include <string.h>
+ #include <unistd.h>
+ #include <signal.h>
+ #include <errno.h>
+--- a/ax25ipd/routing.c
++++ b/ax25ipd/routing.c
+@@ -11,6 +11,7 @@
+ #include <arpa/inet.h>
+ #include <netinet/in.h>
+ #include <sys/types.h>
++#include <stdlib.h>
+ 
+ #include "ax25ipd.h"
+ 
+--- a/call/call.c
++++ b/call/call.c
+@@ -42,7 +42,7 @@
+ #include <unistd.h>
+ #include <wchar.h>
+ #include <wctype.h>
+-#include <ncursesw/ncurses.h>
++#include <ncurses.h>
+ #include <locale.h>
+ #include <iconv.h>
+ #include <sys/ioctl.h>

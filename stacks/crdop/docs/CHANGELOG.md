@@ -1,13 +1,20 @@
 # Changelog
 
-## [0.5.0] — 2026-07-04
+## [CUR999] — pre-release (current)
 
-**Current release** — standalone CRDOP modem (`crdopc`).
+**CRDOP-CUR999** — in-house MAX25-SoftModem scaffold inside MAX25-Stack. Pre-release track until **v0.5** ships.
 
-- Embedded `vendor/ardopcf` (MIT), CB / dual / amateur profiles
-- Linux and *BSD tested (GCC, Clang); Windows and macOS in-tree but **untested**
-- CoreAudio on macOS, install layout (`crdopc` + `crdop` launcher)
-- cmocka unit tests in CI
+- Product label **CRDOP-CUR999**; version file `CUR999`
+- Native modem DSP in development; optional legacy ARDOP vendor build (`-DCRDOP_VENDOR_ARDOPCF=ON`) never shipped in MAX25 releases
+- `max25d` `crdop-tcp` backend, INI scaffold, launcher, HyBBX attach examples
+
+## [0.5.0] — planned (not yet released)
+
+Target first numbered CRDOP release after CUR999 pre-release phase.
+
+- Standalone CRDOP modem (`crdopc`) with native DSP
+- Embedded optional `vendor/ardopcf` (MIT) for legacy wire-compat dev builds only
+- CB / dual / amateur profiles; Linux and *BSD tested
 
 ## [0.1.0-l2-cb] — 2026-07-03
 

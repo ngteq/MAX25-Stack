@@ -1,20 +1,20 @@
-# Device: soft-crdop (CRDOP)
+# Device: soft-crdop (MAX25-SoftModem / CRDOP — CB/AR Digital Open Protocol)
 
-**Status:** Active — builds and smokes offline; live RF acceptance manual.
+**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
 
-Sound-card ARDOP modem from `stacks/crdop/`. Plugin id `soft-crdop`; upstream **CRDOP** / `crdopc`.
+**Status:** `active` — MAX25-Stack **standard subproject** (`stacks/crdop/`).
 
-## Flow
+**Canonical rule:** [docs/CRDOP.md](../../../docs/CRDOP.md) · **License:** GNU GPL v3
 
-```
-Radio ↔ ALSA ↔ crdopc ↔ TCP :8515/:8516 ↔ HyBBX crdop plugin
-         ▲
-    upstream CRDOP (original ARDOP-compatible crdopc)
-         ▲
-    MAX25 orchestrates start + max25d TCP bridge — no ARDOP fork
-```
+## Summary
 
-ARDOP — parallel to AX.25/KISS, not a replacement. Wire protocol and ports match **original ARDOP**; MAX25 does not replace or fork the modem stack.
+| Topic | Policy |
+|-------|--------|
+| Type | Sound-card software modem subproject |
+| Compatibility | **AX.25 / KISS / TNC / modem** (software-modem domain) |
+| Mission | **Hardware solutions** (primary) + pure **software** on computers |
+| Audio | Kernel ALSA + MAX25 sound-proxy — **no PulseAudio** |
+| Build | Default ON — `-DMAX25_BUILD_CRDOP=OFF` to skip |
 
 ## Quick start
 
@@ -23,8 +23,4 @@ ARDOP — parallel to AX.25/KISS, not a replacement. Wire protocol and ports mat
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 
-HyBBX: `share/hybbx/crdop-host.ini.example`
-
-## Platform
-
-Linux primary; CRDOP also builds on *BSD — [docs/PLATFORMS.md](../../docs/PLATFORMS.md).
+See [docs/CRDOP.md](../../../docs/CRDOP.md) for full project rules.

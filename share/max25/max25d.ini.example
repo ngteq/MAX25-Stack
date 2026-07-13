@@ -19,6 +19,8 @@ pktnc2 = /dev/ttyS5
 ; baycom-par96 = baycom:a
 ; baycom-kiss = /dev/ttyUSB0
 ; soft-crdop = crdop:default
+; Acoustic bench (loopback / ALSA sniff / host daemon):
+; audio-dummy = audio:loopback
 ; enabled = tnc2c,pktnc2   ; optional — omit to enable all listed ids
 
 [network]
@@ -33,7 +35,7 @@ tcp_password =
 ; Default IDs — terminal may override live (session scope)
 callerid = CB-0
 callid = QST
-; Send lines as AX.25 UI when yes (CRDOP uses ARDOP FEC display when ax25_ui=yes)
+; Send lines as AX.25 UI when yes (CRDOP uses native AX.25 UI display when ax25_ui=yes)
 ax25_ui = yes
 ; Banned AX.25 source callsigns — silent RX drop (one per line in file)
 ; bans_file = /etc/max25/bans.txt
@@ -86,9 +88,10 @@ stack_retry_interval = 120
 ; line = 8n1
 ; dtr_rts = no
 
-; --- CRDOP sound-card modem ---
+; --- CRDOP sound-card modem (MAX25-SoftModem) ---
 ; [device.soft-crdop]
 ; host = 127.0.0.1
 ; port = 8515
-; fecmode = 4FSK.500.100S
 ; listen = yes
+; ardop_compat = no   ; opt-in third-party ARDOP wire format (never shipped by MAX25)
+; fecmode = 4FSK.500.100S   ; only when ardop_compat = yes

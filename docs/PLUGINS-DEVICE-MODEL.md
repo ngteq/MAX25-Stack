@@ -164,13 +164,13 @@ Dual M25/1 ids: `baycom-a` / `baycom-b` — template `share/max25/max25d.dual-ba
 
 ---
 
-## CRDOP (`hardware/soft-modems`) — documented path only
+## CRDOP (`hardware/soft-modems`) — MAX25-SoftModem standard
 
-CRDOP follows the same five-step model. v1 ships the **CB profile** only; amateur and dual profiles are deferred to v1.1+ (INI templates exist, operator workflow not in v1 scope).
+**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio). CRDOP follows the same five-step model. Native M25/KISS host on TCP :8515/:8516 (acoustically AX.25-compatible).
 
-**Not AX.25** — ARDOP over sound card via TCP. Terminal still uses M25/1; `max25d` bridges to `crdopc`.
+**ARDOP** is optional third-party attach only — never shipped by MAX25. Set `ardop_compat=true` to bridge external ARDOP wire format.
 
-MAX25 **wraps and orchestrates** upstream `crdopc` (CRDOP) — it does **not** fork or replace ARDOP. Host interface ports (**:8515/:8516**), wire protocol, and modem behaviour stay compatible with original ARDOP.
+MAX25 **develops and ships** native MAX25-SoftModem (`stacks/crdop/`). It does **not** fork or bundle ARDOP.
 
 ### Config surfaces
 
@@ -193,8 +193,8 @@ soft-crdop = crdop:default
 [device.soft-crdop]
 host = 127.0.0.1
 port = 8515
-fecmode = 4FSK.500.100S
 listen = yes
+; ardop_compat = no   ; opt-in third-party ARDOP only
 
 [stack]
 auto_start = yes
@@ -204,7 +204,7 @@ auto_start = yes
 
 ```bash
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
-# crdopc listens on TCP :8515 (control) / :8516 (data)
+# native SoftModem listens on TCP :8515 (control) / :8516 (data)
 ```
 
 Terminal session — **same M25/1 pattern**:
@@ -237,7 +237,7 @@ Requires ALSA audio device configured in `crdop.ini`. No serial port, no kernel 
 | Client YAML | `share/clients/tnc2c.yaml` | `share/clients/baycom-ser12.yaml` (reference) | `share/clients/soft-crdop.yaml` |
 | Stack start command | boot-wait script | `baycom-pr-ctl start` | `crdopc` |
 | max25d backend | `kiss-serial` | `baycom-kiss` (KISS PTY) | `crdop-tcp` |
-| On-air protocol | AX.25 UI via KISS | AX.25 via kernel | ARDOP (not AX.25) |
+| On-air protocol | AX.25 UI via KISS | AX.25 via kernel | AX.25-compatible AFSK (CRDOP) |
 | HyBBX plugin | `packet_radio` | `baycom` | `crdop` |
 
 ---
@@ -269,10 +269,10 @@ These differences are **intentional** (kernel/audio constraints), not bugs. Oper
 |----------|-----|--------|-------|
 | Extra site config file | serial env only | `baycom-pr.ini` (+ one-time `setup`) | `crdop.ini` (+ ALSA audio) |
 | Root for stack start | no (boot-wait) | **yes** (`baycom-pr-ctl`) | no (audio may need system config) |
-| Two-process model | max25d owns serial | baycom-pr-ctl → KISS PTY → max25d | crdopc TCP → max25d |
+| Two-process model | max25d owns serial | baycom-pr-ctl → KISS PTY → max25d | crdop launcher → native M25 TCP → max25d |
 | Dual layout confusion | N/A (separate tty per TNC) | dual INI skipped by default (single-modem template) | dual profile deferred v1.1+ |
 | Freeze risk | low | **high** if wrong IRQ | low |
-| On-air protocol | AX.25/KISS | AX.25/KISS | ARDOP (not AX.25) |
+| On-air protocol | AX.25/KISS | AX.25/KISS | AX.25-compatible AFSK (CRDOP) |
 | CI backend tests | mature | `test_baycom_backend.py` | config-parse only |
 | Terminal `SET DEVICE` in UI | F10 menu **7** + `-d` CLI flag | same | same |
 

@@ -1,6 +1,6 @@
 schema_version: 1
 id: soft-crdop
-label: CRDOP Sound-Card Modem
+label: MAX25-SoftModem (CRDOP)
 type: client-profile
 status: active
 
@@ -20,7 +20,7 @@ session:
   ax25_ui: true
 
 terminal:
-  pacing_baud: 2400
+  pacing_baud: 1200
   line_width: 80
   payload_max: 256
 
@@ -30,24 +30,41 @@ max25d:
   ctl_start: stacks/crdop/scripts/crdopc
   default_ini: stacks/crdop/share/crdop.ini.example
 
-crdop:
+softmodem:
+  product: MAX25-SoftModem
+  phase: development_and_testing
+  protocol: max25-softmodem
+  baud_primary: 1200
+  baud_max: 19200
+  duplex: [half, full]
+  ax25_packet_radio: acoustically_compatible
+  use_like_hardware_modem: true
+  audio_required: true
+  coupling: [line_level, acoustic]
   host: 127.0.0.1
   control_port: 8515
   data_port: 8516
-  protocol: ardop
-  duplex: half
-  default_bandwidth: 500MAX
-  audio: alsa
   listen: true
+
+ardop_compat:
+  optional: true
+  note: Third-party ARDOP only — not MAX25 standard
 
 hybbx:
   ini_example: share/hybbx/crdop-host.ini.example
   plugin: crdop
 
 docs:
+  - stacks/crdop/docs/INDEX.md
   - stacks/crdop/README.md
+  - stacks/crdop/docs/SOFTMODEM.md
+  - stacks/crdop/ROADMAP.md
   - plugins/devices/soft-crdop/plugin.yaml
 
 notes: |
-  Not AX.25 on-air — ARDOP over sound card. Terminal still uses M25/1 to max25d;
-  max25d bridges to crdopc TCP. No serial or kernel BayCom involved.
+  MAX25-SoftModem (CRDOP) — MAX25-Stack STANDARD (built unless MAX25_BUILD_CRDOP=OFF).
+  Development and test phase. 1200 baud+, half/full duplex.
+  Acoustically AX.25/Packet-Radio compatible with TNCs and BayCom modems.
+  Sound card IN/OUT + radio — use like a hardware modem in max25d.
+  Good sound card REQUIRED (accurate tones; stricter at higher baud).
+  Open docs for DIY hardware interfaces.

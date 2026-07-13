@@ -44,7 +44,9 @@ sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
 
 Full BayCom contract: [BAYCOM.md](BAYCOM.md) · `stacks/baycom-pr/docs/PLUGIN.md`.
 
-## CRDOP (`crdop`)
+## CRDOP — CB/AR Digital Open Protocol (`crdop`)
+
+**CRDOP** = **CB/AR Digital Open Protocol** (CB = Citizens Band, AR = Amateur Radio).
 
 **MAX25 prep:**
 
@@ -53,7 +55,7 @@ Full BayCom contract: [BAYCOM.md](BAYCOM.md) · `stacks/baycom-pr/docs/PLUGIN.md
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 
-`crdopc` listens on TCP **8515** (control) / **8516** (data). ARDOP — not AX.25. MAX25 starts and bridges to upstream `crdopc`; it does not fork ARDOP — same host interface as standalone ARDOP.
+`crdop` launcher listens on TCP **8515** (control) / **8516** (data). Native MAX25-SoftModem M25/KISS host — acoustically AX.25-compatible. MAX25 starts and bridges via `CrdopTcpBackend`; it does not ship ARDOP. Optional third-party ARDOP attach: `ardop_compat=true`.
 
 **HyBBX INI:** merge `share/hybbx/crdop-host.ini.example` — `modem_host`, `modem_port=8515`.
 

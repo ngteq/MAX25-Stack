@@ -14,7 +14,7 @@ Example INI: `share/max25/max25d.ini.host.example`
 | **`max25-terminal`** | Yes | Local UI via Unix socket or `127.0.0.1:7325` |
 | **TNC2C / USB TNC** | Yes | `/dev/ttyUSB*`, `/dev/ttyACM*` |
 | **BayCom SER12** | Yes | UART or USB-serial; kernel modules need headers |
-| **CRDOP (`soft-crdop`)** | Yes | ALSA sound device |
+| **CRDOP** — CB/AR Digital Open Protocol (`soft-crdop`) | Yes | ALSA sound device |
 | **HyBBX attach** | Yes | After MAX25 prep — [HYBBX.md](HYBBX.md) |
 
 Remote operators use **`max25-terminal`** over the network to this host’s `max25d` (TCP port **7325**).
@@ -51,6 +51,8 @@ sudo apt-get install -y \
   libasound2-dev
 ```
 
+Optional **AX.25 userland** for BayCom kernel sessions (`listen`, `call` via `baycom-pr-ctl`): install distro packages (`ax25-apps`, `libax25`). max25d does **not** use these libraries — it ships `ax25_codec.py` / `kiss_bridge.py`. To build missing host tools from vendored tarballs: `cmake -DMAX25_BUNDLE_AX25=ON` (off by default).
+
 **BayCom kernel stack** additionally needs kernel headers matching the running kernel:
 
 ```bash
@@ -70,7 +72,8 @@ Or use the repo helper:
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
-# Binaries: build/bin/crdopc, max25-terminal, tnc2c-probe, …
+# Default binaries: max25-terminal, tnc2c-probe, baycom_test, CRDOP scaffold, max25d helpers
+# Skip SoftModem: cmake -B build -DMAX25_BUILD_CRDOP=OFF && cmake --build build -j$(nproc)
 cmake --install build --prefix /usr/local
 ```
 
@@ -228,7 +231,7 @@ sudo max25d -c /etc/max25/max25d.ini
 
 See [BAYCOM.md](BAYCOM.md).
 
-### CRDOP + USB sound
+### CRDOP (CB/AR Digital Open Protocol) + USB sound
 
 ```bash
 ./scripts/build.sh

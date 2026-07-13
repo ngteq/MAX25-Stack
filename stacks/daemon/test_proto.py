@@ -52,7 +52,7 @@ def wait_for_port(port: int, proc: subprocess.Popen[str], timeout: float = 8.0) 
 def main() -> int:
     port = free_port()
     proc = subprocess.Popen(
-        [sys.executable, str(DAEMON), "--no-stack", "--no-serial", "-c", str(INI), "--tcp-port", str(port)],
+        [str(DAEMON), "--no-stack", "--no-serial", "-c", str(INI), "--tcp-port", str(port)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         text=True,

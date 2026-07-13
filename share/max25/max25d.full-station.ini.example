@@ -48,5 +48,4 @@ baycom_ini = /etc/baycom/baycom-pr.ini
 [device.soft-crdop]
 host = 127.0.0.1
 port = 8515
-fecmode = 4FSK.500.100S
 listen = yes

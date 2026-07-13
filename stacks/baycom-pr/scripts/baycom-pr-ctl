@@ -1264,14 +1264,36 @@ cmd_axports() {
 	esac
 }
 
+resolve_ax25_bin() {
+	local name="$1"
+	local candidate dir
+
+	if command -v "${name}" >/dev/null 2>&1; then
+		command -v "${name}"
+		return 0
+	fi
+
+	for dir in \
+		"${MAX25_AX25_BINDIR:-}" \
+		"${MAX25_ROOT:-}/build/bin" \
+		"${MAX25_ROOT:-}/build/ax25/prefix/bin" \
+		"${MAX25_ROOT:-}/build/ax25/prefix/sbin" \
+		"/usr/local/sbin" \
+		"/usr/local/bin"; do
+		[[ -n "${dir}" && -x "${dir}/${name}" ]] || continue
+		echo "${dir}/${name}"
+		return 0
+	done
+
+	return 1
+}
+
 cmd_listen() {
 	local port listen_bin
 
 	init_modem_slots
-	if ! command -v listen >/dev/null 2>&1; then
-		die "listen not found — install ax25-tools package"
-	fi
-	listen_bin="$(command -v listen)"
+	listen_bin="$(resolve_ax25_bin listen)" || \
+		die "listen not found — install ax25-apps (distro package) or scripts/build-ax25-deps.sh --need-apps"
 	port="$(resolve_axport_name "${EXTRA_ARGS[0]:-}")"
 	log "listen -a -c ${port}"
 	exec "${listen_bin}" -a -c "${port}" "${EXTRA_ARGS[@]:1}"
@@ -1281,10 +1303,8 @@ cmd_call() {
 	local port dest call_bin
 
 	init_modem_slots
-	if ! command -v call >/dev/null 2>&1; then
-		die "call not found — install ax25-tools package"
-	fi
-	call_bin="$(command -v call)"
+	call_bin="$(resolve_ax25_bin call)" || \
+		die "call not found — install ax25-apps (distro package) or scripts/build-ax25-deps.sh --need-apps"
 	if [[ ${#EXTRA_ARGS[@]} -eq 0 ]]; then
 		die "usage: baycom-pr-ctl call <port|modem> <dest> [via ...]"
 	fi

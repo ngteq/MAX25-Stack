@@ -16,6 +16,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
+from ax25_codec import (  # noqa: E402
+    ax25_build_ui,
+    ax25_crc,
+    ax25_crc_valid,
+    ax25_parse_ui,
+    format_callsign,
+    parse_callsign,
+    validate_callsign,
+)
+
 FEND = 0xC0
 FESC = 0xDB
 TFEND = 0xDC
@@ -33,86 +43,6 @@ class SerialProfile:
     line: str = "8n1"
     dtr_rts: bool = True
     kiss_entry: str = "kiss_on"  # kiss_on | auto
-
-
-def parse_callsign(text: str) -> tuple[str, int]:
-    text = text.strip().upper()
-    if "-" in text:
-        call, ssid_s = text.split("-", 1)
-        try:
-            ssid = int(ssid_s)
-        except ValueError:
-            ssid = 0
-        if ssid < 0 or ssid > 15:
-            ssid = 0
-        return call[:6], ssid
-    return text[:6], 0
-
-
-def ax25_crc(data: bytes) -> int:
-    crc = 0xFFFF
-    for b in data:
-        crc ^= b
-        for _ in range(8):
-            crc = (crc >> 1) ^ 0x8408 if crc & 1 else crc >> 1
-    return crc ^ 0xFFFF
-
-
-def ax25_encode_address(call: str, ssid: int, last: bool) -> bytes:
-    padded = call.upper().ljust(6)[:6]
-    raw = bytes((ord(c) << 1) for c in padded)
-    ssid_b = ((ssid & 0x0F) << 1) | (0x01 if last else 0x00)
-    return raw + bytes([ssid_b])
-
-
-def ax25_build_ui(src: str, dst: str, info: bytes) -> bytes:
-    src_call, src_ssid = parse_callsign(src)
-    dst_call, dst_ssid = parse_callsign(dst)
-    body = (
-        ax25_encode_address(dst_call, dst_ssid, False)
-        + ax25_encode_address(src_call, src_ssid, True)
-        + b"\x03\xF0"
-        + info
-    )
-    crc = ax25_crc(body)
-    return body + bytes((crc & 0xFF, crc >> 8))
-
-
-def ax25_decode_address(raw: bytes) -> tuple[str, int]:
-    call = "".join(chr((b >> 1) & 0x7F) for b in raw[:6]).strip()
-    ssid = (raw[6] >> 1) & 0x0F
-    return call, ssid
-
-
-def ax25_parse_ui(frame: bytes) -> Optional[tuple[str, str, bytes]]:
-    if len(frame) < 16:
-        return None
-    body = frame
-    if len(frame) >= 18:
-        crc_rx = frame[-2] | (frame[-1] << 8)
-        if ax25_crc(frame[:-2]) == crc_rx:
-            body = frame[:-2]
-    pos = 0
-    addresses: list[tuple[str, int, bool]] = []
-    while pos + 7 <= len(body):
-        last = bool(body[pos + 6] & 0x01)
-        addresses.append((*ax25_decode_address(body[pos : pos + 7]), last))
-        pos += 7
-        if last:
-            break
-    if len(addresses) < 2:
-        return None
-    if pos + 2 > len(body):
-        return None
-    if body[pos] != 0x03:
-        return None
-    pos += 2
-    payload = body[pos:]
-    dst_call, dst_ssid, _ = addresses[0]
-    src_call, src_ssid, _ = addresses[-1]
-    dst = dst_call if not dst_ssid else f"{dst_call}-{dst_ssid}"
-    src = src_call if not src_ssid else f"{src_call}-{src_ssid}"
-    return src, dst, payload
 
 
 class KissDecoder:
@@ -154,7 +84,10 @@ class KissDecoder:
     def _deliver(self) -> Optional[tuple[int, bytes]]:
         if len(self._buf) < 1:
             return None
-        port = (self._buf[0] >> 4) & 0x0F
+        cmd_byte = self._buf[0]
+        if (cmd_byte & 0x0F) != KISS_CMD_DATA:
+            return None
+        port = (cmd_byte >> 4) & 0x0F
         payload = bytes(self._buf[1:])
         return port, payload
 
@@ -177,11 +110,9 @@ def kiss_encode(port: int, cmd: int, payload: bytes) -> bytes:
 
 
 def kiss_data_frame(port: int, ax25_frame: bytes) -> bytes:
-    """Build KISS DATA; strip FCS when CRC validates."""
-    if len(ax25_frame) >= 2:
-        crc_rx = ax25_frame[-2] | (ax25_frame[-1] << 8)
-        if ax25_crc(ax25_frame[:-2]) == crc_rx:
-            ax25_frame = ax25_frame[:-2]
+    """Build KISS DATA; strip FCS when CRC validates (ax25ipd / KISS convention)."""
+    if ax25_crc_valid(ax25_frame):
+        ax25_frame = ax25_frame[:-2]
     return kiss_encode(port, KISS_CMD_DATA, ax25_frame)
 
 
@@ -500,8 +431,16 @@ class KissBridge:
             return False, "serial not ready"
         if len(text.encode("utf-8")) > MAX_PAYLOAD:
             return False, "payload too long"
+        try:
+            validate_callsign(src)
+            validate_callsign(dst)
+        except ValueError as exc:
+            return False, str(exc)
         info = text.encode("utf-8")
-        frame = ax25_build_ui(src, dst, info)
+        try:
+            frame = ax25_build_ui(src, dst, info)
+        except ValueError as exc:
+            return False, str(exc)
         pkt = kiss_data_frame(0, frame)
         with self._lock:
             try:

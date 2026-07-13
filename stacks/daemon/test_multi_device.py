@@ -14,7 +14,8 @@ from typing import Callable
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
-DAEMON = ROOT / "stacks/daemon/max25d"
+LAUNCHER = ROOT / "stacks/daemon/max25d"
+DAEMON = ROOT / "stacks/daemon/max25d.py"
 BASE_INI = ROOT / "share/max25/max25d.ini.example"
 
 
@@ -262,8 +263,7 @@ def run_daemon_test(ini_text: str, fn: Callable[[LineReader, socket.socket], Non
 
     proc = subprocess.Popen(
         [
-            sys.executable,
-            str(DAEMON),
+            str(LAUNCHER),
             "--no-stack",
             "--no-serial",
             "-c",

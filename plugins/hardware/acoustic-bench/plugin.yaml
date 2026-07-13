@@ -1,0 +1,21 @@
+id: acoustic-bench
+type: hardware
+parent_stack: MainAX25-Stack (MAX25-Stack)
+label: Acoustic Bench
+description: |
+  Host-side acoustic signal bench — dummy device, sniffer, DSP loopback.
+  Kernel ALSA only. For CRDOP / MAX25-SoftModem development and test.
+
+stack_path: stacks/crdop
+status: active
+
+devices:
+  - audio-dummy
+
+tools:
+  sniffer: stacks/crdop/tools/max25-signal-sniffer
+  dummy_daemon: stacks/crdop/tools/audio-dummyd
+
+docs:
+  - docs/CRDOP.md
+  - stacks/crdop/docs/AUDIO-ARCHITECTURE.md

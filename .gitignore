@@ -13,3 +13,8 @@ stacks/crdop/build/
 stacks/baycom-pr/tools/baycom_test
 local/*
 !local/README.md
+third_party/ax25/*-rc5/
+third_party/ax25/_build-test/
+third_party/ax25/**/build/
+.ax25-analysis/
+stacks/crdop/vendor/ardopcf/
