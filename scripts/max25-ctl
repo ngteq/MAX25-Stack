@@ -273,11 +273,21 @@ cmd_start() {
         tnc2c|"")
           local boot=""
           boot="$(stack_script "tncs/tnc2c-boot-wait.sh")"
-          echo "TNC2C boot-wait: power-cycle TNC while script runs"
+          if [[ "${MAX25_TNC_PREP:-}" == "recover" ]]; then
+            echo "TNC recover-only (software ladder, no power cycle)"
+            exec "${boot}" --recover-only
+          fi
+          echo "TNC boot-wait rescue: power-cycle TNC while script runs if needed"
           exec "${boot}"
           ;;
         pktnc2)
-          exec "$(stack_script "tncs/pktnc2-boot-wait.sh")"
+          local boot=""
+          boot="$(stack_script "tncs/pktnc2-boot-wait.sh")"
+          if [[ "${MAX25_TNC_PREP:-}" == "recover" ]]; then
+            echo "PK-TNC2 recover-only (software ladder, no power cycle)"
+            exec "${boot}" --recover-only
+          fi
+          exec "${boot}"
           ;;
         *) echo "Unknown TNC device: $DEVICE" >&2; exit 1 ;;
       esac

@@ -162,6 +162,8 @@ add_custom_target(max25_daemon_smoke
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_bans.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/tncs/test_tnc_serial_recovery.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_serial_watch.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "max25d M25/1 smoke tests"
 )

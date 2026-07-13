@@ -34,8 +34,11 @@ ax25_ui = yes
 ; bans_file = /etc/max25/bans.txt
 
 [stack]
-; Starts max25-ctl stack on daemon boot (TNC boot-wait, BayCom, crdopc)
+; Starts max25-ctl stack on daemon boot (recover-only for TNC — no power cycle)
 auto_start = yes
+serial_watch = yes
+serial_watch_interval = 60
+stack_recover_only = yes
 
 ; --- Path A: TNC2C (default host) ---
 [devices]

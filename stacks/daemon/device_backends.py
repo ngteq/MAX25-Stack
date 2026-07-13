@@ -179,6 +179,13 @@ class KissSerialBackend(DeviceBackend):
         else:
             self.status = "closed"
 
+    def stabilize_session(self, mycall: str, *, force: bool = False) -> bool:
+        if self._bridge is None:
+            return False
+        ok = self._bridge.stabilize_session(mycall, force=force)
+        self.status = self._bridge.status
+        return ok
+
     def attach_session(self, mycall: str) -> bool:
         if self._bridge is None:
             return False

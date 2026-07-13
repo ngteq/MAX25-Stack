@@ -17,6 +17,7 @@ import socket
 import subprocess
 import sys
 import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Set
@@ -61,6 +62,11 @@ class DaemonConfig:
     ax25_ui: bool = True
     auto_start: bool = True
     serial_enabled: bool = True
+    serial_watch: bool = True
+    serial_watch_interval: int = 60
+    serial_repair_cooldown: int = 20
+    stack_recover_only: bool = True
+    stack_retry_interval: int = 120
     bans_file: str = str(DEFAULT_BANS_FILE)
     # Legacy single-device [serial] overrides (used when [devices] absent).
     serial_device: str = ""
@@ -77,6 +83,9 @@ class DeviceRuntime:
     stack_proc: Optional[subprocess.Popen] = None
     stack_status: str = "stopped"
     link_status: str = "n/a"
+    last_watch: float = 0.0
+    last_repair: float = 0.0
+    last_stack_retry: float = 0.0
 
 
 @dataclass
@@ -212,6 +221,19 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
         cfg.bans_file = cp.get("modem", "bans_file", fallback=cfg.bans_file)
     if cp.has_section("stack"):
         cfg.auto_start = _truthy(cp.get("stack", "auto_start", fallback="yes"))
+        if cp.has_option("stack", "serial_watch"):
+            cfg.serial_watch = _truthy(cp.get("stack", "serial_watch"))
+        cfg.serial_watch_interval = cp.getint(
+            "stack", "serial_watch_interval", fallback=cfg.serial_watch_interval
+        )
+        cfg.serial_repair_cooldown = cp.getint(
+            "stack", "serial_repair_cooldown", fallback=cfg.serial_repair_cooldown
+        )
+        if cp.has_option("stack", "stack_recover_only"):
+            cfg.stack_recover_only = _truthy(cp.get("stack", "stack_recover_only"))
+        cfg.stack_retry_interval = cp.getint(
+            "stack", "stack_retry_interval", fallback=cfg.stack_retry_interval
+        )
     if cp.has_section("serial"):
         cfg.serial_device = cp.get("serial", "device", fallback="")
         cfg.serial_baud = cp.getint("serial", "baud", fallback=0)
@@ -279,6 +301,20 @@ BACKEND_RETRY_STATUSES = frozenset(
         "error-connect",
         "error-no-device",
         "error-no-path",
+        "error-host",
+        "error-kiss",
+        "error-tx",
+        "error-io",
+    }
+)
+
+SERIAL_REPAIR_STATUSES = frozenset(
+    {
+        "error-host",
+        "error-kiss",
+        "error-tx",
+        "error-io",
+        "open",
     }
 )
 
@@ -460,6 +496,8 @@ def start_device_stack(state: DaemonState, dev_id: str) -> None:
             args.extend(["--baycom-ini", str(resolved)])
     env = os.environ.copy()
     env["MAX25_MODE"] = state.cfg.mode
+    if hw == "tncs" and state.cfg.stack_recover_only:
+        env["MAX25_TNC_PREP"] = "recover"
     workdir = str(ROOT if (ROOT / "plugins").is_dir() else (PREFIX or ROOT))
     try:
         proc = subprocess.Popen(
@@ -578,6 +616,60 @@ def retry_pending_backends(state: DaemonState) -> None:
         if not backend_needs_open(rt.backend):
             continue
         open_backend(state, dev_id)
+
+
+def poll_serial_stability(state: DaemonState) -> None:
+    """Periodic TNC health probe + software recovery (no power cycle)."""
+    cfg = state.cfg
+    if not cfg.serial_watch:
+        return
+    now = time.time()
+    for dev_id in enabled_device_ids(state):
+        if device_backend_kind(state, dev_id) != "kiss-serial":
+            continue
+        rt = state.devices[dev_id]
+        if (
+            cfg.stack_recover_only
+            and rt.stack_status.startswith("error")
+            and rt.stack_proc is None
+            and now - rt.last_stack_retry >= cfg.stack_retry_interval
+        ):
+            rt.last_stack_retry = now
+            log(f"serial watch: stack retry recover-only ({dev_id})")
+            start_device_stack(state, dev_id)
+            continue
+        if not backend_enabled(state, dev_id):
+            continue
+        backend = rt.backend
+        force = backend is not None and backend.status in SERIAL_REPAIR_STATUSES
+        due = now - rt.last_watch >= cfg.serial_watch_interval
+        if not force and not due:
+            continue
+        if backend is None:
+            if backend_needs_open(None):
+                open_backend(state, dev_id)
+                backend = rt.backend
+            if backend is None:
+                continue
+        if now - rt.last_repair < cfg.serial_repair_cooldown and not force:
+            continue
+        stabilize = getattr(backend, "stabilize_session", None)
+        if stabilize is None:
+            continue
+        rt.last_watch = now
+        rt.last_repair = now
+        ok = stabilize(state.cfg.callerid, force=force)
+        rt.link_status = backend.status
+        if ok:
+            if force:
+                log(f"serial watch: repaired ({dev_id})")
+                broadcast(state, f"EVENT device={dev_id} serial=ready")
+        else:
+            log(f"serial watch: repair failed ({dev_id}) status={backend.status}")
+            if backend.status in ("error-io", "error-open", "error-no-device"):
+                close_backend(state, dev_id)
+                if open_backend(state, dev_id) and state.connected:
+                    attach_backend_session(state, dev_id)
 
 
 def format_tx(state: DaemonState, text: str) -> str:
@@ -748,6 +840,16 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
                 payload,
                 state.cfg.ax25_ui,
             )
+            if not ok and hasattr(rt.backend, "stabilize_session"):
+                log(f"serial watch: tx retry after repair ({dev_id})")
+                if rt.backend.stabilize_session(state.cfg.callerid, force=True):
+                    rt.link_status = rt.backend.status
+                    ok, display = rt.backend.transmit(
+                        state.cfg.callerid,
+                        state.cfg.callid,
+                        payload,
+                        state.cfg.ax25_ui,
+                    )
             if not ok:
                 send_line(sock, f"ERR {display}")
                 return
@@ -849,6 +951,7 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
 
     while running:
         poll_stacks(state)
+        poll_serial_stability(state)
         socks = [lsock for lsock, _ in listeners]
         rlist, _, _ = select.select(socks, [], [], 1.0)
         for lsock, from_tcp in listeners:

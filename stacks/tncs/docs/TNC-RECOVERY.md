@@ -58,6 +58,20 @@ HyBBX INI (production): `kiss_entry = none`, `persist = 255` (CB CSMA), optional
 
 max25d runs `recover_terminal()` in `kiss_bridge.attach_session()` before `MYCALL` and KISS entry.
 
+### max25d serial watch (automatic)
+
+When `[stack] serial_watch = yes` (default), max25d periodically probes the TNC and runs the software recovery ladder when needed — **without closing the serial port** (DTR stays high).
+
+| INI key | Default | Role |
+|---------|---------|------|
+| `serial_watch` | yes | Enable periodic probe + auto-repair |
+| `serial_watch_interval` | 60 | Seconds between health probes |
+| `serial_repair_cooldown` | 20 | Minimum gap between repair attempts |
+| `stack_recover_only` | yes | Daemon start uses `--recover-only` (no power cycle) |
+| `stack_retry_interval` | 120 | Retry failed stack prep with recover-only |
+
+Triggers: periodic interval, `error-host` / `error-kiss` / `error-tx` / `error-io`, failed TX (one auto-retry). Power-cycle boot-wait remains manual rescue via `tnc2c-boot-wait.sh` without `--recover-only`.
+
 ## Power-cycle rescue (only when needed)
 
 Use when:

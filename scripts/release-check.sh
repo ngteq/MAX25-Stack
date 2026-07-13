@@ -198,6 +198,12 @@ else
   fail "tnc serial recovery unit tests"
 fi
 
+if python3 stacks/daemon/test_serial_watch.py >/dev/null 2>&1; then
+  ok "max25d serial watch tests"
+else
+  fail "max25d serial watch tests"
+fi
+
 [[ -x stacks/tncs/tnc2c-host-reset.sh ]] && ok "tnc2c-host-reset.sh" || fail "tnc2c-host-reset.sh"
 
 # --- AmigaOS terminal (optional cross-build) ---

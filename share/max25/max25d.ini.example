@@ -41,6 +41,13 @@ ax25_ui = yes
 [stack]
 ; Auto-start hardware on daemon start (boot-wait / baycom-pr-ctl / crdopc per device)
 auto_start = yes
+; TNC serial stability: periodic probe + software recovery (power-cycle stays rescue-only)
+serial_watch = yes
+serial_watch_interval = 60
+serial_repair_cooldown = 20
+; max25d uses --recover-only for TNC stack prep (no power cycle on daemon start)
+stack_recover_only = yes
+stack_retry_interval = 120
 
 [serial]
 ; Legacy single-device overrides — ignored when [devices] is present.
