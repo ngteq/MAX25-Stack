@@ -33,6 +33,7 @@ from device_backends import (  # noqa: E402
     registry_tested,
 )
 from banlist import BanList, DEFAULT_BANS_FILE, extract_ax25_source  # noqa: E402
+from daemon_log import LOGGER, emit_startup_banner, emit_startup_complete  # noqa: E402
 from kiss_bridge import KissBridge  # noqa: E402 — tests patch this symbol
 from paths import ctl_path, resolve_baycom_ini, resolve_layout  # noqa: E402
 
@@ -72,6 +73,7 @@ class DaemonConfig:
     serial_bootwait_escalate_after: int = 3
     serial_bootwait_escalate_cooldown: int = 300
     bans_file: str = str(DEFAULT_BANS_FILE)
+    config_path: str = ""
     # Legacy single-device [serial] overrides (used when [devices] absent).
     serial_device: str = ""
     serial_baud: int = 0
@@ -109,7 +111,8 @@ class DaemonState:
 
 
 def log(msg: str) -> None:
-    print(f"max25d: {msg}", file=sys.stderr, flush=True)
+    """Legacy log hook — structured stderr (human + machine readable)."""
+    LOGGER.emit_unstructured(msg)
 
 
 def valid_callsign(value: str) -> bool:
@@ -165,7 +168,10 @@ def parse_devices(cp: configparser.ConfigParser, cfg: DaemonConfig) -> list[Devi
             entries.append(dev)
 
         if not entries:
-            log("[devices] section empty — falling back to legacy single device")
+            LOGGER.warn(
+                "[devices] section empty — falling back to legacy single device",
+                area="config",
+            )
         else:
             if default_id:
                 cfg.default_device = default_id
@@ -206,10 +212,13 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
                 path = candidate
                 break
     if path is None or not path.is_file():
-        log(f"using built-in defaults (no ini at {path})")
+        LOGGER.warn(f"using built-in defaults (no ini at {path})", area="config")
         cfg.devices = [parse_device_spec(cfg.device, "", configparser.ConfigParser(), {"hardware": cfg.hardware})]
         cfg.default_device = cfg.device
+        cfg.config_path = ""
         return cfg
+
+    cfg.config_path = str(path)
 
     cp = configparser.ConfigParser(strict=False)
     cp.read(path)
@@ -266,7 +275,6 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
     if not cfg.default_device and cfg.devices:
         cfg.default_device = cfg.devices[0].device_id
     cfg.device = cfg.default_device
-    log(f"config {path} ({len(cfg.devices)} device(s))")
     return cfg
 
 
@@ -277,9 +285,10 @@ def init_device_runtimes(state: DaemonState) -> None:
             continue
         state.devices[dev_cfg.device_id] = DeviceRuntime(cfg=dev_cfg)
         if not registry_tested(dev_cfg.device_id):
-            log(
-                f"WARNING: device {dev_cfg.device_id} backend="
-                f"{dev_cfg.backend_type or 'auto'} — not hardware-validated in CI"
+            LOGGER.warn(
+                f"backend={dev_cfg.backend_type or 'auto'} — not hardware-validated in CI",
+                area="devices",
+                device=dev_cfg.device_id,
             )
     if state.cfg.default_device in state.devices:
         state.selected_device = state.cfg.default_device
@@ -349,11 +358,11 @@ def prep_inline_serial_device(state: DaemonState, dev_id: str) -> None:
     """Open serial and run initial recovery while holding DTR (no subprocess)."""
     rt = state.devices[dev_id]
     rt.stack_status = "ready"
-    log(f"stack inline ({dev_id}) — max25d owns serial recovery")
+    LOGGER.info("inline prep — max25d owns serial recovery", area="stack", device=dev_id)
     if not backend_enabled(state, dev_id):
         return
     if not open_backend(state, dev_id):
-        log(f"serial prep: open failed ({dev_id}) status={rt.link_status}")
+        LOGGER.error(f"serial prep open failed status={rt.link_status}", area="serial", device=dev_id)
         return
     backend = rt.backend
     stabilize = getattr(backend, "stabilize_session", None)
@@ -363,22 +372,24 @@ def prep_inline_serial_device(state: DaemonState, dev_id: str) -> None:
     rt.prep_done = True
     rt.link_status = backend.status
     if ok:
-        log(f"serial prep OK ({dev_id})")
+        LOGGER.ok("serial prep complete — terminal + KISS ready", area="serial", device=dev_id)
     elif (
         backend.status == "error-host"
         and state.cfg.serial_bootwait_escalate
         and rt.stack_proc is None
     ):
-        log(
-            f"serial prep failed ({dev_id}) status=error-host "
-            "— inline ladder exhausted, escalating to boot-wait"
+        LOGGER.warn(
+            "inline ladder exhausted (error-host) — escalating to boot-wait + power-cycle hint",
+            area="serial",
+            device=dev_id,
         )
         rt.last_bootwait_escalate = time.time()
         escalate_to_bootwait_stack(state, dev_id)
     else:
-        log(
-            f"serial prep deferred ({dev_id}) status={backend.status} "
-            "— serial watch will retry (escalates to boot-wait after repeated failures)"
+        LOGGER.warn(
+            f"prep deferred status={backend.status} — serial watch will retry",
+            area="serial",
+            device=dev_id,
         )
 
 
@@ -796,6 +807,10 @@ def poll_serial_stability(state: DaemonState) -> None:
                 continue
         if now - rt.last_repair < cfg.serial_repair_cooldown and not force:
             continue
+        if backend.status == "ready" and not force:
+            if due:
+                rt.last_watch = now
+            continue
         stabilize = getattr(backend, "stabilize_session", None)
         if stabilize is None:
             continue
@@ -1108,9 +1123,17 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
 
     state.started_at = time.time()
 
-    log(
-        f"listening tcp={state.cfg.tcp_host}:{state.cfg.tcp_port} "
-        f"unix={state.cfg.unix_socket} devices={','.join(enabled_device_ids(state))}"
+    device_lines: list[tuple[str, str, str]] = []
+    for dev_id in enabled_device_ids(state):
+        rt = state.devices[dev_id]
+        link = backend_serial_label(rt.backend) if rt.backend is not None else rt.link_status
+        device_lines.append((dev_id, rt.stack_status, link))
+
+    emit_startup_complete(
+        device_lines=device_lines,
+        tcp_host=state.cfg.tcp_host,
+        tcp_port=state.cfg.tcp_port,
+        unix_socket=state.cfg.unix_socket,
     )
 
     while running:
@@ -1222,7 +1245,28 @@ def main(argv: Optional[list[str]] = None) -> int:
         action="store_true",
         help="Disable KISS serial bridge (loopback SEND only)",
     )
+    parser.add_argument(
+        "--session",
+        choices=("tmux", "screen"),
+        metavar="BACKEND",
+        help="Re-exec via max25d-session (detach in tmux/screen); use max25d-session attach",
+    )
     args = parser.parse_args(argv)
+
+    if args.session:
+        session_sh = ROOT / "scripts" / "max25d-session.sh"
+        if not session_sh.is_file():
+            session_sh = Path(PREFIX) / "bin" / "max25d-session" if PREFIX else session_sh
+        if not session_sh.is_file():
+            LOGGER.error(
+                "max25d-session not found — install scripts/max25d-session.sh or use tmux/screen manually",
+                area="session",
+            )
+            return 1
+        cmd = [str(session_sh), "start", f"--{args.session}"]
+        if args.config:
+            cmd.extend(["-c", str(args.config)])
+        os.execv(cmd[0], cmd)
 
     cfg = load_config(args.config)
     if args.no_stack:
@@ -1234,6 +1278,12 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     state = DaemonState(cfg=cfg, bans=BanList(cfg.bans_file))
     init_device_runtimes(state)
+    emit_startup_banner(
+        config_path=cfg.config_path or None,
+        cfg=cfg,
+        devices=cfg.devices,
+        tested_fn=registry_tested,
+    )
     listeners = make_listeners(cfg)
     try:
         serve(state, listeners)

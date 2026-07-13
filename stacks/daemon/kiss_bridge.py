@@ -31,6 +31,9 @@ FESC = 0xDB
 TFEND = 0xDC
 TFESC = 0xDD
 
+# Native KISS return (TheFirmware TF 2.7) — firmware reset to banner, not TAPR kiss off
+KISS_RETURN_FRAME = b"\xc0\xff\xc0"
+
 KISS_CMD_DATA = 0x00
 MAX_FRAME = 1024
 MAX_PAYLOAD = 256
@@ -282,7 +285,7 @@ class KissBridge:
         with self._lock:
             if self._fd is not None:
                 if self._kiss_active:
-                    self._write_unlocked(b"kiss off\r")
+                    self._write_unlocked(KISS_RETURN_FRAME)
                 try:
                     os.close(self._fd)
                 except OSError:
@@ -324,6 +327,8 @@ class KissBridge:
         if self._fd is None:
             self.status = "error-open"
             return False
+        if not force and self._kiss_active and self.status == "ready":
+            return True
         self._mycall = mycall.upper()
         self._stop_rx_thread()
         with self._lock:
@@ -364,7 +369,7 @@ class KissBridge:
     def _leave_kiss_unlocked(self) -> None:
         if not self._kiss_active:
             return
-        self._write_unlocked(b"kiss off\r")
+        self._write_unlocked(KISS_RETURN_FRAME)
         time.sleep(0.3)
         self._drain_unlocked(0.2)
         self._kiss_active = False
@@ -444,7 +449,7 @@ class KissBridge:
         self._stop_rx_thread()
         with self._lock:
             if self._fd is not None and self._kiss_active:
-                self._write_unlocked(b"kiss off\r")
+                self._write_unlocked(KISS_RETURN_FRAME)
                 time.sleep(0.2)
             self._kiss_active = False
         if self._fd is not None:

@@ -149,6 +149,9 @@ class KissSerialBackend(DeviceBackend):
         self._bridge: Optional[KissBridge] = None
         self.status = "closed"
 
+    def _bridge_log(self, msg: str) -> None:
+        self._log(f"{self.device_id}: {msg}")
+
     def _ini_overrides(self) -> dict[str, str]:
         out: dict[str, str] = {}
         if self._cfg.serial_device:
@@ -173,7 +176,7 @@ class KissSerialBackend(DeviceBackend):
         bridge = KissBridge(
             profile,
             self._on_rx,
-            self._log,
+            self._bridge_log,
             tree_root=self._root,
             install_prefix=self._prefix,
         )

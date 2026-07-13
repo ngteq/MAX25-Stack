@@ -56,6 +56,12 @@ serial_bootwait_escalate = yes
 serial_bootwait_escalate_after = 3
 serial_bootwait_escalate_cooldown = 300
 
+; Detached operator session (CLI — not parsed from ini):
+;   max25d --session tmux -c /etc/max25/max25d.ini
+;   max25d session start --tmux
+;   max25d-session attach
+; Env: MAX25D_SESSION=max25d  MAX25D_SESSION_BACKEND=tmux|screen
+
 [serial]
 ; Legacy single-device overrides — ignored when [devices] is present.
 ; device = /dev/ttyS4

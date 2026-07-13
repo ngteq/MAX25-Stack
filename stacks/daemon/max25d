@@ -2,4 +2,20 @@
 # max25d launcher — ps(1) shows this path, not "python3 …/max25d".
 set -euo pipefail
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+case "${1:-}" in
+  session)
+    shift
+    for candidate in \
+      "${ROOT}/../../scripts/max25d-session.sh" \
+      "${ROOT}/../scripts/max25d-session.sh" \
+      "$(command -v max25d-session 2>/dev/null || true)"
+    do
+      if [[ -n "${candidate}" && -x "${candidate}" ]]; then
+        exec "${candidate}" "$@"
+      fi
+    done
+    echo "max25d: max25d-session helper not found" >&2
+    exit 1
+    ;;
+esac
 exec -a "$0" python3 "${ROOT}/max25d.py" "$@"

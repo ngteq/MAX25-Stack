@@ -74,6 +74,51 @@ def test_inline_tnc_prep() -> None:
     assert not mod.uses_inline_tnc_prep(state, "baycom-ser12")
 
 
+def test_stabilize_ready_kiss_skips_probe() -> None:
+    from kiss_bridge import KissBridge, SerialProfile  # noqa: E402
+
+    bridge = KissBridge(SerialProfile(), lambda _l: None, log=lambda _m: None)
+    bridge._fd = 99
+    bridge._kiss_active = True
+    bridge.status = "ready"
+
+    fake = MagicMock()
+
+    with patch.object(bridge, "_stop_rx_thread") as stop_rx, patch.object(
+        bridge, "_load_recovery_mod", return_value=fake
+    ), patch.object(bridge, "_start_rx_thread") as start_rx:
+        ok = bridge.stabilize_session("CB-0", force=False)
+
+    assert ok
+    assert bridge.status == "ready"
+    fake.probe_info.assert_not_called()
+    fake.recover_terminal.assert_not_called()
+    stop_rx.assert_not_called()
+    start_rx.assert_not_called()
+
+
+def test_poll_serial_stability_skips_ready() -> None:
+    mod = load_max25d()
+    cfg = mod.DaemonConfig(serial_watch=True, stack_recover_only=True)
+    state = mod.DaemonState(cfg=cfg)
+    state.started_at = 0
+    from device_backends import DeviceBackendConfig  # noqa: E402
+
+    state.devices["tnc2c"] = mod.DeviceRuntime(
+        cfg=DeviceBackendConfig(device_id="tnc2c", backend_type="kiss-serial")
+    )
+    rt = state.devices["tnc2c"]
+    rt.stack_status = "ready"
+    rt.last_watch = 0
+    backend = MagicMock()
+    backend.status = "ready"
+    rt.backend = backend
+
+    mod.poll_serial_stability(state)
+
+    backend.stabilize_session.assert_not_called()
+
+
 def test_stabilize_session_probe_path() -> None:
     sys.path.insert(0, str(ROOT / "stacks/daemon"))
     from kiss_bridge import KissBridge, SerialProfile  # noqa: E402
@@ -174,6 +219,10 @@ def main() -> int:
     print("OK test_serial_repair_statuses")
     test_inline_tnc_prep()
     print("OK test_inline_tnc_prep")
+    test_stabilize_ready_kiss_skips_probe()
+    print("OK test_stabilize_ready_kiss_skips_probe")
+    test_poll_serial_stability_skips_ready()
+    print("OK test_poll_serial_stability_skips_ready")
     test_stabilize_session_probe_path()
     print("OK test_stabilize_session_probe_path")
     test_rx_thread_deferred_until_ready()

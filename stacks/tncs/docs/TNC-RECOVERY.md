@@ -75,7 +75,9 @@ When `[stack] serial_watch = yes` and `stack_recover_only = yes` (default), max2
 | `serial_bootwait_escalate_after` | 3 | Inline `error-host` failures before boot-wait |
 | `serial_bootwait_escalate_cooldown` | 300 | Minimum seconds between boot-wait escalations |
 
-Triggers: initial prep `error-host` (immediate boot-wait escalate), periodic interval, `error-host` / `error-kiss` / `error-tx` / `error-io`, failed TX (one auto-retry). Serial watch still escalates after `serial_bootwait_escalate_after` consecutive inline failures if prep did not already escalate.
+Triggers: initial prep `error-host` (immediate boot-wait escalate), `error-host` / `error-kiss` / `error-tx` / `error-io`, failed TX (one auto-retry). Serial watch still escalates after `serial_bootwait_escalate_after` consecutive inline failures if prep did not already escalate.
+
+**Healthy KISS:** when the backend is `ready`, serial watch does **not** tear down KISS on the periodic interval — repair runs only when status is in the error set above (not a periodic `kiss off` / probe on a working session).
 
 ## Firmware RX diagnostics (max25d / boot-wait)
 

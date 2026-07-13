@@ -47,6 +47,8 @@ if(MAX25_BUILD_DAEMON)
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/daemon/max25d.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/daemon_log.py"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/kiss_bridge.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/ax25_codec.py"
@@ -86,6 +88,8 @@ endif()
 
 install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25-ctl"
         DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25d-session.sh"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME max25d-session)
 
 install(FILES
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.example"
