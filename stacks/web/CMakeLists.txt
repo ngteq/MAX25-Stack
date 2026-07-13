@@ -20,6 +20,9 @@ install(PROGRAMS "${_MAX25_WEB_SRC}/proxy/max25-ws-proxy.py"
 install(FILES "${_MAX25_WEB_SRC}/share/web-proxy.ini.example"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/max25")
 
+install(FILES "${CMAKE_SOURCE_DIR}/share/max25/max25-ws-proxy.service.example"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/max25")
+
 install(DIRECTORY "${_MAX25_WEB_SRC}/share/reverse-proxy/"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/reverse-proxy")
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=MAX25 WebSocket forward-proxy (M25/1 bridge)
+Documentation=file:$PREFIX/share/max25/reverse-proxy/README.txt
+After=network.target max25d.service
+Wants=max25d.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/max25-ws-proxy -c /etc/max25/web-proxy.ini
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

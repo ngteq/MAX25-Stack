@@ -10,13 +10,15 @@ MAX25 has **exactly one** operator client:
 |--------|---------|--------|
 | `max25-terminal` | `max25-client` | **v1 ready** (Linux/*BSD/macOS/Windows/AmigaOS reduced) |
 
-There is **no second client** planned — no GUI, no web UI, no alternative TTY program. For the foreseeable future the client stays:
+There is **no second operator client** — no GUI windowing UI, no alternative TTY program. For the foreseeable future the client stays:
 
 - **text-only** (TTY / ncurses / ANSI fallback)
 - **F10 menu** with number keys `0`–`9`
 - **live CALLERID / CALLID**
 - optional **`--ax25-ui`**
 - optional **TCP auth** (`-P` / `MAX25_TCP_PASSWORD`)
+
+A **browser terminal** (WebSocket → M25/1) exists for admin/debug — see [WEBSOCKET.md](WEBSOCKET.md). It does **not** replace `max25-terminal` for operator sessions.
 
 All client changes go into **this one program** in `stacks/terminal/`. The M25/1 protocol to `max25d` is the stable binding contract.
 

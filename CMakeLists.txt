@@ -19,7 +19,6 @@ option(MAX25_BUILD_BAYCOM "Build stacks/baycom-pr tools" ON)
 option(MAX25_BUILD_CRDOP "Build and install MAX25-SoftModem (CRDOP) — disable only if not needed" ON)
 option(MAX25_BUILD_TERMINAL "Build max25-terminal / max25-client" ON)
 option(MAX25_BUILD_DAEMON "Install max25d" ON)
-option(MAX25_BUILD_WEBSOCKET "Build max25-wsd WebSocket forward-proxy" ON)
 option(MAX25_BUILD_WEB "Install MAX25 web UI scaffold" ON)
 
 if(MAX25_BUILD_TNCS)

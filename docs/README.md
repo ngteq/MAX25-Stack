@@ -11,6 +11,7 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | Host setup | [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) |
 | **Unified device workflow** | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) — TNC reference, all backends |
 | Terminal operator | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) |
+| Browser terminal (Web UI) | [WEBSOCKET.md](WEBSOCKET.md) · [stacks/web/README.md](../stacks/web/README.md) |
 | Client developer | [MAX25-CLIENT.md](MAX25-CLIENT.md) · [include/max25/protocol.md](../include/max25/protocol.md) |
 | Terminal profiles | [share/clients/README.md](../share/clients/README.md) · [share/clients/index.yaml](../share/clients/index.yaml) |
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
@@ -41,6 +42,7 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | CRDOP | [CRDOP.md](CRDOP.md) · [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) · [stacks/crdop/README.md](../stacks/crdop/README.md) |
 | Daemon (`max25d`) | [stacks/daemon/README.md](../stacks/daemon/README.md) |
 | Terminal | [stacks/terminal/README.md](../stacks/terminal/README.md) |
+| Web UI | [stacks/web/README.md](../stacks/web/README.md) |
 
 ## Plugin registry
 

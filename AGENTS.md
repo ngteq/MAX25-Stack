@@ -68,6 +68,8 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 | [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) | v1 scope |
 | [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md) | Client dev & M25/1 binding |
 | [docs/MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) | Operator UI (F10 menu) |
+| [docs/WEBSOCKET.md](docs/WEBSOCKET.md) | Browser terminal + httpd reverse-proxy |
+| [stacks/web/README.md](stacks/web/README.md) | Web UI dev / deploy detail |
 | [include/max25/protocol.md](include/max25/protocol.md) | M25/1 protocol reference |
 
 ## Next work

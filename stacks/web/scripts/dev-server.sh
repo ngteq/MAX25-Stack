@@ -2,7 +2,7 @@
 # Local dev: max25-ws-proxy + PHP built-in server (direct WebSocket to loopback proxy).
 set -euo pipefail
 
-SRC="$(cd "$(dirname "$0")/../.." && pwd)"
+SRC="$(cd "$(dirname "$0")/../../.." && pwd)"
 WEB="$SRC/stacks/web"
 DOCROOT="$WEB/share/reverse-proxy/docroot/max25-websocket"
 PROXY_INI="${MAX25_WEB_PROXY_INI:-$WEB/share/web-proxy.ini.example}"

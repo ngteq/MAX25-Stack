@@ -88,10 +88,10 @@ M25/1 uses `\n` line endings (not hyBBX `\r`). The proxy forwards bytes after th
 
 ## TODO (full parity)
 
-- [ ] systemd unit for `max25-ws-proxy`
+- [x] systemd unit example for `max25-ws-proxy` — `share/max25/max25-ws-proxy.service.example`
+- [x] Operator doc — [docs/WEBSOCKET.md](../../docs/WEBSOCKET.md)
+- [x] Integration test in CI (`max25_web_smoke`)
 - [ ] Admin/monitoring pages (status dashboard — separate from this terminal)
-- [ ] TLS termination docs / cert examples
-- [ ] Integration test in CI (`max25_web_smoke`)
 - [ ] F10-style menus — out of scope for web; keep `max25-terminal`
 - [ ] RX live stream UI polish (`MONITOR`, `SEND`, device picker)
 

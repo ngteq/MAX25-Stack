@@ -9,6 +9,8 @@
 | **`max25-terminal`** | Operator session — connect, send, monitor, F10 menu | **Current** — text-only; **no graphical UI planned for a long time** |
 | **Web UI** | Browser-based stack administration and monitoring (alongside `max25d`) | **Planned later** — separate from the operator client; **not** a GUI replacement for `max25-terminal` |
 
+**First step shipped:** browser M25/1 terminal via WebSocket — [WEBSOCKET.md](WEBSOCKET.md) (`stacks/web/`).
+
 Third parties may build their own M25/1 clients against [`include/max25/protocol.md`](../include/max25/protocol.md). Only `max25-terminal` is maintained as the official operator UI.
 
 Development and connection to `max25d`: **[MAX25-CLIENT.md](MAX25-CLIENT.md)** · Protocol: [`include/max25/protocol.md`](../include/max25/protocol.md)
