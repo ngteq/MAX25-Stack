@@ -38,6 +38,18 @@ Host example: [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md). *BSD porting deferred 
 
 One official client: `max25-terminal` / `max25-client` — [MAX25-CLIENT.md](MAX25-CLIENT.md).
 
+### Third-party and GUI clients (welcome)
+
+MAX25 maintains **one** official operator client (`max25-terminal`, text-only). **GUI clients from third-party developers are explicitly welcome** — desktop (Qt, GTK, Electron), mobile, browser, or custom tooling.
+
+| Who builds | Contract | Notes |
+|------------|----------|-------|
+| MAX25 project | `max25-terminal` only | No official windowing GUI in core |
+| **Third-party developers** | [M25/1](include/max25/protocol.md) over TCP `:7325` or Unix socket | Encouraged; document your client; optional listing in `share/clients/` |
+| Near-term MAX25 | WebSocket browser terminal (`stacks/web/`) | In development — not v1.0.0 production |
+
+Bind to `max25d` via the documented protocol; do not open `/dev/tty*` or kernel modem devices directly. See [MAX25-CLIENT.md](MAX25-CLIENT.md) and [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
+
 ## Layout
 
 ```

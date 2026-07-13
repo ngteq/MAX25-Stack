@@ -10,7 +10,7 @@ MAX25 has **exactly one** operator client:
 |--------|---------|--------|
 | `max25-terminal` | `max25-client` | **v1 ready** (Linux/*BSD/macOS/Windows/AmigaOS reduced) |
 
-There is **no second operator client** — no GUI windowing UI, no alternative TTY program. For the foreseeable future the client stays:
+There is **no second official operator client** from the MAX25 core — `max25-terminal` stays text-only. **Third-party GUI clients are welcome** (see below). For the foreseeable future the official client stays:
 
 - **text-only** (TTY / ncurses / ANSI fallback)
 - **F10 menu** with number keys `0`–`9`
@@ -20,7 +20,19 @@ There is **no second operator client** — no GUI windowing UI, no alternative T
 
 A **browser terminal** (WebSocket → M25/1) is **in development** for the near term — scaffold in `stacks/web/`; see [WEBSOCKET.md](WEBSOCKET.md). It will **not** replace `max25-terminal` for operator sessions.
 
-All client changes go into **this one program** in `stacks/terminal/`. The M25/1 protocol to `max25d` is the stable binding contract.
+All client changes to the **official** program go into **this one binary** in `stacks/terminal/`. The M25/1 protocol to `max25d` is the stable binding contract.
+
+### Third-party and GUI clients (welcome)
+
+MAX25 does **not** plan an official Qt/GTK/windowing operator client. **Third-party GUI clients are explicitly welcome** — implement any graphical or rich UI against [M25/1](../include/max25/protocol.md) (TCP `:7325`, Unix socket, optional `tcp_password` auth).
+
+| Client type | Maintainer | Status |
+|-------------|------------|--------|
+| `max25-terminal` | MAX25 core | Official — text + F10 |
+| GUI / desktop / mobile | **Third-party developers** | **Encouraged** — protocol-bound |
+| Browser (WebSocket) | MAX25 (`stacks/web/`) | In development — near term |
+
+Contributors may add example client profiles under `share/clients/` (YAML schema v1). Do not bypass `max25d` to touch serial, KISS PTY, or sound hardware directly.
 
 Operator documentation (usage, menu): [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
 
@@ -250,7 +262,8 @@ These rules do **not** change for the foreseeable future:
 | Menu selection | **Digits 0–9**, no other function keys |
 | Header | `MAX25 Terminal  CALLERID: …  CALLID: …` |
 | Menu entries | see [MAX25-TERMINAL.md](MAX25-TERMINAL.md#f10-menu) |
-| Color themes / GUI / web | **out of scope** |
+| Color themes / GUI in **official** client | **out of scope** — use third-party GUI via M25/1 |
+| Official web terminal | [WEBSOCKET.md](WEBSOCKET.md) — in development |
 | Raw serial in client | **forbidden** |
 
 Menu contents and numbers are part of the product — new features belong in the existing F10 menu, not in parallel UIs.
@@ -332,12 +345,13 @@ Before merge / release of the terminal:
 
 ---
 
-## What not to build
+## What not to build (official client)
 
-| Not wanted | Instead |
-|------------|---------|
-| Second client (GUI, web, alternate serial terminal) | extend `max25-terminal` |
-| Own serial/KISS in client | `max25d` + M25/1 |
+| Not wanted in **core** | Instead |
+|------------------------|---------|
+| Second **official** text client | extend `max25-terminal` |
+| Official Qt/GTK windowing GUI | **third-party** GUI via M25/1 (welcome) |
+| Own serial/KISS in any client | `max25d` + M25/1 |
 | Parallel protocol | M25/1 only — document extensions with version |
 | Function-key menu (F1–F9) | digit keys in F10 menu |
 

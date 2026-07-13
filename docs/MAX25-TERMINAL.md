@@ -13,6 +13,8 @@
 
 Third parties may build their own M25/1 clients against [`include/max25/protocol.md`](../include/max25/protocol.md). Only `max25-terminal` is maintained as the official operator UI.
 
+**GUI clients from developers are welcome and encouraged.** Qt, GTK, native desktop, mobile, or custom graphical frontends that speak M25/1 to `max25d` are a supported integration path. The core project does not ship a windowing operator GUI; third parties fill that role. Publish against `include/max25/protocol.md` and optional client profiles under `share/clients/`.
+
 Development and connection to `max25d`: **[MAX25-CLIENT.md](MAX25-CLIENT.md)** · Protocol: [`include/max25/protocol.md`](../include/max25/protocol.md)
 
 Standalone client for direct modem interaction. HyBBX-compatible look and behaviour; configuration and hardware lifecycle stay in **`max25d`**.
