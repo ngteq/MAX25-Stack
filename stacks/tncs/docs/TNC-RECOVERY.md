@@ -75,7 +75,14 @@ When `[stack] serial_watch = yes` and `stack_recover_only = yes` (default), max2
 
 Triggers: initial prep `error-host` (immediate boot-wait escalate), periodic interval, `error-host` / `error-kiss` / `error-tx` / `error-io`, failed TX (one auto-retry). Serial watch still escalates after `serial_bootwait_escalate_after` consecutive inline failures if prep did not already escalate.
 
-## Power-cycle rescue (only when needed)
+## Firmware RX diagnostics (max25d / boot-wait)
+
+On each recovery step, logs include byte count, matched firmware markers (`TheFirmware`, `cmd:`, …), and a printable preview. On failure:
+
+- `recovery: firmware assessment — …` — classified state (silent, echo-only, binary/KISS, non-banner text)
+- `recovery: RX capture — …` — full accumulated RX summary with hex snippet
+
+Use these lines to distinguish **DTR/cold-boot** (echo-only, 0 B passive) from **wrong baud/line** (garbage/binary) from **stuck KISS** (binary frames, no `cmd:`).
 
 Use when:
 

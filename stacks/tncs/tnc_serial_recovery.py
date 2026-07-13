@@ -37,6 +37,85 @@ FIRMWARE_MARKERS = (
 LogFn = Callable[[str], None]
 
 
+def matched_markers(data: bytes) -> list[str]:
+    return [m.decode("ascii", errors="replace") for m in FIRMWARE_MARKERS if m.lower() in data.lower()]
+
+
+def escape_bytes(data: bytes, max_len: int = 96) -> str:
+    out: list[str] = []
+    for byte in data[:max_len]:
+        if 32 <= byte < 127:
+            out.append(chr(byte))
+        elif byte == 0x0D:
+            out.append("\\r")
+        elif byte == 0x0A:
+            out.append("\\n")
+        else:
+            out.append(f"\\x{byte:02x}")
+    if len(data) > max_len:
+        out.append("…")
+    return "".join(out)
+
+
+def format_rx_brief(data: bytes) -> str:
+    if not data:
+        return "0 B silent"
+    markers = matched_markers(data)
+    marker_txt = ",".join(markers) if markers else "none"
+    return f"{len(data)} B, markers={marker_txt}, text={escape_bytes(data)!r}"
+
+
+def format_rx_diag(data: bytes) -> str:
+    """One-line firmware/RX summary for operator logs."""
+    if not data:
+        return "silent (0 bytes) — check power, baud, CTS/DTR wiring"
+    markers = matched_markers(data)
+    hex_snip = data[:48].hex(" ")
+    if len(data) > 48:
+        hex_snip += " …"
+    parts = [
+        f"{len(data)} bytes",
+        f"markers={markers or 'none'}",
+        f"text={escape_bytes(data, 120)!r}",
+        f"hex={hex_snip}",
+    ]
+    return "; ".join(parts)
+
+
+def classify_recovery_failure(received: bytes) -> str:
+    if not received:
+        return (
+            "silent — TNC sent nothing (power, baud/line, DE-9 wiring, or boot without DTR)"
+        )
+    if has_banner(received):
+        return "banner seen in RX but INFO probe failed — check double-echo or host mode"
+    lower = received.lower()
+    echo_hits = sum(
+        1
+        for token in (
+            b"kiss off",
+            b"info\r",
+            b"info\n",
+            b"restart\r",
+            b"@restart\r",
+            b"jhost 0",
+        )
+        if token in lower
+    )
+    if echo_hits >= 2 or (
+        b"kiss off" in lower and (b"info" in lower or b"info\r" in lower)
+    ):
+        return (
+            "echo-only — terminal echoes commands, no TheFirmware/cmd: banner "
+            "(Landolt: DTR must be high at power-on; try boot-wait + power cycle)"
+        )
+    if any(b < 0x20 and b not in (0x0D, 0x0A, 0x09) for b in received[:64]):
+        return (
+            f"binary/non-text ({len(received)} B) — likely KISS/stream mode, not host cmd:"
+        )
+    return f"non-banner text ({len(received)} B) — firmware state unclear, capture full RX"
+
+
 def has_banner(data: bytes) -> bool:
     lower = data.lower()
     return any(m.lower() in lower for m in FIRMWARE_MARKERS)
@@ -138,6 +217,10 @@ def _try_probe(
     if ok:
         out(f"recovery: OK after {label}")
         return True, probe
+    out(
+        f"recovery: probe after {label} — {format_rx_brief(probe)}, "
+        f"echo_only={only_echo}, banner={has_banner(probe)}"
+    )
     if not only_echo and probe:
         out(f"recovery: partial reply after {label}")
     return False, probe
@@ -154,23 +237,28 @@ def recover_terminal(
     out = log or (lambda _msg: None)
     received = b""
 
-    received += read_for(1.5)
-    out("recovery: passive listen")
+    chunk = read_for(1.5)
+    received += chunk
+    out(f"recovery: passive listen — {format_rx_brief(chunk)}")
 
     if not skip_kiss_frame:
         send_kiss_return(write_flush)
-        received += read_for(1.0)
-        out("recovery: KISS return frame")
+        chunk = read_for(1.0)
+        received += chunk
+        out(f"recovery: KISS return frame — {format_rx_brief(chunk)}")
         send_esc_at_k(write_flush)
-        received += read_for(0.8)
-        out("recovery: ESC+@K")
+        chunk = read_for(0.8)
+        received += chunk
+        out(f"recovery: ESC+@K — {format_rx_brief(chunk)}")
 
     send_jhost0(write_flush)
-    received += read_for(1.0)
-    out("recovery: JHOST 0")
+    chunk = read_for(1.0)
+    received += chunk
+    out(f"recovery: JHOST 0 — {format_rx_brief(chunk)}")
 
     send_buffer_flush(write_flush)
-    received += read_for(0.3)
+    chunk = read_for(0.3)
+    received += chunk
     out("recovery: buffer flush")
 
     ok, probe = _try_probe(write_flush, read_for, out, "kiss off + INFO")
@@ -226,6 +314,8 @@ def recover_terminal(
         "recovery: FAILED — echo only or silent "
         "(retry with DTR high; cold-boot without DTR may need one boot-wait)"
     )
+    out(f"recovery: firmware assessment — {classify_recovery_failure(received)}")
+    out(f"recovery: RX capture — {format_rx_diag(received)}")
     return False, received
 
 

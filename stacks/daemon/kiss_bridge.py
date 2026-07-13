@@ -394,7 +394,12 @@ class KissBridge:
                 self._kiss_active = False
                 return False
 
-            ok, _, only_echo = mod.probe_info(wf, rf, pause=0.25)
+            ok, probe_data, only_echo = mod.probe_info(wf, rf, pause=0.25)
+            if not ok or only_echo or force_ladder:
+                self._log(
+                    f"serial: initial probe — {mod.format_rx_brief(probe_data)}, "
+                    f"echo_only={only_echo}, banner={mod.has_banner(probe_data)}"
+                )
             if ok and not only_echo and not force_ladder:
                 return self._enter_kiss_session_unlocked()
             if only_echo or not ok or force_ladder:

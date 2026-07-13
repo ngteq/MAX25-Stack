@@ -39,6 +39,17 @@ def test_has_banner() -> None:
     assert not mod.has_banner(b"INFO\r\nINFO")
 
 
+def test_format_rx_brief_and_classify() -> None:
+    assert mod.format_rx_brief(b"") == "0 B silent"
+    brief = mod.format_rx_brief(b"kiss off\rINFO\r")
+    assert "14 B" in brief
+    assert "markers=none" in brief
+    assert "echo-only" in mod.classify_recovery_failure(b"kiss off\rINFO\r")
+    assert "silent" in mod.classify_recovery_failure(b"")
+    diag = mod.classify_recovery_failure(b"TheFirmware cmd:")
+    assert "banner" in diag
+
+
 def test_probe_combined_banner() -> None:
     port = MockPort()
     port.responses = [b"NORD TheFirmware 2.7\r\ncmd: "]
@@ -75,6 +86,7 @@ def test_recover_terminal_sends_restart_on_echo() -> None:
 def main() -> int:
     tests = [
         test_has_banner,
+        test_format_rx_brief_and_classify,
         test_probe_combined_banner,
         test_recover_terminal_success_after_jhost,
         test_recover_terminal_sends_restart_on_echo,
