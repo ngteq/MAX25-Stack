@@ -7,9 +7,9 @@
 | Surface | Purpose | Status |
 |---------|---------|--------|
 | **`max25-terminal`** | Operator session — connect, send, monitor, F10 menu | **Current** — text-only; **no graphical UI planned for a long time** |
-| **Web UI** | Browser-based stack administration and monitoring (alongside `max25d`) | **Planned later** — separate from the operator client; **not** a GUI replacement for `max25-terminal` |
+| **Web UI** | Browser-based stack administration and monitoring (alongside `max25d`) | **Near term** — WebSocket terminal in development; **not** a GUI replacement for `max25-terminal` |
 
-**First step shipped:** browser M25/1 terminal via WebSocket — [WEBSOCKET.md](WEBSOCKET.md) (`stacks/web/`).
+**WebSocket browser terminal:** scaffold in `stacks/web/` — full implementation planned near term. Design: [WEBSOCKET.md](WEBSOCKET.md). **Not production-ready in v1.0.0.**
 
 Third parties may build their own M25/1 clients against [`include/max25/protocol.md`](../include/max25/protocol.md). Only `max25-terminal` is maintained as the official operator UI.
 
@@ -52,15 +52,15 @@ The session client stays a **terminal program**, not a desktop or browser applic
 
 A graphical client (Qt, GTK, native windows, or similar) is **not** on the near- or mid-term roadmap for `max25-terminal`. Integrators should assume **years** of text-only operation for live modem sessions.
 
-### Web UI — separate, later
+### Web UI — separate, near term (in development)
 
-A **Web UI** (browser access to `max25d` for status, configuration overview, or remote administration) may ship in a future release. It serves a different role than the operator client:
+A **Web UI** (browser access to `max25d` for status, configuration overview, or remote administration) is being implemented on the hyBBX reverse-proxy pattern. Full delivery is planned for the **near term**. It serves a different role than the operator client:
 
 - **Does not** replace `max25-terminal` for live TX/RX or AX.25 UI sessions
 - **Does not** change the M25/1 client contract or F10 menu model
-- Details will be documented when the Web UI reaches a defined release gate
+- **Current state:** scaffold only (`stacks/web/`) — see [WEBSOCKET.md](WEBSOCKET.md)
 
-Until then, all operator workflows documented here use `max25-terminal` only.
+Until the WebSocket stack is released, all operator workflows documented here use `max25-terminal` only.
 
 ## Visual style (HyBBX-aligned)
 
@@ -170,7 +170,7 @@ In **hybbx-host** operating mode: `max25d` prepares hardware; HyBBX attaches via
 - Multi-colour UI / themes / graphical frontends for the terminal
 - Function-key menu navigation (except F10 to toggle menu)
 
-The planned **Web UI** is a separate admin/monitoring surface; it is documented on its own when released and does not supersede this client.
+The planned **Web UI** (WebSocket browser terminal) is in development — see [WEBSOCKET.md](WEBSOCKET.md). It does not supersede this client when released.
 
 ## See also
 

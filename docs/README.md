@@ -11,12 +11,13 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | Host setup | [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) |
 | **Unified device workflow** | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) — TNC reference, all backends |
 | Terminal operator | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) |
-| Browser terminal (Web UI) | [WEBSOCKET.md](WEBSOCKET.md) · [stacks/web/README.md](../stacks/web/README.md) |
+| Browser terminal (Web UI) | [WEBSOCKET.md](WEBSOCKET.md) *(in development)* · [stacks/web/README.md](../stacks/web/README.md) |
 | Client developer | [MAX25-CLIENT.md](MAX25-CLIENT.md) · [include/max25/protocol.md](../include/max25/protocol.md) |
 | Terminal profiles | [share/clients/README.md](../share/clients/README.md) · [share/clients/index.yaml](../share/clients/index.yaml) |
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
 | BayCom / PC-COM operator | [BAYCOM.md](BAYCOM.md) · `share/baycom/` examples |
 | Host / operator | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) · [HARDWARE-ACCEPTANCE.md](HARDWARE-ACCEPTANCE.md) |
+| **All devices (full list)** | [DEVICES-LIST-FULL.md](DEVICES-LIST-FULL.md) |
 | AX.25 codec | [AX25-NATIVE-CODEC.md](AX25-NATIVE-CODEC.md) |
 | Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) · [PATHS.md](PATHS.md) |
 | v1 release | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) |

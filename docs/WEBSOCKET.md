@@ -1,8 +1,23 @@
 # WebSocket transport (browser terminal)
 
+> **Status: in development — full implementation planned for the near term.**  
+> The hyBBX-style stack (PHP UI, loopback WebSocket proxy, nginx/Apache/lighttpd examples) exists as a **scaffold** under `stacks/web/`. It is **not** a supported production surface in MAX25-Stack v1.0.0. This document describes the **target design** and current work-in-progress layout.
+
 **MAX25-Stack** — browser access to **max25d** M25/1 via a WebSocket forward-proxy on loopback. Public TLS terminates on **nginx**, **Apache httpd**, or **lighttpd**; the daemon does not serve PHP or static files.
 
-This is the **first Web UI step** — a terminal page for M25/1 commands. It is **not** a replacement for `max25-terminal` (text client stays canonical for live operator sessions). See [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
+This will be the **first Web UI step** — a terminal page for M25/1 commands. It is **not** a replacement for `max25-terminal` (text client stays canonical for live operator sessions). See [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
+
+---
+
+## Implementation roadmap
+
+| Phase | Scope | Status |
+|-------|--------|--------|
+| **Now (scaffold)** | PHP/JS UI shell, Python `max25-ws-proxy`, httpd config examples, dev helper, smoke test | **In tree** — experimental |
+| **Near term (target)** | Production-hardened proxy, operator docs, systemd integration, release install path | **Planned** |
+| **Later** | Admin/monitoring dashboard (separate from browser terminal) | **Planned** |
+
+Until the near-term phase ships, use **`max25-terminal`** for all operator sessions.
 
 ---
 
@@ -24,11 +39,13 @@ $HTTPD_DOCROOT/max25-websocket/       served by httpd
 └── max25-terminal.js
 ```
 
-After `cmake --install`: `$PREFIX/share/max25/reverse-proxy/` and `$PREFIX/bin/max25-ws-proxy`.
+After `cmake --install` (when Web UI build is enabled): `$PREFIX/share/max25/reverse-proxy/` and `$PREFIX/bin/max25-ws-proxy`.
+
+**Current tree:** sources live in `stacks/web/`; dev smoke test only — not part of v1.0.0 release gates.
 
 ---
 
-## Steps (production)
+## Steps (production — target, not yet released)
 
 1. **`max25d`** running with M25/1 TCP (default `0.0.0.0:7325` or loopback-only).
 2. **`web-proxy.ini`** — copy `share/max25/web-proxy.ini.example` to `/etc/max25/web-proxy.ini`.
@@ -174,7 +191,7 @@ Full file: `$PREFIX/share/max25/reverse-proxy/lighttpd.conf.example`
 
 ---
 
-## Local development
+## Local development (scaffold — developers only)
 
 From `$SRC`:
 

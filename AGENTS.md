@@ -64,11 +64,12 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 | [stacks/crdop/docs/HOST-PROTOCOL-SPEC.md](stacks/crdop/docs/HOST-PROTOCOL-SPEC.md) | CRDOP M25 host wire (frozen v1.0.0) |
 | [docs/MAX25-OPERATOR-RUNBOOK.md](docs/MAX25-OPERATOR-RUNBOOK.md) | End-to-end operator workflow |
 | [docs/HARDWARE-ACCEPTANCE.md](docs/HARDWARE-ACCEPTANCE.md) | Manual device smoke protocol |
+| [docs/DEVICES-LIST-FULL.md](docs/DEVICES-LIST-FULL.md) | Full device compatibility list |
 | [docs/AX25-NATIVE-CODEC.md](docs/AX25-NATIVE-CODEC.md) | ax25_codec.py spec |
 | [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) | v1 scope |
 | [docs/MAX25-CLIENT.md](docs/MAX25-CLIENT.md) | Client dev & M25/1 binding |
 | [docs/MAX25-TERMINAL.md](docs/MAX25-TERMINAL.md) | Operator UI (F10 menu) |
-| [docs/WEBSOCKET.md](docs/WEBSOCKET.md) | Browser terminal + httpd reverse-proxy |
+| [docs/WEBSOCKET.md](docs/WEBSOCKET.md) | Browser terminal — **in development** (near term) |
 | [stacks/web/README.md](stacks/web/README.md) | Web UI dev / deploy detail |
 | [include/max25/protocol.md](include/max25/protocol.md) | M25/1 protocol reference |
 

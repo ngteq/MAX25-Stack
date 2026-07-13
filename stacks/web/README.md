@@ -1,6 +1,8 @@
-# MAX25 Web UI (first step)
+# MAX25 Web UI (in development)
 
-Browser terminal scaffold for **max25d** M25/1 — ported from the hyBBX reverse-proxy pattern.
+> **Status: near-term implementation.** Scaffold ported from the hyBBX reverse-proxy pattern. **Not production-ready** in MAX25-Stack v1.0.0.
+
+Browser terminal scaffold for **max25d** M25/1 — target architecture below.
 
 | Layer | Component | Role |
 |-------|-----------|------|
@@ -11,7 +13,19 @@ Browser terminal scaffold for **max25d** M25/1 — ported from the hyBBX reverse
 
 This is **not** a replacement for `max25-terminal` — see [docs/MAX25-TERMINAL.md](../../docs/MAX25-TERMINAL.md).
 
-## Quick start (local dev)
+## Implementation status
+
+| Item | State |
+|------|--------|
+| PHP + JS UI (`docroot/max25-websocket/`) | Scaffold — hyBBX look |
+| `max25-ws-proxy.py` | Scaffold — dev smoke test passes |
+| httpd examples (nginx, Apache, lighttpd) | Draft configs |
+| Production deploy / systemd on site | **Planned near term** |
+| Admin dashboard | Later phase |
+
+Operator doc (target design): [docs/WEBSOCKET.md](../../docs/WEBSOCKET.md).
+
+## Quick start (local dev — developers only)
 
 From `$SRC`:
 
@@ -86,14 +100,16 @@ Browser
 
 M25/1 uses `\n` line endings (not hyBBX `\r`). The proxy forwards bytes after the initial connect handshake.
 
-## TODO (full parity)
+## TODO (near-term release)
 
-- [x] systemd unit example for `max25-ws-proxy` — `share/max25/max25-ws-proxy.service.example`
-- [x] Operator doc — [docs/WEBSOCKET.md](../../docs/WEBSOCKET.md)
-- [x] Integration test in CI (`max25_web_smoke`)
-- [ ] Admin/monitoring pages (status dashboard — separate from this terminal)
-- [ ] F10-style menus — out of scope for web; keep `max25-terminal`
+- [ ] Production-harden `max25-ws-proxy` (packaging, logging, edge cases)
+- [ ] Operator release gate + [WEBSOCKET.md](../../docs/WEBSOCKET.md) aligned with shipped behaviour
+- [ ] systemd unit wired into site install docs
+- [x] systemd unit example — `share/max25/max25-ws-proxy.service.example`
+- [x] Dev smoke test (`max25_web_smoke`)
+- [ ] Admin/monitoring pages (status dashboard — separate from browser terminal)
 - [ ] RX live stream UI polish (`MONITOR`, `SEND`, device picker)
+- [ ] F10-style menus — out of scope for web; keep `max25-terminal`
 
 ## Related docs
 

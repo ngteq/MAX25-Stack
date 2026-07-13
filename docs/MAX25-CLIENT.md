@@ -18,7 +18,7 @@ There is **no second operator client** — no GUI windowing UI, no alternative T
 - optional **`--ax25-ui`**
 - optional **TCP auth** (`-P` / `MAX25_TCP_PASSWORD`)
 
-A **browser terminal** (WebSocket → M25/1) exists for admin/debug — see [WEBSOCKET.md](WEBSOCKET.md). It does **not** replace `max25-terminal` for operator sessions.
+A **browser terminal** (WebSocket → M25/1) is **in development** for the near term — scaffold in `stacks/web/`; see [WEBSOCKET.md](WEBSOCKET.md). It will **not** replace `max25-terminal` for operator sessions.
 
 All client changes go into **this one program** in `stacks/terminal/`. The M25/1 protocol to `max25d` is the stable binding contract.
 
