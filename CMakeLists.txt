@@ -63,6 +63,8 @@ if(MAX25_BUILD_DAEMON)
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/banlist.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/reporting_quality.py"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/paths.py"
             DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${CMAKE_SOURCE_DIR}/stacks/daemon/max25_platform.py"
