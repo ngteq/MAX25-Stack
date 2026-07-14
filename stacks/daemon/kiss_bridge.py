@@ -226,9 +226,11 @@ class KissBridge:
         *,
         tree_root: str = "",
         install_prefix: Optional[str] = None,
+        on_invalid: Optional[Callable[[], None]] = None,
     ) -> None:
         self.profile = profile
         self._on_rx = on_rx
+        self._on_invalid = on_invalid
         self._log = log or (lambda _m: None)
         self._tree_root = tree_root
         self._install_prefix = install_prefix
@@ -545,6 +547,8 @@ class KissBridge:
                     continue
                 parsed = ax25_parse_ui(payload)
                 if parsed is None:
+                    if self._on_invalid is not None and len(payload) >= 16:
+                        self._on_invalid()
                     continue
                 src, dst, info = parsed
                 line = format_rx_line(src, dst, info, ax25_ui=True)

@@ -394,6 +394,10 @@ int max25_client_parse_status(const char *line, max25_status_t *status)
             status->connected = (strcmp(eq + 1, "yes") == 0);
         } else if (strcmp(tok, "stack") == 0) {
             copy_field(eq + 1, status->stack, sizeof(status->stack));
+        } else if (strcmp(tok, "error") == 0) {
+            copy_field(eq + 1, status->error, sizeof(status->error));
+        } else if (strcmp(tok, "voice") == 0) {
+            copy_field(eq + 1, status->voice, sizeof(status->voice));
         }
     }
     return 0;

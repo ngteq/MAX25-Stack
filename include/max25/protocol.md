@@ -27,7 +27,7 @@ On connect, **the daemon sends first** (client must not send before reading).
 
 ```
 OK
-STATUS hardware=<hw> device=<selected> devices=<id1,id2,...> mode=<mode> callerid=<id> callid=<id> ax25_ui=on|off connected=yes|no stack=<state> serial=<state>
+STATUS hardware=<hw> device=<selected> devices=<id1,id2,...> mode=<mode> callerid=<id> callid=<id> ax25_ui=on|off connected=yes|no stack=<state> serial=<state> error=valid|invalid voice=valid|invalid
 ```
 
 ### With TCP auth (`[network] tcp_password` set — **TCP only**)
@@ -93,8 +93,8 @@ Invalid `SET CALLERID` / `SET CALLID` → `ERR invalid CALLERID` / `ERR invalid 
 |------|---------|
 | `OK` | Command succeeded |
 | `ERR <message>` | Command failed |
-| `STATUS hardware=… device=… devices=… mode=… callerid=… callid=… ax25_ui=… connected=… stack=… serial=…` | State snapshot |
-| `DEVICE id=… hardware=… serial=… stack=… enabled=…` | One enabled device (`GET DEVICES`) |
+| `STATUS hardware=… device=… devices=… mode=… callerid=… callid=… ax25_ui=… connected=… stack=… serial=… error=valid\|invalid voice=valid\|invalid` | State snapshot |
+| `DEVICE id=… hardware=… serial=… stack=… enabled=… error=… voice=…` | One enabled device (`GET DEVICES`) |
 | `RX device=<id> <text>` | Received traffic from `<id>` for display |
 | `RX <text>` | Loopback TX echo (no serial) or legacy single-device |
 | `EVENT connected` | Session attached (`CONNECT`) |
@@ -157,6 +157,15 @@ pktnc2 = /dev/ttyS5
 Legacy single-device configs (`[daemon] device=` + optional `[serial]`) remain valid.
 
 Per-device serial overrides: `[serial.<id>]` sections (baud, line, dtr_rts, kiss_entry).
+
+### Reporting (`[reporting]` in INI)
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `error_transmissions` | `yes` | `yes`: `error=valid` when link healthy and last AX.25 decode OK; `no`: always `error=invalid` |
+| `voice_transmissions` | `yes` | `yes`: `voice=valid` when acoustic/CRDOP path ready; `no`: always `voice=invalid` (TNC-only: `voice=valid`) |
+
+Invalid AX.25 UI frames on serial backends emit `EVENT device=<id> error=invalid` when `error_transmissions=yes`.
 
 ---
 

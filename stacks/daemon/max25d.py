@@ -29,6 +29,7 @@ from device_backends import (  # noqa: E402
     baycom_ctl_device_id,
     create_backend,
     parse_device_spec,
+    registry_backend,
     registry_tested,
 )
 from banlist import BanList, extract_ax25_source  # noqa: E402
@@ -116,6 +117,8 @@ class DaemonConfig:
     config_path: str = ""
     feature_baycom: bool = False
     feature_pccom: bool = False
+    report_error_transmissions: bool = True
+    report_voice_transmissions: bool = True
     # Legacy single-device [serial] overrides (used when [devices] absent).
     serial_device: str = ""
     serial_baud: int = 0
@@ -138,6 +141,7 @@ class DeviceRuntime:
     prep_done: bool = False
     inline_repair_failures: int = 0
     last_bootwait_escalate: float = 0.0
+    signal_valid: Optional[bool] = None
 
 
 @dataclass
@@ -372,6 +376,13 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
     if cp.has_section("features"):
         cfg.feature_baycom = _truthy(cp.get("features", "baycom", fallback="no"))
         cfg.feature_pccom = _truthy(cp.get("features", "pccom", fallback="no"))
+    if cp.has_section("reporting"):
+        cfg.report_error_transmissions = _truthy(
+            cp.get("reporting", "error_transmissions", fallback="yes")
+        )
+        cfg.report_voice_transmissions = _truthy(
+            cp.get("reporting", "voice_transmissions", fallback="yes")
+        )
 
     cfg.devices = parse_devices(cp, cfg)
     cfg.devices = [d for d in cfg.devices if _device_allowed_by_features(d, cfg)]
@@ -436,11 +447,89 @@ def device_backend_kind(state: DaemonState, dev_id: str) -> str:
 
 
 def on_backend_rx(state: DaemonState, dev_id: str, line: str) -> None:
+    rt = state.devices.get(dev_id)
+    if rt is not None:
+        rt.signal_valid = True
     src = extract_ax25_source(line)
     if src and state.bans.is_banned(src):
         return
     log(f"rx {dev_id}: {line}")
     broadcast(state, f"RX device={dev_id} {line}")
+
+
+def on_backend_invalid_frame(state: DaemonState, dev_id: str) -> None:
+    rt = state.devices.get(dev_id)
+    if rt is None:
+        return
+    rt.signal_valid = False
+    if state.cfg.report_error_transmissions:
+        broadcast(state, f"EVENT device={dev_id} error=invalid")
+
+
+VOICE_BACKEND_KINDS = frozenset({"crdop-tcp", "audio-dummy"})
+
+
+def device_has_voice_path(rt: DeviceRuntime) -> bool:
+    kind = rt.cfg.backend_type or registry_backend(rt.cfg.device_id)
+    if kind in VOICE_BACKEND_KINDS:
+        return True
+    hw = (rt.cfg.hardware or "").lower()
+    return hw in ("acoustic-bench", "soft-modems")
+
+
+def device_link_status(rt: DeviceRuntime) -> str:
+    if rt.backend is not None:
+        return backend_serial_label(rt.backend)
+    return rt.link_status
+
+
+def link_status_is_healthy(status: str) -> bool:
+    if status in ("ready", "open", "n/a"):
+        return True
+    if status.startswith("error") or status in ("closed", "stopped"):
+        return False
+    return True
+
+
+def device_reporting_error(state: DaemonState, rt: DeviceRuntime) -> str:
+    if not state.cfg.report_error_transmissions:
+        return "invalid"
+    if not link_status_is_healthy(device_link_status(rt)):
+        return "invalid"
+    if rt.signal_valid is False:
+        return "invalid"
+    return "valid"
+
+
+def aggregate_reporting_error(state: DaemonState) -> str:
+    if not state.devices:
+        return "invalid" if not state.cfg.report_error_transmissions else "valid"
+    for rt in state.devices.values():
+        if device_reporting_error(state, rt) == "invalid":
+            return "invalid"
+    return "valid"
+
+
+def aggregate_reporting_voice(state: DaemonState) -> str:
+    if not state.cfg.report_voice_transmissions:
+        return "invalid"
+    voice_rts = [rt for rt in state.devices.values() if device_has_voice_path(rt)]
+    if not voice_rts:
+        return "valid"
+    for rt in voice_rts:
+        if not link_status_is_healthy(device_link_status(rt)):
+            return "invalid"
+    return "valid"
+
+
+def device_reporting_voice(state: DaemonState, rt: DeviceRuntime) -> str:
+    if not device_has_voice_path(rt):
+        return "n/a"
+    if not state.cfg.report_voice_transmissions:
+        return "invalid"
+    if link_status_is_healthy(device_link_status(rt)):
+        return "valid"
+    return "invalid"
 
 
 BACKEND_POLL_OPEN_STATUSES = frozenset(
@@ -588,6 +677,7 @@ def open_backend(state: DaemonState, dev_id: str) -> bool:
         lambda line, d=dev_id: on_backend_rx(state, d, line),
         log,
         prefix=str(PREFIX) if PREFIX else None,
+        on_invalid=lambda d=dev_id: on_backend_invalid_frame(state, d),
     )
     if not backend.open():
         rt.backend = backend
@@ -690,7 +780,9 @@ def status_line(state: DaemonState) -> str:
         f"mode={c.mode} callerid={c.callerid} callid={c.callid} "
         f"ax25_ui={'on' if c.ax25_ui else 'off'} "
         f"connected={'yes' if state.connected else 'no'} "
-        f"stack={aggregate_stack_status(state)} serial={aggregate_link_status(state)}"
+        f"stack={aggregate_stack_status(state)} serial={aggregate_link_status(state)} "
+        f"error={aggregate_reporting_error(state)} "
+        f"voice={aggregate_reporting_voice(state)}"
     )
 
 
@@ -990,7 +1082,9 @@ def device_line(state: DaemonState, dev_id: str) -> str:
     enabled = "yes" if rt.cfg.enabled else "no"
     return (
         f"DEVICE id={dev_id} hardware={hw} backend={backend} serial={link} "
-        f"stack={rt.stack_status} enabled={enabled}"
+        f"stack={rt.stack_status} enabled={enabled} "
+        f"error={device_reporting_error(state, rt)} "
+        f"voice={device_reporting_voice(state, rt)}"
     )
 
 

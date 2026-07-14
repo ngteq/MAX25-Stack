@@ -31,6 +31,7 @@ from kiss_bridge import KissBridge  # noqa: E402 — re-exported wrapper target
 
 LogFn = Callable[[str], None]
 RxFn = Callable[[str], None]
+InvalidFn = Callable[[], None]
 
 
 def _spec_int(raw: str, default: int) -> int:
@@ -146,12 +147,14 @@ class KissSerialBackend(DeviceBackend):
         on_rx: RxFn,
         log: Optional[LogFn] = None,
         prefix: Optional[str] = None,
+        on_invalid: Optional[InvalidFn] = None,
     ) -> None:
         self.device_id = cfg.device_id
         self._cfg = cfg
         self._root = root
         self._prefix = prefix
         self._on_rx = on_rx
+        self._on_invalid = on_invalid
         self._log = log or (lambda _m: None)
         self._bridge: Optional[KissBridge] = None
         self.status = "closed"
@@ -186,6 +189,7 @@ class KissSerialBackend(DeviceBackend):
             self._bridge_log,
             tree_root=self._root,
             install_prefix=self._prefix,
+            on_invalid=self._on_invalid,
         )
         if not bridge.open():
             self._bridge = bridge
@@ -929,10 +933,11 @@ def create_backend(
     on_rx: RxFn,
     log: Optional[LogFn] = None,
     prefix: Optional[str] = None,
+    on_invalid: Optional[InvalidFn] = None,
 ) -> DeviceBackend:
     kind = dev_cfg.backend_type or registry_backend(dev_cfg.device_id)
     if kind == "kiss-serial":
-        return KissSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix)
+        return KissSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix, on_invalid=on_invalid)
     if kind == "baycom-kiss":
         return BayComKissBackend(dev_cfg, on_rx, log)
     if kind == "kiss-raw-serial":

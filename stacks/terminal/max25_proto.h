@@ -20,6 +20,8 @@ typedef struct max25_status {
     int connected;
     int monitor;
     char stack[32];
+    char error[16];
+    char voice[16];
 } max25_status_t;
 
 typedef enum {

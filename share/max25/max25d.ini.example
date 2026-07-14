@@ -46,6 +46,12 @@ ax25_ui = yes
 ; Banned AX.25 source callsigns — silent RX drop (one per line in file)
 ; bans_file = /etc/max25/bans.txt
 
+[reporting]
+; Client-visible error/voice telemetry in STATUS (and EVENT on decode failure).
+; yes = valid when link/decode OK, no = always report invalid (suppress valid status).
+error_transmissions = yes
+voice_transmissions = yes
+
 [stack]
 ; Auto-start hardware on daemon start (boot-wait / baycom-pr-ctl / crdopc per device)
 auto_start = yes

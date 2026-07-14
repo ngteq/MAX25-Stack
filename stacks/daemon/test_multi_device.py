@@ -208,7 +208,7 @@ def test_backend_open_retry_on_error() -> None:
     with patch.object(
         mod,
         "create_backend",
-        side_effect=lambda c, r, rx, log, prefix=None: ErrorThenReady(c, r, rx, log),
+        side_effect=lambda c, r, rx, log, prefix=None, on_invalid=None: ErrorThenReady(c, r, rx, log),
     ):
         assert not mod.attach_backend_session(state, "baycom-ser12")
         assert mod.attach_backend_session(state, "baycom-ser12")
@@ -239,7 +239,7 @@ def test_five_mock_backends() -> None:
     with patch.object(
         mod,
         "create_backend",
-        side_effect=lambda c, r, rx, log, prefix=None: CountingBackend(c, r, rx, log),
+        side_effect=lambda c, r, rx, log, prefix=None, on_invalid=None: CountingBackend(c, r, rx, log),
     ):
         assert mod.attach_all_sessions(state)
         assert len(opened) == 5
