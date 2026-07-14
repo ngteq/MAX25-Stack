@@ -33,6 +33,7 @@ from device_backends import (  # noqa: E402
     registry_tested,
 )
 from banlist import BanList, extract_ax25_source  # noqa: E402
+from reporting_quality import DataQualityTracker, RxOutcome, classify_rx_line  # noqa: E402
 from daemon_log import LOGGER, emit_startup_banner, emit_startup_complete  # noqa: E402
 from kiss_bridge import KissBridge  # noqa: E402 — tests patch this symbol
 from paths import ctl_path, resolve_baycom_ini, resolve_layout  # noqa: E402
@@ -119,6 +120,9 @@ class DaemonConfig:
     feature_pccom: bool = False
     report_error_transmissions: bool = True
     report_voice_transmissions: bool = True
+    report_data_passes: int = 3
+    report_data_quality_min: int = 50
+    report_data_pass_seconds: int = 20
     # Legacy single-device [serial] overrides (used when [devices] absent).
     serial_device: str = ""
     serial_baud: int = 0
@@ -141,7 +145,7 @@ class DeviceRuntime:
     prep_done: bool = False
     inline_repair_failures: int = 0
     last_bootwait_escalate: float = 0.0
-    signal_valid: Optional[bool] = None
+    quality: DataQualityTracker = field(default_factory=DataQualityTracker)
 
 
 @dataclass
@@ -376,13 +380,21 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
     if cp.has_section("features"):
         cfg.feature_baycom = _truthy(cp.get("features", "baycom", fallback="no"))
         cfg.feature_pccom = _truthy(cp.get("features", "pccom", fallback="no"))
-    if cp.has_section("reporting"):
-        cfg.report_error_transmissions = _truthy(
-            cp.get("reporting", "error_transmissions", fallback="yes")
-        )
-        cfg.report_voice_transmissions = _truthy(
-            cp.get("reporting", "voice_transmissions", fallback="yes")
-        )
+    cfg.report_error_transmissions = _truthy(
+        cp.get("reporting", "error_transmissions", fallback="yes")
+    )
+    cfg.report_voice_transmissions = _truthy(
+        cp.get("reporting", "voice_transmissions", fallback="yes")
+    )
+    cfg.report_data_passes = _ini_int(
+        cp, "reporting", "data_passes", 3, min_value=1, max_value=32
+    )
+    cfg.report_data_quality_min = _ini_int(
+        cp, "reporting", "data_quality_min", 50, min_value=1, max_value=100
+    )
+    cfg.report_data_pass_seconds = _ini_int(
+        cp, "reporting", "data_pass_seconds", 20, min_value=1, max_value=300
+    )
 
     cfg.devices = parse_devices(cp, cfg)
     cfg.devices = [d for d in cfg.devices if _device_allowed_by_features(d, cfg)]
@@ -412,7 +424,14 @@ def init_device_runtimes(state: DaemonState) -> None:
     for dev_cfg in state.cfg.devices:
         if not dev_cfg.enabled:
             continue
-        state.devices[dev_cfg.device_id] = DeviceRuntime(cfg=dev_cfg)
+        state.devices[dev_cfg.device_id] = DeviceRuntime(
+            cfg=dev_cfg,
+            quality=DataQualityTracker(
+                passes_required=state.cfg.report_data_passes,
+                min_good_percent=state.cfg.report_data_quality_min,
+                pass_window_sec=state.cfg.report_data_pass_seconds,
+            ),
+        )
         if not registry_tested(dev_cfg.device_id):
             LOGGER.warn(
                 f"backend={dev_cfg.backend_type or 'auto'} — not hardware-validated in CI",
@@ -449,7 +468,8 @@ def device_backend_kind(state: DaemonState, dev_id: str) -> str:
 def on_backend_rx(state: DaemonState, dev_id: str, line: str) -> None:
     rt = state.devices.get(dev_id)
     if rt is not None:
-        rt.signal_valid = True
+        _sync_quality_tracker(state, rt)
+        rt.quality.record(classify_rx_line(line, state.cfg.callid))
     src = extract_ax25_source(line)
     if src and state.bans.is_banned(src):
         return
@@ -461,7 +481,8 @@ def on_backend_invalid_frame(state: DaemonState, dev_id: str) -> None:
     rt = state.devices.get(dev_id)
     if rt is None:
         return
-    rt.signal_valid = False
+    _sync_quality_tracker(state, rt)
+    rt.quality.record_bad()
     if state.cfg.report_error_transmissions:
         broadcast(state, f"EVENT device={dev_id} error=invalid")
 
@@ -491,14 +512,41 @@ def link_status_is_healthy(status: str) -> bool:
     return True
 
 
+def _sync_quality_tracker(state: DaemonState, rt: DeviceRuntime) -> None:
+    required = state.cfg.report_data_passes
+    minimum = state.cfg.report_data_quality_min
+    window = state.cfg.report_data_pass_seconds
+    if (
+        rt.quality.passes_required == required
+        and rt.quality.min_good_percent == minimum
+        and rt.quality.pass_window_sec == window
+        and rt.quality.passes.maxlen == required
+    ):
+        return
+    kept = list(rt.quality.passes)[-required:]
+    voice = rt.quality.voice_activity
+    current = rt.quality.current
+    rt.quality = DataQualityTracker(
+        passes_required=required,
+        min_good_percent=minimum,
+        pass_window_sec=window,
+        voice_activity=voice,
+    )
+    for item in kept:
+        rt.quality.passes.append(item)
+    if current.started_at != 0.0:
+        rt.quality.current = current
+
+
 def device_reporting_error(state: DaemonState, rt: DeviceRuntime) -> str:
     if not state.cfg.report_error_transmissions:
         return "invalid"
     if not link_status_is_healthy(device_link_status(rt)):
         return "invalid"
-    if rt.signal_valid is False:
-        return "invalid"
-    return "valid"
+    _sync_quality_tracker(state, rt)
+    if rt.quality.data_error_valid(reporting_enabled=True):
+        return "valid"
+    return "invalid"
 
 
 def aggregate_reporting_error(state: DaemonState) -> str:
@@ -525,9 +573,12 @@ def aggregate_reporting_voice(state: DaemonState) -> str:
 def device_reporting_voice(state: DaemonState, rt: DeviceRuntime) -> str:
     if not device_has_voice_path(rt):
         return "n/a"
-    if not state.cfg.report_voice_transmissions:
-        return "invalid"
-    if link_status_is_healthy(device_link_status(rt)):
+    _sync_quality_tracker(state, rt)
+    healthy = link_status_is_healthy(device_link_status(rt))
+    if rt.quality.voice_signal_valid(
+        reporting_enabled=state.cfg.report_voice_transmissions,
+        link_healthy=healthy,
+    ):
         return "valid"
     return "invalid"
 
@@ -978,6 +1029,14 @@ def retry_pending_backends(state: DaemonState) -> None:
         open_backend(state, dev_id)
 
 
+def poll_reporting_passes(state: DaemonState) -> None:
+    """Advance timed data-quality pass windows (default 20s each, 3 passes)."""
+    now = time.time()
+    for rt in state.devices.values():
+        _sync_quality_tracker(state, rt)
+        rt.quality.tick(now)
+
+
 def poll_serial_stability(state: DaemonState) -> None:
     """Periodic TNC health probe + software recovery (no power cycle)."""
     cfg = state.cfg
@@ -1356,6 +1415,7 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
 
     while running:
         poll_stacks(state)
+        poll_reporting_passes(state)
         poll_serial_stability(state)
         socks = [lsock for lsock, _ in listeners]
         rlist, _, _ = select.select(socks, [], [], 1.0)

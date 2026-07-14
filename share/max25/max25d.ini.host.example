@@ -33,6 +33,13 @@ ax25_ui = yes
 ; Banned AX.25 source callsigns — silent RX drop (one per line in file)
 ; bans_file = /etc/max25/bans.txt
 
+[reporting]
+error_transmissions = yes
+voice_transmissions = yes
+data_passes = 3
+data_quality_min = 50
+data_pass_seconds = 20
+
 [stack]
 ; Starts max25-ctl stack on daemon boot (recover-only for TNC — no power cycle)
 auto_start = yes

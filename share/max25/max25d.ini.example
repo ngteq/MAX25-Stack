@@ -48,9 +48,14 @@ ax25_ui = yes
 
 [reporting]
 ; Client-visible error/voice telemetry in STATUS (and EVENT on decode failure).
-; yes = valid when link/decode OK, no = always report invalid (suppress valid status).
+; yes = participate in STATUS; no = always report invalid for that field.
 error_transmissions = yes
 voice_transmissions = yes
+; Data quality: N timed passes (good/bad only; voice/noise ignored), min % good.
+; Each pass lasts up to data_pass_seconds (default 20s); full cycle = 3 × 20s.
+data_passes = 3
+data_quality_min = 50
+data_pass_seconds = 20
 
 [stack]
 ; Auto-start hardware on daemon start (boot-wait / baycom-pr-ctl / crdopc per device)
