@@ -613,6 +613,16 @@ def uses_inline_tnc_prep(state: DaemonState, dev_id: str) -> bool:
     return device_backend_kind(state, dev_id) == "kiss-serial"
 
 
+def hybbx_host_hybbx_owns_serial(state: DaemonState, dev_id: str) -> bool:
+    """In hybbx-host mode HyBBX opens /dev/tty* after max25d prep."""
+    if state.cfg.mode != "hybbx-host":
+        return False
+    if device_backend_kind(state, dev_id) != "kiss-serial":
+        return False
+    rt = state.devices.get(dev_id)
+    return rt is not None and rt.prep_done and rt.backend is None
+
+
 def prep_inline_serial_device(state: DaemonState, dev_id: str) -> None:
     """Open serial and run initial recovery while holding DTR (no subprocess)."""
     rt = state.devices[dev_id]
@@ -632,6 +642,14 @@ def prep_inline_serial_device(state: DaemonState, dev_id: str) -> None:
     rt.link_status = backend.status
     if ok:
         LOGGER.ok("serial prep complete — terminal + KISS ready", area="serial", device=dev_id)
+        if state.cfg.mode == "hybbx-host":
+            close_backend(state, dev_id)
+            rt.link_status = "ready"
+            LOGGER.info(
+                "hybbx-host: serial released for HyBBX KISS attach",
+                area="serial",
+                device=dev_id,
+            )
     elif (
         backend.status == "error-host"
         and state.cfg.serial_bootwait_escalate
@@ -1022,6 +1040,8 @@ def retry_pending_backends(state: DaemonState) -> None:
         if not backend_enabled(state, dev_id):
             continue
         rt = state.devices[dev_id]
+        if hybbx_host_hybbx_owns_serial(state, dev_id):
+            continue
         if rt.stack_status not in ("ready", "stopped"):
             continue
         if not backend_needs_open(rt.backend):
@@ -1047,6 +1067,8 @@ def poll_serial_stability(state: DaemonState) -> None:
         return
     for dev_id in enabled_device_ids(state):
         if device_backend_kind(state, dev_id) != "kiss-serial":
+            continue
+        if hybbx_host_hybbx_owns_serial(state, dev_id):
             continue
         rt = state.devices[dev_id]
         if rt.stack_proc is not None and rt.stack_proc.poll() is None:

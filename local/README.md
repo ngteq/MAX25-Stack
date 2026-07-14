@@ -32,12 +32,17 @@ sudo cp local/hybbx.ini /usr/local/hybbx/hybbx.ini
 ### Start order (cold boot)
 
 ```bash
-# Modems powered → then site start script (e.g. $HYBBX_HOME/start-hybbx.sh):
-#   pktnc2-boot-wait → tnc2c-boot-wait → max25d → hybbx-start
+# 1) max25d first — TNC prep + TCP :7325 (releases /dev/tty* in hybbx-host mode)
 sudo -u hybbx max25d -c /etc/max25/max25d.ini &
-# wait for 127.0.0.1:7325
+# wait for log: MAX25d ready + hybbx-host: serial released
+
+# 2) HyBBX after max25d ready (or hybbx-start waits up to 120s for :7325)
 sudo -u hybbx /usr/local/hybbx/hybbx-start &
 ```
+
+**Never** start HyBBX before max25d prep on the same `/dev/ttyS*` ports.
+
+**Unix socket:** ensure `/run/max25` exists and is writable (`RuntimeDirectory=max25` in systemd) or use TCP `:7325` only.
 
 HyBBX: **2× packet_radio** (K24 + K25). max25d devices: `tnc2c`, `pktnc2`.
 
