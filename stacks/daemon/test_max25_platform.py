@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from max25_platform import (  # noqa: E402
     crdop_audio_backend,
+    default_bans_file,
     default_unix_socket,
     is_freebsd,
     is_linux,
@@ -22,8 +23,11 @@ def test_linux_defaults() -> None:
         return
     assert max25d_supported()
     assert "tnc2c" in supported_device_ids()
+    assert "baycom-a" in supported_device_ids()
+    assert "baycom-b" in supported_device_ids()
     assert crdop_audio_backend() == "alsa"
     assert default_unix_socket() == "/run/max25/modem.sock"
+    assert default_bans_file() == "/var/lib/max25/bans.txt"
 
 
 def test_freebsd_profile() -> None:
@@ -34,6 +38,7 @@ def test_freebsd_profile() -> None:
     assert "tnc2c" not in supported_device_ids()
     assert crdop_audio_backend() == "oss"
     assert default_unix_socket() == "/var/run/max25/modem.sock"
+    assert default_bans_file() == "/var/db/max25/bans.txt"
 
 
 if __name__ == "__main__":

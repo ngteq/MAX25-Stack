@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import sys
 import threading
 from pathlib import Path
 from typing import Optional
@@ -41,12 +42,15 @@ class BanList:
 
     def load(self) -> None:
         entries: set[str] = set()
-        if self.path.is_file():
-            text = self.path.read_text(encoding="utf-8")
-            for raw in text.splitlines():
-                line = raw.split("#", 1)[0].strip().upper()
-                if line:
-                    entries.add(line)
+        try:
+            if self.path.is_file():
+                text = self.path.read_text(encoding="utf-8")
+                for raw in text.splitlines():
+                    line = raw.split("#", 1)[0].strip().upper()
+                    if line:
+                        entries.add(line)
+        except OSError as exc:
+            print(f"max25d: banlist load failed ({self.path}): {exc}", file=sys.stderr)
         with self._lock:
             self._entries = entries
 

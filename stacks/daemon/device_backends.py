@@ -32,11 +32,20 @@ from kiss_bridge import KissBridge  # noqa: E402 — re-exported wrapper target
 LogFn = Callable[[str], None]
 RxFn = Callable[[str], None]
 
+
+def _spec_int(raw: str, default: int) -> int:
+    try:
+        return int(str(raw).strip())
+    except (TypeError, ValueError):
+        return default
+
 # manifest.yaml device ids → default hardware + backend kind
 DEVICE_REGISTRY: dict[str, dict[str, str | bool]] = {
     "tnc2c": {"hardware": "tncs", "backend": "kiss-serial", "tested": True},
     "pktnc2": {"hardware": "tncs", "backend": "kiss-serial", "tested": False},
     "baycom-ser12": {"hardware": "modems", "backend": "baycom-kiss", "tested": True},
+    "baycom-a": {"hardware": "modems", "backend": "baycom-kiss", "tested": True},
+    "baycom-b": {"hardware": "modems", "backend": "baycom-kiss", "tested": True},
     "baycom-par96": {"hardware": "modems", "backend": "baycom-kiss", "tested": False},
     "baycom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
     "soft-crdop": {"hardware": "soft-modems", "backend": "crdop-tcp", "tested": True},
@@ -453,12 +462,19 @@ class CrdopTcpBackend(DeviceBackend):
     def open(self) -> bool:
         host = self._cfg.crdop_host
         port = self._cfg.crdop_port
+        ctrl = None
+        data = None
         try:
             ctrl = socket.create_connection((host, port), timeout=5.0)
             ctrl.settimeout(0.5)
             data = socket.create_connection((host, port + 1), timeout=5.0)
             data.settimeout(0.5)
         except OSError as exc:
+            if ctrl is not None:
+                try:
+                    ctrl.close()
+                except OSError:
+                    pass
             self.status = "error-connect"
             self._log(f"{self.device_id}: CRDOP TCP connect failed ({host}:{port}): {exc}")
             return False
@@ -641,12 +657,19 @@ class AudioDummyBackend(DeviceBackend):
         if mode == "host":
             host = "127.0.0.1"
             port = self._cfg.audio_host_port
+            ctrl = None
+            data = None
             try:
                 ctrl = socket.create_connection((host, port), timeout=3.0)
                 ctrl.settimeout(0.5)
                 data = socket.create_connection((host, port + 1), timeout=3.0)
                 data.settimeout(0.5)
             except OSError as exc:
+                if ctrl is not None:
+                    try:
+                        ctrl.close()
+                    except OSError:
+                        pass
                 self.status = "error-connect"
                 self._log(f"{self.device_id}: audio-dummy host connect failed: {exc}")
                 return False
@@ -870,7 +893,7 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
     if sec_opts.get("host"):
         dev.crdop_host = sec_opts["host"]
     if sec_opts.get("port"):
-        dev.crdop_port = int(sec_opts["port"])
+        dev.crdop_port = _spec_int(sec_opts["port"], dev.crdop_port)
     if sec_opts.get("listen"):
         dev.crdop_listen = sec_opts["listen"].lower() in ("1", "yes", "true", "on")
     if sec_opts.get("mode"):
@@ -880,9 +903,9 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
     if sec_opts.get("playback"):
         dev.audio_playback = sec_opts["playback"]
     if sec_opts.get("sample_rate"):
-        dev.audio_sample_rate = int(sec_opts["sample_rate"])
+        dev.audio_sample_rate = _spec_int(sec_opts["sample_rate"], dev.audio_sample_rate)
     if sec_opts.get("host_port"):
-        dev.audio_host_port = int(sec_opts["host_port"])
+        dev.audio_host_port = _spec_int(sec_opts["host_port"], dev.audio_host_port)
 
     serial_sec = f"serial.{device_id}"
     if cp.has_section(serial_sec):

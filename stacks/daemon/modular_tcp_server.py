@@ -45,26 +45,48 @@ def load_modular_tcp(cp: configparser.ConfigParser) -> ModularTcpConfig:
     cfg.service_name = sec.get("service_name", cfg.service_name).strip() or cfg.service_name
     cfg.instance_id = sec.get("instance_id", cfg.instance_id).strip()
     if cp.has_option("modular_tcp", "connect_timeout"):
-        cfg.connect_timeout = float(cp.get("modular_tcp", "connect_timeout"))
+        try:
+            cfg.connect_timeout = float(cp.get("modular_tcp", "connect_timeout"))
+        except (TypeError, ValueError):
+            cfg.connect_timeout = 5.0
+        if cfg.connect_timeout <= 0.0:
+            cfg.connect_timeout = 5.0
     if cp.has_section("modular_tcp.secondaries"):
         for key in cp.options("modular_tcp.secondaries"):
             raw = cp.get("modular_tcp.secondaries", key).strip()
             if not raw:
                 continue
             host, _, port_s = raw.partition(":")
-            port = int(port_s or "7326")
-            cfg.secondaries.append(SecondaryEndpoint(name=key.strip(), host=host.strip(), port=port))
+            host = host.strip()
+            if not host:
+                continue
+            try:
+                port = int(port_s or "7326")
+            except (TypeError, ValueError):
+                port = 7326
+            if port < 1 or port > 65535:
+                port = 7326
+            cfg.secondaries.append(SecondaryEndpoint(name=key.strip(), host=host, port=port))
     if cfg.enabled and cfg.role == "main" and not cfg.secondaries:
         # Legacy comma list: secondaries = host:port,host:port
         raw = sec.get("secondaries", "").strip()
         if raw:
             for idx, item in enumerate(x.strip() for x in raw.split(",") if x.strip()):
                 host, _, port_s = item.partition(":")
+                host = host.strip()
+                if not host:
+                    continue
+                try:
+                    port = int(port_s or "7326")
+                except (TypeError, ValueError):
+                    port = 7326
+                if port < 1 or port > 65535:
+                    port = 7326
                 cfg.secondaries.append(
                     SecondaryEndpoint(
                         name=f"secondary-{idx + 1}",
-                        host=host.strip(),
-                        port=int(port_s or "7326"),
+                        host=host,
+                        port=port,
                     )
                 )
     return cfg

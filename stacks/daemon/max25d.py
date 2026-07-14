@@ -31,11 +31,12 @@ from device_backends import (  # noqa: E402
     parse_device_spec,
     registry_tested,
 )
-from banlist import BanList, DEFAULT_BANS_FILE, extract_ax25_source  # noqa: E402
+from banlist import BanList, extract_ax25_source  # noqa: E402
 from daemon_log import LOGGER, emit_startup_banner, emit_startup_complete  # noqa: E402
 from kiss_bridge import KissBridge  # noqa: E402 — tests patch this symbol
 from paths import ctl_path, resolve_baycom_ini, resolve_layout  # noqa: E402
 from max25_platform import (  # noqa: E402
+    default_bans_file,
     default_unix_socket,
     max25d_supported,
     platform_label,
@@ -49,6 +50,7 @@ ROOT = TREE  # dev checkout root or MAX25_ROOT / install prefix
 
 DEFAULT_TCP_PORT = 7325
 DEFAULT_UNIX = default_unix_socket()
+M25_MAX_LINE_BUF = 65536
 CALLSIGN_RE = re.compile(r"^[A-Z0-9]{1,6}(-(1[0-5]|[0-9]))?$")
 RESERVED_DEVICE_KEYS = frozenset({"default", "enabled"})
 
@@ -110,7 +112,7 @@ class DaemonConfig:
     serial_bootwait_escalate: bool = True
     serial_bootwait_escalate_after: int = 3
     serial_bootwait_escalate_cooldown: int = 300
-    bans_file: str = str(DEFAULT_BANS_FILE)
+    bans_file: str = field(default_factory=default_bans_file)
     config_path: str = ""
     feature_baycom: bool = False
     feature_pccom: bool = False
@@ -162,6 +164,51 @@ def valid_callsign(value: str) -> bool:
 
 def _truthy(value: str) -> bool:
     return value.lower() in ("1", "yes", "true", "on")
+
+
+def _ini_int(
+    cp: configparser.ConfigParser,
+    section: str,
+    key: str,
+    default: int,
+    *,
+    min_value: int = 1,
+    max_value: int = 86400,
+) -> int:
+    if not cp.has_option(section, key):
+        return default
+    raw = cp.get(section, key)
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        LOGGER.warn(
+            f"[{section}] {key}={raw!r} invalid — using {default}",
+            area="config",
+        )
+        return default
+    if value < min_value:
+        LOGGER.warn(
+            f"[{section}] {key}={value} below {min_value} — using {min_value}",
+            area="config",
+        )
+        return min_value
+    if value > max_value:
+        LOGGER.warn(
+            f"[{section}] {key}={value} above {max_value} — using {max_value}",
+            area="config",
+        )
+        return max_value
+    return value
+
+
+def _safe_port(raw: str, default: int) -> int:
+    try:
+        port = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return default
+    if port < 1 or port > 65535:
+        return default
+    return port
 
 
 def _serial_overrides_from_section(cp: configparser.ConfigParser, section: str) -> dict[str, str]:
@@ -216,6 +263,15 @@ def parse_devices(cp: configparser.ConfigParser, cfg: DaemonConfig) -> list[Devi
         else:
             if default_id:
                 cfg.default_device = default_id
+                if enabled_set is not None and default_id not in enabled_set:
+                    enabled_entries = [d for d in entries if d.enabled]
+                    if enabled_entries:
+                        fallback = enabled_entries[0].device_id
+                        LOGGER.warn(
+                            f"[devices] default={default_id} not enabled — using {fallback}",
+                            area="config",
+                        )
+                        cfg.default_device = fallback
             elif cfg.device:
                 cfg.default_device = cfg.device
             else:
@@ -269,7 +325,7 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
         cfg.device = cp.get("daemon", "device", fallback=cfg.device)
     if cp.has_section("network"):
         cfg.tcp_host = cp.get("network", "tcp_host", fallback=cfg.tcp_host)
-        cfg.tcp_port = cp.getint("network", "tcp_port", fallback=cfg.tcp_port)
+        cfg.tcp_port = _ini_int(cp, "network", "tcp_port", cfg.tcp_port, min_value=1, max_value=65535)
         cfg.unix_socket = cp.get("network", "unix_socket", fallback=cfg.unix_socket)
         cfg.tcp_password = cp.get("network", "tcp_password", fallback=cfg.tcp_password)
     if cp.has_section("modem"):
@@ -281,29 +337,30 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
         cfg.auto_start = _truthy(cp.get("stack", "auto_start", fallback="yes"))
         if cp.has_option("stack", "serial_watch"):
             cfg.serial_watch = _truthy(cp.get("stack", "serial_watch"))
-        cfg.serial_watch_interval = cp.getint(
-            "stack", "serial_watch_interval", fallback=cfg.serial_watch_interval
+        cfg.serial_watch_interval = _ini_int(
+            cp, "stack", "serial_watch_interval", cfg.serial_watch_interval
         )
-        cfg.serial_repair_cooldown = cp.getint(
-            "stack", "serial_repair_cooldown", fallback=cfg.serial_repair_cooldown
+        cfg.serial_repair_cooldown = _ini_int(
+            cp, "stack", "serial_repair_cooldown", cfg.serial_repair_cooldown
         )
-        cfg.serial_watch_startup_grace = cp.getint(
-            "stack", "serial_watch_startup_grace", fallback=cfg.serial_watch_startup_grace
+        cfg.serial_watch_startup_grace = _ini_int(
+            cp, "stack", "serial_watch_startup_grace", cfg.serial_watch_startup_grace
         )
         if cp.has_option("stack", "stack_recover_only"):
             cfg.stack_recover_only = _truthy(cp.get("stack", "stack_recover_only"))
-        cfg.stack_retry_interval = cp.getint(
-            "stack", "stack_retry_interval", fallback=cfg.stack_retry_interval
+        cfg.stack_retry_interval = _ini_int(
+            cp, "stack", "stack_retry_interval", cfg.stack_retry_interval
         )
         if cp.has_option("stack", "serial_bootwait_escalate"):
             cfg.serial_bootwait_escalate = _truthy(cp.get("stack", "serial_bootwait_escalate"))
-        cfg.serial_bootwait_escalate_after = cp.getint(
-            "stack", "serial_bootwait_escalate_after", fallback=cfg.serial_bootwait_escalate_after
+        cfg.serial_bootwait_escalate_after = _ini_int(
+            cp, "stack", "serial_bootwait_escalate_after", cfg.serial_bootwait_escalate_after
         )
-        cfg.serial_bootwait_escalate_cooldown = cp.getint(
+        cfg.serial_bootwait_escalate_cooldown = _ini_int(
+            cp,
             "stack",
             "serial_bootwait_escalate_cooldown",
-            fallback=cfg.serial_bootwait_escalate_cooldown,
+            cfg.serial_bootwait_escalate_cooldown,
         )
     if cp.has_section("serial"):
         cfg.serial_device = cp.get("serial", "device", fallback="")
@@ -330,6 +387,8 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
                     area="config",
                 )
         cfg.devices = filtered
+    if not cfg.devices:
+        LOGGER.warn("no devices remain after config/platform filter", area="config")
     cfg.modular_tcp = load_modular_tcp(cp)
     if not cfg.default_device and cfg.devices:
         cfg.default_device = cfg.devices[0].device_id
@@ -355,6 +414,7 @@ def init_device_runtimes(state: DaemonState) -> None:
         state.selected_device = next(iter(state.devices))
     else:
         state.selected_device = state.cfg.default_device
+        LOGGER.warn("no enabled device runtimes — SEND/CONNECT unavailable", area="devices")
 
 
 def enabled_device_ids(state: DaemonState) -> list[str]:
@@ -1114,6 +1174,8 @@ def tcp_auth_ok(sock: socket.socket, expected: str, timeout: float = 30.0) -> bo
             if not chunk:
                 return False
             buf += chunk
+            if len(buf) > M25_MAX_LINE_BUF:
+                return False
             while b"\n" in buf:
                 raw, buf = buf.split(b"\n", 1)
                 try:
@@ -1148,6 +1210,9 @@ def client_thread(state: DaemonState, sock: socket.socket, from_tcp: bool) -> No
             if not chunk:
                 break
             buf += chunk
+            if len(buf) > M25_MAX_LINE_BUF:
+                send_line(sock, "ERR line too long")
+                break
             while b"\n" in buf:
                 raw, buf = buf.split(b"\n", 1)
                 try:
