@@ -49,6 +49,8 @@ def supported_device_ids() -> frozenset[str]:
                 "baycom-ser12",
                 "baycom-par96",
                 "baycom-kiss",
+                "baycom-a",
+                "baycom-b",
                 "soft-crdop",
                 "audio-dummy",
             }

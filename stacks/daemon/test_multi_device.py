@@ -16,7 +16,6 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 LAUNCHER = ROOT / "stacks/daemon/max25d"
 DAEMON = ROOT / "stacks/daemon/max25d.py"
-BASE_INI = ROOT / "share/max25/max25d.ini.example"
 
 
 def load_max25d_module():
@@ -329,6 +328,9 @@ baycom_ini = /etc/baycom/baycom-pr.ini
 
 def test_protocol_dual_baycom() -> None:
     ini = """
+[features]
+baycom = yes
+pccom = no
 [daemon]
 mode = service
 hardware = modems
@@ -382,7 +384,25 @@ modem = b
 
 
 def test_protocol_multi_device() -> None:
-    ini = BASE_INI.read_text()
+    # Explicit two-device INI — share/max25d.ini.example is single-device by design.
+    ini = """
+[daemon]
+mode = standalone
+hardware = tncs
+device = tnc2c
+[devices]
+default = tnc2c
+tnc2c = /dev/ttyS4
+pktnc2 = /dev/ttyS5
+[network]
+tcp_host = 127.0.0.1
+tcp_port = 7325
+[modem]
+callerid = CB-0
+callid = QST
+[stack]
+auto_start = no
+"""
 
     def exercise(reader: LineReader, sock: socket.socket) -> None:
         status = reader.read()
