@@ -1,68 +1,68 @@
-# Changelog
+# Changelog · MAX25-Stack 1.5.0
 
 All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
 
-## [MAX25-Stack-v1.5.0] — upcoming
+## [MAX25-Stack 1.5.0]
 
 Version file `1.5.0`. Product label **MAX25-Stack-v1.5.0**.
 
-### HyBBX boundary
+### HyBBX boundary matrix
 
-- `[features] baycom=no` and `pccom=no` by default in max25d INI examples
-- `max25d` filters BayCom/PC-COM device entries unless features are enabled
-- CMake still builds BayCom tools; runtime opt-in via INI
+| Change | Detail |
+|--------|--------|
+| `[features] baycom=no` | Default in max25d INI examples |
+| `[features] pccom=no` | Default in max25d INI examples |
+| Device filter | BayCom/PC-COM entries filtered unless features enabled |
+| CMake | BayCom tools still built; runtime opt-in via INI |
 
-### Platform and topology
+### Platform and topology matrix
 
-- One RF device per Linux host (design rule in INI examples and docs)
-- FreeBSD scaffold: `max25_platform.py`, OSS sound-proxy, FreeBSD INI examples
-- Modular TCP/IP server (`modular_tcp_server.py`) for Main/Secondary split
-- New INI templates: `max25d.main.ini.example`, `max25d.secondary-linux.ini.example`, `max25d.freebsd.ini.example`
+| Change | Detail |
+|--------|--------|
+| One RF device per Linux host | Design rule in INI examples |
+| FreeBSD scaffold | `max25_platform.py`, OSS sound-proxy, FreeBSD INI |
+| Modular TCP/IP server | `modular_tcp_server.py` for Main/Secondary split |
+| New INI templates | `max25d.main.ini.example`, `max25d.secondary-linux.ini.example`, `max25d.freebsd.ini.example` |
 
-### Docs
+### Docs matrix
 
-- Updated operator and architecture docs for v1.5 boundary and platform roadmap
-- Added `docs/V2.0.0-SCOPE.md`, `docs/MODULAR-TCPIP-SERVER.md`, `docs/MASTER-GUIDE.md`
+| Item | Detail |
+|------|--------|
+| Operator docs | Updated for v1.5 boundary |
+| New | `V2.0.0-SCOPE.md`, `MODULAR-TCPIP-SERVER.md`, `MASTER-GUIDE.md` |
 
-## [MAX25-Stack-v1.0.0] — 2026-07-13
+## [MAX25-Stack 1.0.0] — 2026-07-13
 
 Version file `1.0.0`. Product label **MAX25-Stack-v1.0.0**.
 
-**First production release** — standalone Packet Radio / AX.25 hardware lifecycle.
+### Active devices matrix
 
-### Active devices
+| Device | Standalone | HyBBX |
+|--------|------------|-------|
+| **tnc2c** | `max25-ctl start --hardware tncs --device tnc2c` | `packet_radio` |
+| **baycom-ser12** | `max25-ctl start --hardware modems --device baycom-ser12` | `baycom` |
+| **soft-crdop** | `max25-ctl start --hardware soft-modems` | `crdop` |
 
-- **tnc2c** — Landolt TNC2C serial KISS (boot-wait, HyBBX `packet_radio`)
-- **baycom-ser12** — kernel BayCom SER12 / PC-COM (single-modem default; dual opt-in)
-- **soft-crdop** — MAX25-SoftModem (CRDOP), CB profile (`crdop.ini.example`); native M25/KISS host via `CrdopTcpBackend` (KISS default, `[CRDOP AX25 UI …]` display)
+### Architecture matrix
 
-### Architecture
+| Item | Value |
+|------|-------|
+| AX.25 codec | In-tree `ax25_codec.py` via `kiss_bridge.py` |
+| `MAX25_BUNDLE_AX25` | OFF default |
+| `MAX25_BUILD_CRDOP` | ON default |
+| Daemon | `max25d` — Linux supervisor, M25/1 |
+| Client | `max25-terminal` / `max25-client` — sole official operator client |
 
-- **AX.25** — in-tree `ax25_codec.py` via `kiss_bridge.py`; `MAX25_BUNDLE_AX25` OFF; `third_party/ax25/` tarballs reference-only
-- **CRDOP** — in-house MAX25-SoftModem scaffold; `MAX25_BUILD_CRDOP` **ON** by default; no vendored ardopcf in release
-- **ARDOP-plugin** — optional MAX25-Stack plugin registry (separate from CRDOP)
+### Deferred to v1.1+ matrix
 
-### Stack
+| Item | Status |
+|------|--------|
+| `pktnc2`, `baycom-par96`, `baycom-kiss` | deferred |
+| CRDOP amateur / dual workflows | INI templates ship |
 
-- `max25d` — Linux supervisor, M25/1 protocol, multi-device KISS bridge
-- `max25-terminal` / `max25-client` — sole official operator client (text + F10 menu)
-- Heterogeneous device backends: TNC serial, BayCom KISS PTY, CRDOP TCP
-- AX.25 source ban list (`banlist.py`) — `bans_file`, M25/1 `BAN`/`UNBAN`/`BANS`, silent RX drop
-- Plugin registry (`plugins/manifest.yaml`) and client profiles (`share/clients/`)
+## Related
 
-### Operator / docs
-
-- Unified five-step device workflow — [docs/PLUGINS-DEVICE-MODEL.md](docs/PLUGINS-DEVICE-MODEL.md)
-- BayCom single PC-COM default — [docs/BAYCOM.md](docs/BAYCOM.md)
-- HyBBX attach INI examples in `share/hybbx/`
-- Offline release gates: `./scripts/build.sh`, `./scripts/test.sh`, `./scripts/release-check.sh`
-
-### Deferred to v1.1+
-
-- `pktnc2`, `baycom-par96`, `baycom-kiss`
-- CRDOP amateur and dual operator workflows (INI templates ship)
-
-### Upstream stack versions
-
-- BayCom PR-Stack `1.0.0`
-- CRDOP dev track `CUR999` (`$SRC/stacks/crdop/VERSION`) — ships with MAX25-Stack v1.0.0
+| Goal | Doc |
+|------|-----|
+| Release gates | [RELEASE-READINESS.md](RELEASE-READINESS.md) |
+| v1 scope | [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) |

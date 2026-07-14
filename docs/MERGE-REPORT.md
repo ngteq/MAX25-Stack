@@ -1,27 +1,36 @@
-# Merge Report (archive)
+# Merge report · MAX25-Stack 1.5.0
 
-One-time record of how MainAX25-Stack was assembled. Do not extend.
+Archive of stack merge history — BayCom, CRDOP, TNC tools into unified MAX25-Stack.
 
-## Sources merged
+## Merge source matrix
 
-| Stack | Path | Upstream |
-|-------|------|----------|
-| TNCs-Stack | `stacks/tncs/` | ngteq/TNCs-Stack |
-| BayCom PR-Stack | `stacks/baycom-pr/` | ngteq/BayCom_PR-Stack |
-| CRDOP | `stacks/crdop/` | ngteq/CRDOP |
+| Source stack | Target path | Status |
+|--------------|-------------|--------|
+| BayCom PR-Stack | `stacks/baycom-pr/` | merged |
+| CRDOP dev track | `stacks/crdop/` | merged |
+| TNC tools | `stacks/tncs/` | merged |
+| Terminal | `stacks/terminal/` | merged |
+| Daemon | `stacks/daemon/` | merged |
 
-HyBBX is **not** vendored — external consumer at ngteq/hyBBX.
+## Version matrix
 
-## Added in umbrella repo
+| Component | Version note |
+|-----------|--------------|
+| MAX25-Stack | 1.5.0 (product) |
+| BayCom PR-Stack upstream | 1.0.0 |
+| CRDOP dev track | CUR999 until standalone milestone |
 
-- `plugins/` — operating mode / hardware / device registry
-- `scripts/` — `max25-ctl`, `discover-plugins.sh`, `release-check.sh`
-- `share/hybbx/` — HyBBX INI examples
-- `docs/` — architecture, HyBBX contract, platforms, v1 scope
+## Policy matrix
 
-## Decisions
+| Rule | Detail |
+|------|--------|
+| Single repo | all stacks under MAX25-Stack |
+| HyBBX | external consumer — `share/hybbx/` fragments |
+| Docs | English, matrix index in `docs/README.md` |
 
-- File copy merge (no combined git history from sources)
-- Standalone-first; HyBBX attaches after MAX25 prep
-- Linux-primary; *BSD later
-- Personal `research/` and site-specific operator files removed from publication tree
+## Related
+
+| Goal | Doc |
+|------|-----|
+| Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Paths | [PATHS.md](PATHS.md) |

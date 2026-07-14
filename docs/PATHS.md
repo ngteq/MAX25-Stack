@@ -1,33 +1,33 @@
-# Path conventions (documentation)
+# Repository paths · MAX25-Stack 1.5.0
 
-Use these **variables** in docs — never hardcode operator home directories (`/home/…`), `/tmp/…` build trees, or `/root/…`.
+Canonical directory map for contributors.
 
-| Variable | Meaning | Typical value |
-|----------|---------|----------------|
-| **`$SRC`** | MAX25-Stack repository root (this checkout) | `git clone` directory |
-| **`$PREFIX`** | CMake install prefix | `/usr/local` or `~/.local` |
-| **`$BUILD`** | Out-of-tree build directory | `$SRC/build` |
-| **`$ETC_MAX25`** | Site daemon config (FHS) | `/etc/max25` |
-| **`$RUN_MAX25`** | Runtime state (systemd `RuntimeDirectory`) | `/run/max25` |
+## Top-level matrix
 
-## In prose
+| Path | Role |
+|------|------|
+| `stacks/daemon/` | max25d supervisor |
+| `stacks/terminal/` | operator client |
+| `stacks/tncs/` | TNC boot-wait, recovery |
+| `stacks/baycom-pr/` | kernel BayCom |
+| `stacks/crdop/` | MAX25-SoftModem |
+| `plugins/` | hardware/device registry |
+| `share/max25/` | max25d INI examples |
+| `share/hybbx/` | HyBBX attach fragments |
+| `docs/` | shipped documentation |
+| `scripts/` | build, test, install |
 
-| Instead of | Write |
-|------------|--------|
-| `/home/…/MAX25-Stack/...` | `$SRC/...` |
-| `/tmp/max25-*` | `$BUILD/install-test` or `$PREFIX` after `cmake --install` |
-| `/home/hybbx/start-hybbx.sh` | site operator script (e.g. `$HYBBX_HOME/start-hybbx.sh`) |
+## Config matrix
 
-## Repo-relative links
+| Live config | Path |
+|-------------|------|
+| Operator secrets | `./local/` (gitignored) |
+| System INI example | `share/max25/max25d.ini.example` |
+| HyBBX fragments | `share/hybbx/*-host.ini.example` |
 
-Inside MAX25-Stack markdown, prefer **relative links** (`stacks/crdop/...`, `docs/...`) over absolute paths. This repo is self-contained — do not reference external research trees in shipped docs.
+## Related
 
-## Install paths (allowed literals)
-
-FHS paths are fine when documenting production layout:
-
-- `/etc/max25/max25d.ini`
-- `/run/max25/modem.sock`
-- `/usr/local/bin/max25d` (when documenting default `$PREFIX`)
-
-Say **`$PREFIX/bin/max25d`** when the doc is prefix-agnostic.
+| Goal | Doc |
+|------|-----|
+| Development | [DEVELOPMENT.md](DEVELOPMENT.md) |
+| Doc index | [README.md](README.md) |

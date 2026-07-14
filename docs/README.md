@@ -1,62 +1,39 @@
-# Documentation index
+# Documentation index · MAX25-Stack 1.5.0
 
-Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
+Compact doc map for MAX25 — start at MASTER-GUIDE for linear operator flow.
 
-[README](../README.md) · [AGENTS](../AGENTS.md) · [CONTRIBUTING](../CONTRIBUTING.md)
-
-## By role
+## By role matrix
 
 | Role | Document |
 |------|----------|
-| **Master operator guide (synced)** | **[MASTER-GUIDE.md](MASTER-GUIDE.md)** — linear start |
-| **Dual-TNC / AX25SRV** | [AX25SRV-OPERATOR-GUIDE.md](AX25SRV-OPERATOR-GUIDE.md) |
+| Master operator guide | [MASTER-GUIDE.md](MASTER-GUIDE.md) |
+| Dual-TNC / AX25SRV | [AX25SRV-OPERATOR-GUIDE.md](AX25SRV-OPERATOR-GUIDE.md) |
 | Host setup | [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) |
-| **Unified device workflow** | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) — TNC reference, all backends |
+| Device workflow | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |
 | Terminal operator | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) |
-| Browser terminal (Web UI) | [WEBSOCKET.md](WEBSOCKET.md) *(DEV-Level 3 — planned)* · [stacks/web/README.md](../stacks/web/README.md) |
-| Client developer | [MAX25-CLIENT.md](MAX25-CLIENT.md) · [include/max25/protocol.md](../include/max25/protocol.md) |
-| Terminal profiles | [share/clients/README.md](../share/clients/README.md) · [share/clients/index.yaml](../share/clients/index.yaml) |
+| Client / M25/1 | [MAX25-CLIENT.md](MAX25-CLIENT.md) |
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
-| BayCom / PC-COM operator | [BAYCOM.md](BAYCOM.md) · `share/baycom/` examples |
-| Host / operator | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) · [HARDWARE-ACCEPTANCE.md](HARDWARE-ACCEPTANCE.md) |
-| **All devices (full list)** | [DEVICES-LIST-FULL.md](DEVICES-LIST-FULL.md) |
-| AX.25 codec | [AX25-NATIVE-CODEC.md](AX25-NATIVE-CODEC.md) |
-| Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) · [PATHS.md](PATHS.md) |
-| Virtual netdev **`max25d0`** (TUN, IPv4/IPv6) | [NETDEV.md](NETDEV.md) |
-| v1 release | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) |
-| **v2 goals (rootless, auto setup)** | [V2.0.0-SCOPE.md](V2.0.0-SCOPE.md) — includes **DEV-Levels roadmap** |
+| BayCom / PC-COM | [BAYCOM.md](BAYCOM.md) |
+| Operator runbook | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) |
+| All devices | [DEVICES-LIST-FULL.md](DEVICES-LIST-FULL.md) |
+| Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) |
 
-## Technical reference
+## Technical reference matrix
 
 | Topic | Document |
 |-------|----------|
-| Architecture & plugins | [ARCHITECTURE.md](ARCHITECTURE.md) · [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |
-| AX.25 / KISS / TNC | [PACKET-RADIO.md](PACKET-RADIO.md) · [include/max25/packet-radio.md](../include/max25/packet-radio.md) |
-| BayCom kernel modems | [BAYCOM.md](BAYCOM.md) |
-| **CRDOP / MAX25-SoftModem** | [CRDOP.md](CRDOP.md) · [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) · [stacks/crdop/README.md](../stacks/crdop/README.md) |
+| Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Packet radio / AX.25 | [PACKET-RADIO.md](PACKET-RADIO.md) |
+| CRDOP / SoftModem | [CRDOP.md](CRDOP.md) |
 | Platforms | [PLATFORMS.md](PLATFORMS.md) |
-| *BSD port plan | [FREEBSD-AX25.md](FREEBSD-AX25.md) — FreeBSD → OpenBSD → NetBSD |
-| **Modular TCP/IP Servers Service** | [MODULAR-TCPIP-SERVER.md](MODULAR-TCPIP-SERVER.md) |
-| Merge archive | [MERGE-REPORT.md](MERGE-REPORT.md) |
+| FreeBSD port | [FREEBSD-AX25.md](FREEBSD-AX25.md) |
+| Modular TCP/IP | [MODULAR-TCPIP-SERVER.md](MODULAR-TCPIP-SERVER.md) |
+| v1 scope | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) |
+| v2 goals | [V2.0.0-SCOPE.md](V2.0.0-SCOPE.md) |
 
-## Stack READMEs (link — do not duplicate here)
+## Related
 
-| Stack | Path |
-|-------|------|
-| TNC tools | [stacks/tncs/README.md](../stacks/tncs/README.md) |
-| BayCom | [stacks/baycom-pr/README.md](../stacks/baycom-pr/README.md) |
-| CRDOP | [CRDOP.md](CRDOP.md) · [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) · [stacks/crdop/README.md](../stacks/crdop/README.md) |
-| Daemon (`max25d`) | [stacks/daemon/README.md](../stacks/daemon/README.md) |
-| Terminal | [stacks/terminal/README.md](../stacks/terminal/README.md) |
-| Web UI | [stacks/web/README.md](../stacks/web/README.md) |
-
-## Plugin registry
-
-[plugins/README.md](../plugins/README.md) · `plugins/manifest.yaml`
-
-```bash
-./scripts/discover-plugins.sh          # hardware + device plugins
-./scripts/discover-plugins.sh --json   # machine-readable
-```
-
-Discovery lists **hardware** and **device** entries only. Operating modes (`betriebsform/`) live in the manifest but are not discovery CLI output.
+| Goal | Doc |
+|------|-----|
+| Root README | [../README.md](../README.md) |
+| Release gates | [../RELEASE-READINESS.md](../RELEASE-READINESS.md) |

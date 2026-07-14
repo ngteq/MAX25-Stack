@@ -1,317 +1,46 @@
-# Packet Radio & AX.25 — technical reference (MAX25)
+# Packet Radio & AX.25 · MAX25-Stack 1.5.0
 
-Technical facts for **MainAX25-Stack (MAX25)** developers and operators. Describes on-air and host-side behaviour that `max25d`, hardware stacks, and `max25-terminal` rely on.
+Technical reference for on-air and host-side AX.25/KISS behaviour in MAX25.
 
-HyBBX is only mentioned where MAX25 hands off after prep ([HYBBX.md](HYBBX.md)). The rules below are distilled from production AX.25/KISS practice (including the reference implementation in the upstream HyBBX tree).
+## Layer matrix
 
-**Unified device workflow** (TNC reference, all backends): [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md).
+| Layer | MAX25 owns |
+|-------|------------|
+| Operator UI | `max25-terminal` |
+| Session / IPC | `max25d` M25/1 |
+| Device prep | boot-wait, modprobe, KISS PTY |
+| AX.25 codec | `ax25_codec.py` / `kiss_bridge.py` |
+| KISS framing | FEND/FESC, port nibble |
+| HyBBX attach | external — after stack up |
 
----
-
-## Layer model in MAX25
-
-```
-Operator
-   → max25-terminal (text lines, CALLERID/CALLID, --ax25-ui)
-   → max25d (M25/1, plugin lifecycle, KISS/serial/kernel)
-   → Hardware stack (tncs | baycom-pr | crdop)
-   → RF (AFSK 1200 / G3RUH 9600 / SoftModem AFSK — device dependent)
-```
-
-| Layer | MAX25 owns | Examples |
-|-------|------------|----------|
-| Operator UI | `max25-terminal` | F10 menu, live IDs, line pacing |
-| Session / IPC | `max25d` | M25/1, CONNECT, SEND |
-| Device prep | `max25d` + `stacks/*` | boot-wait, `modprobe`, KISS PTY |
-| AX.25 codec | `stacks/daemon/ax25_codec.py` | FCS, address encode/decode via `kiss_bridge.py` |
-| AX.25 terminal clients | **host** `ax25-apps` | `listen`, `call` on BayCom kernel ports (optional; future MAX25-native) |
-| KISS framing | `max25d` → TNC | FEND/FESC, port nibble |
-| Kernel AX.25 | `stacks/baycom-pr` | `hdlcdrv`, `bcsf0`, `AF_PACKET` |
-| HyBBX attach | external | After stack is up — INI in `share/hybbx/` |
-
-**MAX25-SoftModem (CRDOP — MAX25-SoftModem)** (`soft-crdop`) is the in-house sound-card modem — **CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`); **MAX25-Stack standard** (built unless `MAX25_BUILD_CRDOP=OFF`). Development/test phase: acoustically AX.25-compatible at 1200 baud+, half/full duplex, max 19200 baud. Native M25/KISS host TCP; `max25d` `CrdopTcpBackend`. FreeBSD: CRDOP/OSS only — [FREEBSD-AX25.md](FREEBSD-AX25.md).
-
----
-
-## AX.25 addresses
-
-### Text form (CALLERID / CALLID / MYCALL)
+## Address matrix
 
 | Rule | Value |
-|------|--------|
-| Call body | 1–**6** characters, `A–Z` / `0–9`, uppercased on use |
-| SSID | Optional `-0` … `-15` (0–15 decimal) |
-| Text examples | `CB0`, `DG1ABC`, `DK0WC-7` |
-
-MAX25 terminal **CALLERID** = AX.25 **source**. **CALLID** = AX.25 **destination** (first address field in UI frames).
-
-### On-air encoding (7 bytes per address)
-
-Each address field is **7 octets**:
-
-1. Six call characters, **left-aligned**, space-padded, each shifted **left one bit** (LSB = 0).
-2. Byte 7: SSID in bits 1–4 (`(ssid & 0x0F) << 1 | 0x60`), bit 0 = **address extension** (0 = more addresses follow, 1 = last address before control).
-
-**Path order** in a UI frame:
-
-```
-DEST → [DIGI1 → … → DIGIn] → SOURCE (last, extension bit set)
-```
-
-| Constant | Value |
-|----------|--------|
-| Max digipeaters | 8 |
-| Encoded address size | 7 bytes |
-| Max frame (incl. CRC) | 330 bytes typical cap |
-
-### UI frame layout
-
-After address fields:
-
-| Field | Value |
-|-------|--------|
-| Control | `0x03` — Unnumbered Information (UI) |
-| PID | `0xF0` — no layer 3 protocol |
-| Info | Payload (operator text) |
-| FCS | CRC-CCITT **0x1021**, init `0xFFFF`, little-endian on wire |
-
-CRC is computed over addresses + control + PID + info (not including the CRC bytes).
-
-**Parsing RX:** accept only UI (`ctrl == 0x03`) with valid FCS; extract payload bytes after PID.
-
----
-
-## `--ax25-ui` in max25-terminal
-
-When `SET AX25_UI on` / `--ax25-ui`:
-
-| Step | Behaviour |
-|------|-----------|
-| Operator types a line | Plain text (max **256** bytes recommended payload) |
-| `max25d` builds UI frame | `CALLERID` → source, `CALLID` → dest, no digi unless extended later |
-| Toward KISS TNC | AX.25 body **without FCS** inside KISS DATA — TNC firmware adds CRC on air |
-| Toward kernel BayCom | Full frame per `hdlcdrv` / stack rules |
-| Display RX | Decode UI → show payload text (path optional in status line) |
-
-Digipeater path (`via`) is reserved for a later M25/1 extension; v1 uses direct dest/source only.
-
----
-
-## KISS (TNC host protocol)
-
-KISS frames serial traffic between host and TNC (Phil Karn / Chepponis, 1987).
-
-### Framing
-
-| Byte | Meaning |
-|------|---------|
-| `0xC0` | FEND — frame delimiter |
-| `0xDB` | FESC — escape next byte |
-| `0xDC` | TFEND — escaped FEND |
-| `0xDD` | TFESC — escaped FESC |
-
-Frame: `FEND` + `(port<<4 | cmd)` + payload + `FEND`.
-
-### Commands (low nibble)
-
-| Cmd | Name | Use |
-|-----|------|-----|
-| `0x00` | DATA | Raw AX.25 frame bytes (see FCS note) |
-| `0x01` | TXDELAY | Post-PTT delay (10 ms units) |
-| `0x02` | PERSIST | CSMA persistence (0–255) |
-| `0x03` | SLOTTIME | Slot time (10 ms units) |
-| `0x04` | TXTAIL | TX tail (10 ms units) |
-| `0x05` | FULLDUPLEX | 0 = half, 255 = full |
-| `0x06` | SETHARDWARE | PTT / hardware bits |
-
-### KISS DATA and FCS
-
-**Critical:** many TNCs (TheFirmware, PK-TNC2, TNC2C) expect KISS DATA with the AX.25 frame **minus the 2-byte FCS**. The TNC computes and appends CRC before the transmitter keys.
-
-Host algorithm:
-
-1. Build full UI frame **with** FCS.
-2. If CRC validates on the built buffer, strip last 2 bytes before `KISS CMD_DATA`.
-3. If no valid FCS present, send buffer as-is.
-
-### KISS entry / exit (TNC2 class)
-
-| Method | Sequence | Profiles |
-|--------|----------|----------|
-| `kiss on` | Host command before KISS | TNC2C, PK-232, Kantronics |
-| ESC + `@K` | `0x1B` `@` `K` | Older TheFirmware / Landolt TF2.7 |
-| `auto` | Try `kiss on`, then ESC+`@K` | `tnc2`, `generic`, `mfj1278` |
-| KISS exit | `0xC0 0xFF 0xC0` (Return) | When leaving KISS after ESC+`@K` entry |
-
-MAX25 prep runs software recovery (`tnc_serial_recovery`) before KISS attach; boot-wait with power cycle is **rescue only**. See `stacks/tncs/docs/TNC-RECOVERY.md`.
-
-**TNC2C:** DTR/RTS during cold boot-wait — without it the firmware stays in echo mode. Day-to-day recovery usually needs no power cycle. See `stacks/tncs/`.
-
-### MYCALL before TX
-
-TheFirmware / PK-TNC2 often **will not key PTT** on KISS DATA until host **`MYCALL <call>`** was accepted.
-
-MAX25 mapping:
-
-- Set TNC MYCALL from `max25d.ini` `[modem] callerid=` or live `SET CALLERID` before stack TX.
-- HyBBX host: `mycall=` / `[broadcast] ax25_mycall` in `share/hybbx/*.ini.example`.
-
----
-
-## Serial profiles (TNC → host)
-
-Defaults for MAX25 `hardware/tncs` paths. Override only when hardware docs require it.
-
-| Profile | Host line | RTS/DTR | Host baud (typical) | KISS entry |
-|---------|-----------|---------|---------------------|------------|
-| **TNC2C** (Landolt) | **7E1** | **on** | 2400 (TERM jumper) / up to 19200 | `kiss on` |
-| TNC-2 / PK-TNC2 (TF) | 8N1 | off | 2400–9600 | `auto` |
-| PK-232 | 8N1 | off | 9600 | `kiss on` |
-| MFJ-1278 | 7E1 | off | 4800 | `auto` |
-| Kantronics KPC | 8N1 | off | 9600 | `kiss on` |
-| BayCom async KISS | 8N1 | off | 1200–2400 | `kiss on` |
-
-**TNC2C:** DTR/RTS during **power-on** boot-wait — without it the firmware stays in echo mode. See `stacks/tncs/`.
-
-**Host baud** is UART speed to the TNC, not on-air speed. On-air is set on the modem board (jumpers / `radio_baud` metadata).
-
----
-
-## On-air modulation
-
-| Mode | Speed | Typical hardware |
-|------|-------|------------------|
-| **AFSK** (Bell 202 / TCM3105) | **1200** baud | CB/HAM packet default, TNC2C, BayCom SER12 |
-| **G3RUH FSK** | **9600** baud | 9600 modem boards, some TNCs |
-| 19200 | rare | specialised TNC firmware |
-
-`radio_baud` in INI examples is QoS/metadata for host links; the **radio** must physically match.
-
----
-
-## CB CSMA (shared channel)
-
-On busy CB packet (`radio_band=cb`):
-
-| Parameter | CB note |
-|-----------|---------|
-| **persist** | `255` = always key when TNC accepts frame (recommended default on shared CB) |
-| Lower persist (e.g. 63, 128) | TheFirmware may **randomly drop** KISS DATA when channel looks busy — beacons look intermittent though host logged success |
-
-Set `persist`, `slot`, `txdelay`, `txtail` in HyBBX transport INI or stack config — `max25d` should apply same values when driving KISS directly.
-
----
-
-## BayCom kernel path (Linux)
-
-Native SER12/PAR96 on real 8250/16550 UART — **not** async USB serial. MAX25 prep: `baycom-pr-ctl` → KISS PTY `/var/run/baycom-pr/kiss` → `max25d` `BayComKissBackend`.
-
-**Operator guide:** [BAYCOM.md](BAYCOM.md) (canonical start path, example host layout, freeze prevention). Kernel internals: `stacks/baycom-pr/docs/`.
-
----
-
-## Terminal traffic conventions
-
-Aligned with packet-radio terminal practice (2400 baud host feel):
-
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| Host pacing baud | **2400** | ~1 byte per 10 bit times on output |
-| Line width | **80** columns (max 132) | Wrap display |
-| Input line max | **80** characters | One UI chunk sizing |
-| AX.25 UI payload cap | **256** bytes | Outbound text limit |
-| Palette | Light gray on black | `\033[37;40m` |
-
-`max25-terminal` should pace and wrap like HyBBX `client_display` when connected over slow links.
-
-For **broadcast** traffic on 1200 baud, keep UI payloads **short** (≤ **48** characters recommended on shared channels) to reduce channel occupancy.
-
----
-
-## One process per RF port
-
-| Rule | Reason |
-|------|--------|
-| Only **one** owner per `/dev/tty*` | boot-wait, KISS, or HyBBX — never userspace serial + driver + HyBBX concurrently |
-| One `KissBridge` per device id | `max25d` `[devices]` — each id maps to one serial port |
-| BayCom kernel loaded | **No** userspace serial client on raw UART |
-| MAX25 `max25d` owns prep | HyBBX opens serial **after** boot-wait / `baycom-pr-ctl start` |
-
-### One RF device per Linux host (`max25d`)
-
-**Host layout:** **1× Main** `max25d` + optional **5+ Secondaries** on one server — each Secondary typically one RF backend. See [ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries).
-
-```ini
-[devices]
-default = tnc2c
-tnc2c = /dev/ttyS4
-```
-
-| Device id (pick **one**) | Backend | Link |
-|--------------------------|---------|------|
-| `tnc2c`, `pktnc2` | `kiss-serial` | Serial KISS after boot-wait |
-| `baycom-ser12`, `baycom-par96` | `baycom-kiss` | KISS PTY `/var/run/baycom-pr/kiss` |
-| `baycom-kiss` | `kiss-raw-serial` | USB/async KISS serial |
-| `soft-crdop` | `crdop-tcp` | CRDOP M25 host TCP `:8515` / `:8516` |
-
-**Legacy (deprecated for new Linux sites):** multi-id `[devices]` templates (`share/max25/max25d.full-station.ini.example`, dual BayCom) — daemon may still parse them; do not deploy on new hosts.
-
-M25/1: `SET DEVICE <id>` selects the configured id for this session (redundant when only one id is enabled). `devices=` in `STATUS`, `RX device=<id> …` on receive. See [`include/max25/protocol.md`](../include/max25/protocol.md).
-
-**Validation:** TNC2C serial KISS is CI-tested. BayCom `BayComKissBackend` and INI resolution are wired; **single-modem default** (shipped template). Dual kernel-ser12 (`baycom-a` / `baycom-b`) is supported globally for service mode — see [BAYCOM.md](BAYCOM.md). Live RF acceptance remains manual.
-
----
-
-## MAX25 ↔ field mapping
-
-| Operator / M25/1 | AX.25 / TNC |
-|----------------|-------------|
-| `CALLERID` | Source address, `MYCALL` on TNC |
-| `CALLID` | Destination address (UI frames) |
-| `SEND <text>` | UI payload bytes |
-| `SET AX25_UI on` | Build UI + KISS DATA path |
-| `stack=tncs` | Serial KISS after boot-wait |
-| `stack=modems` | BayCom kernel or KISS PTY |
-| `stack=soft-modems` | CRDOP TCP — not AX.25 |
-
----
-
-## Implementation status in MAX25
-
-| Item | Status |
-|------|--------|
-| AX.25 UI build/parse rules (this doc) | **Specified** |
-| CALLSIGN validation (6+SSID) | **max25d** + `max25-terminal` |
-| KISS encode + FCS strip | **max25d** `kiss_bridge.py` |
-| Serial KISS bridge (TNC2C/PK-TNC2) | **max25d** `kiss_bridge.py` |
-| Device backend registry (one active per Linux host) | **max25d** `device_backends.py` |
-| BayCom KISS PTY attach | **max25d** `BayComKissBackend` → `/var/run/baycom-pr/kiss` |
-| CRDOP M25 host TCP attach | **max25d** `CrdopTcpBackend` → `:8515/:8516` (native M25/KISS) |
-| MYCALL + kiss entry per profile | **max25d** / stack scripts |
-| Kernel BayCom TX/RX | **stacks/baycom-pr** (mature) |
-| TNC2C boot-wait | **stacks/tncs** (mature) |
-
-Reference algorithms: HyBBX `plugins/packet_radio/ax25.c`, `kiss.c`, `tnc.c` (upstream, GPL) — MAX25 will implement equivalent logic inside `max25d` without vendoring HyBBX.
-
----
-
-## Quick diagnostics
-
-| Symptom | Likely cause |
-|---------|----------------|
-| TNC echoes chars, no KISS | Boot-wait / DTR / wrong serial line (7E1 vs 8N1) |
-| KISS OK, no RF | `MYCALL` missing; PTT wiring; persist too low on CB |
-| Garbled RX | Host baud mismatch; wrong `radio_baud` on air |
-| BayCom IRQ errors | Wrong `iobase`/`irq` — can freeze host; see [BAYCOM.md](BAYCOM.md) |
-| Frame too long | Payload > 256 B or path too many digis |
-
----
-
-## See also
-
-- [MAX25-CLIENT.md](MAX25-CLIENT.md) — M25/1 binding
-- [MAX25-TERMINAL.md](MAX25-TERMINAL.md) — operator UI
-- [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) — example host install & USB TNC setup
-- [HYBBX.md](HYBBX.md) — attach after prep (minimal)
-- [include/max25/packet-radio.md](../include/max25/packet-radio.md) — constants cheat sheet
-- `stacks/tncs/`, `stacks/baycom-pr/docs/`, `share/hybbx/*.ini.example`
+|------|-------|
+| Call body | 1–6 chars A–Z/0–9 |
+| SSID | `-0` … `-15` |
+| Path order | DEST → DIGI* → SOURCE |
+
+## KISS matrix
+
+| Item | Rule |
+|------|------|
+| FCS on DATA to TNC | stripped — TNC adds on air |
+| KISS return recovery | `0xC0 0xFF 0xC0` before prep |
+| MYCALL | MAX25 prep — not HyBBX |
+
+## CRDOP note matrix
+
+| Item | Value |
+|------|-------|
+| Device id | `soft-crdop` |
+| Speed | 1200 bd primary, up to 19200 bd |
+| Duplex | half and full |
+| TCP ports | 8515 control / 8516 data |
+
+## Related
+
+| Goal | Doc |
+|------|-----|
+| Device workflow | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |
+| HyBBX | [HYBBX.md](HYBBX.md) |
