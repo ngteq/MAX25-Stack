@@ -46,10 +46,6 @@ softmodem:
   data_port: 8516
   listen: true
 
-ardop_compat:
-  optional: true
-  note: Third-party ARDOP only — not MAX25 standard
-
 hybbx:
   ini_example: share/hybbx/crdop-host.ini.example
   plugin: crdop

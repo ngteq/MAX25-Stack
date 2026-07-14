@@ -2,7 +2,7 @@
 
 **Main AX.25 Stack** — standalone Packet Radio / AX.25 hardware lifecycle. HyBBX attaches as an external consumer (`packet_radio`, `baycom`, `crdop`). MAX25 owns modem/TNC prep, KISS bridge, and M25/1 operator IPC.
 
-**Product:** MAX25-Stack-v1.0.0 · **Version:** `1.0.0` (see `VERSION`) · Full doc map: [docs/README.md](docs/README.md)
+**Product:** MAX25-Stack-v1.5.0 · **Version:** `1.5.0` (see `VERSION`) · Full doc map: [docs/README.md](docs/README.md)
 
 ## Architecture
 
@@ -20,7 +20,7 @@ Operator                    Linux host (max25d)
 | Layer | Location | Role |
 |-------|----------|------|
 | Operator client | `stacks/terminal/` | Text + F10 menu — **only** official client |
-| Daemon | `stacks/daemon/` | Linux-only supervisor, M25/1, multi-device KISS, AX.25 source ban list |
+| Daemon | `stacks/daemon/` | Linux-only supervisor, M25/1, one RF device per host, AX.25 source ban list |
 | Merged stacks | `stacks/tncs/`, `baycom-pr/`, `crdop/` | Device-specific tools and lifecycle |
 | Plugins | `plugins/` | Operating mode → hardware → device registry |
 | HyBBX attach | `share/hybbx/` | INI examples — HyBBX repo is external |
@@ -42,7 +42,6 @@ cmake -B build -DMAX25_BUILD_CRDOP=OFF
 | AX.25 / Packet Radio | **Fully compatible on the acoustic layer** — same AFSK tone classes as TNCs and BayCom modems |
 | Use like hardware | Sound card **IN/OUT** + radio — kernel **ALSA direct**, MAX25 **sound-proxy**, **no PulseAudio** |
 | Sound card | **Required** — kernel ALSA; accurate tones; stricter at higher baud |
-| ARDOP-plugin | **Optional** — `ardop_compat=true` on `soft-crdop` |
 
 ```
 Radio ↔ hw IN/OUT ↔ kernel ALSA ↔ MAX25 sound-proxy ↔ CRDOP ↔ max25d ↔ M25/1 / HyBBX
@@ -86,8 +85,8 @@ Default operating mode: `standalone`. BayCom: **single PC-COM default**; dual mo
 
 | Component | Platforms |
 |-----------|-----------|
-| **`max25d`** | **Linux only** — BayCom kernel, TNC boot-wait, CRDOP, multi-device KISS |
-| **`max25-terminal`** | Linux, *BSD, macOS, Windows, AmigaOS (reduced) — remote TCP to Linux `max25d` |
+| **`max25d`** | **1.** Linux/KLinux (full) → **2.** FreeBSD server+CRDOP → OpenBSD → NetBSD → macOS → Windows |
+| **`max25-terminal`** | Mainstream + AmigaOS — M25/1 client |
 
 Details: [docs/PLATFORMS.md](docs/PLATFORMS.md).
 
@@ -106,5 +105,6 @@ Details: [docs/PLATFORMS.md](docs/PLATFORMS.md).
 | Architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Development | [DEVELOPMENT.md](docs/DEVELOPMENT.md) |
 | v1 scope | [V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) |
+| **v2 goals** (rootless, auto setup) | [V2.0.0-SCOPE.md](docs/V2.0.0-SCOPE.md) |
 
 Agents: [AGENTS.md](AGENTS.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)

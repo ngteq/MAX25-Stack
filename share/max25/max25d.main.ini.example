@@ -1,0 +1,27 @@
+; MAX25-Stack — Modular TCP/IP Servers Service — Main (central router)
+; No local RF required on Main — Secondaries own CRDOP/devices.
+; Typical split: Main on FreeBSD; list FreeBSD CRDOP + remote Linux Secondaries below.
+; Copy: cp share/max25/max25d.main.ini.example /usr/local/etc/max25/max25d.ini
+
+[daemon]
+mode = service
+hardware = soft-modems
+device = soft-crdop
+
+[modular_tcp]
+enabled = yes
+role = main
+service_name = modular-tcp-server
+; secondaries = 127.0.0.1:7326,linux-host.example:7327
+
+[modular_tcp.secondaries]
+secondary-1 = 127.0.0.1:7326
+; secondary-linux-1 = linux-host.example:7327
+
+[network]
+tcp_host = 0.0.0.0
+tcp_port = 7325
+unix_socket =
+
+[stack]
+auto_start = no

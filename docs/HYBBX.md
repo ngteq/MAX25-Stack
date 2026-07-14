@@ -55,7 +55,7 @@ Full BayCom contract: [BAYCOM.md](BAYCOM.md) · `stacks/baycom-pr/docs/PLUGIN.md
 ./scripts/max25-ctl start --hardware soft-modems --device soft-crdop
 ```
 
-`crdop` launcher listens on TCP **8515** (control) / **8516** (data). Native MAX25-SoftModem M25/KISS host — acoustically AX.25-compatible. MAX25 starts and bridges via `CrdopTcpBackend`. **ARDOP-plugin:** `ardop_compat=true`.
+`crdop` launcher listens on TCP **8515** (control) / **8516** (data). Native MAX25-SoftModem M25/KISS host — acoustically AX.25-compatible.
 
 **HyBBX INI:** merge `share/hybbx/crdop-host.ini.example` — `modem_host`, `modem_port=8515`.
 

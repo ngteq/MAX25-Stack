@@ -57,7 +57,19 @@ MAX25 uses two layers:
 
 **Service-mode aliases (not separate manifest entries):** `baycom-a`, `baycom-b` — dual kernel SER12; see [BAYCOM.md](BAYCOM.md).
 
-**Optional wire mode:** ARDOP-plugin on `soft-crdop` (`ardop_compat=true`) — [plugins/external/ardop/README.md](../plugins/external/ardop/README.md).
+**FreeBSD:** CRDOP via **OSS** only (no ALSA) — [FREEBSD-AX25.md](FREEBSD-AX25.md).
+
+**ARDOP-plugin:** separate optional registry — not coupled to `soft-crdop` — [plugins/external/ardop/README.md](../plugins/external/ardop/README.md).
+
+**Device placement (example split — FreeBSD primary, Linux secondary):**
+
+| OS | Typical devices | `max25d` role |
+|----|-----------------|---------------|
+| **FreeBSD** | `soft-crdop` (CRDOP/OSS) | Main · optional local Secondary |
+| **Linux** | `tnc2c`, `baycom-ser12`, `baycom-kiss`, … | Secondary only — no primary CRDOP path in this pattern |
+| **Linux** | `soft-crdop` (CRDOP/ALSA) | Single-host or Secondary with local SoftModem |
+
+See [ARCHITECTURE.md](ARCHITECTURE.md#example-deployment--freebsd-primary-linux-secondary).
 
 ---
 
@@ -111,7 +123,7 @@ Documented in [PACKET-RADIO.md](PACKET-RADIO.md) for manual `[serial.*]` tuning.
 | Bell 202 AFSK | **1200** | TNC2C, PK-TNC2, most CB TNCs |
 | AFSK (higher) | **2400** | TNC2C (radio jumper example) |
 | G3RUH FSK | **9600** | 9600 TNC firmware, PAR96 class |
-| Specialised | **19200** | Rare; CRDOP phase cap |
+| Specialised | **19200** | Rare; CRDOP speed cap |
 
 ---
 
@@ -144,7 +156,7 @@ All catalog entries below map to device plugin **`baycom-ser12`**.
 
 **Practical today:** `albrecht-pc-com` offline-verified; all others **by design** until site smoke test ([HARDWARE-ACCEPTANCE.md](HARDWARE-ACCEPTANCE.md) § baycom-ser12).
 
-**Dual radio (service mode):** two UARTs → `baycom-a` / `baycom-b`, KISS `kiss-a` / `kiss-b`, netdevs `bcsf0` / `bcsf1` — `share/max25/max25d.dual-baycom.ini.example`.
+**Dual radio (legacy):** pre–Main/Secondary layout — template: `share/max25/max25d.dual-baycom.ini.example`. New sites: [ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries).
 
 ---
 
@@ -188,7 +200,7 @@ Stack path: `stacks/crdop/` · Backend: `CrdopTcpBackend` · HyBBX: `crdop`
 | **Product** | In-house sound-card AX.25 modem — [CRDOP.md](CRDOP.md) |
 | **Practical** | Bench T0–T6 offline; on-air RF optional per site |
 | **Interface** | ALSA IN/OUT → `crdopc` / `audio-dummyd` → TCP **8515** (control) / **8516** (data) |
-| **On-air** | **1200** Bell 202 AFSK (P0); roadmap **9600–19200** G3RUH (P1); **19200 max** current phase |
+| **On-air** | **1200** Bell 202 AFSK (P0); roadmap **9600–19200** G3RUH (P1); **19200 max** current scope |
 | **Duplex** | Half (default), full when interface allows |
 | **max25d** | `soft-crdop = crdop:default` · `[device.soft-crdop]` |
 | **Build** | Default ON (`MAX25_BUILD_CRDOP=ON`) |
@@ -201,12 +213,11 @@ Stack path: `stacks/crdop/` · Backend: `CrdopTcpBackend` · HyBBX: `crdop`
 | Dual | `crdop-dual.ini.example` | template |
 | Amateur | `crdop-amateur.ini.example` | template |
 
-### ARDOP-plugin (optional — not a separate device)
+### ARDOP-plugin (optional — separate from CRDOP)
 
 | Topic | Value |
 |-------|-------|
-| **Attaches via** | `soft-crdop` with `ardop_compat=true` |
-| **Wire** | ARDOP host format on same TCP ports |
+| **Relationship** | Third-party ARDOP host — **not** via `soft-crdop` |
 | **Registry** | `plugins/external/ardop/` |
 
 ---
@@ -278,9 +289,11 @@ Daemon detail: [stacks/daemon/README.md](../stacks/daemon/README.md).
 
 ---
 
-## 12. Heterogeneous station example
+## 12. Heterogeneous station example (legacy)
 
-All four RF families on one `max25d`: `share/max25/max25d.full-station.ini.example`
+> **Legacy.** New sites: **Main + optional Secondaries** on one server — [ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries).
+
+Historical multi-id template (daemon may still parse it): `share/max25/max25d.full-station.ini.example`
 
 ```ini
 [devices]
@@ -291,7 +304,7 @@ baycom-ser12 = baycom:a
 soft-crdop = crdop:default
 ```
 
-Use `enabled = …` to limit which ids start when not all hardware is present.
+Do not deploy this layout on new hosts.
 
 ---
 
@@ -303,8 +316,8 @@ Use `enabled = …` to limit which ids start when not all hardware is present.
 | Client / catalog index | `share/clients/index.yaml` |
 | BayCom hardware DB | `stacks/baycom-pr/config/modems.ini` |
 | Daemon config template | `share/max25/max25d.ini.example` |
-| Full station | `share/max25/max25d.full-station.ini.example` |
-| Dual BayCom | `share/max25/max25d.dual-baycom.ini.example` |
+| Full station (legacy) | `share/max25/max25d.full-station.ini.example` |
+| Dual BayCom (legacy) | `share/max25/max25d.dual-baycom.ini.example` |
 | HyBBX snippets | `share/hybbx/*.ini.example` |
 | Per-device plugins | `plugins/devices/*/plugin.yaml` |
 | v1 scope | `docs/V1.0.0-SCOPE.md` |

@@ -58,7 +58,7 @@
 
 ---
 
-## Planned L1 FEC (post Phase 1)
+## Planned L1 FEC (post P0 on-air)
 
 | Requirement | Target |
 |-------------|--------|

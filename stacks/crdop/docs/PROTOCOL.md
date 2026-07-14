@@ -2,9 +2,7 @@
 
 Normative wire: **[HOST-PROTOCOL-SPEC.md](HOST-PROTOCOL-SPEC.md)** (frozen v1.0.0).
 
-CRDOP (**MAX25-SoftModem** — MAX25-SoftModem) uses the **native MAX25 M25/KISS host protocol** on TCP :8515 (control) / :8516 (data).
-
-**ARDOP-plugin** is an optional MAX25-Stack plugin for ARDOP wire mode (`ardop_compat=true`).
+CRDOP (**MAX25-SoftModem**) uses the **native MAX25 M25/KISS host protocol** on TCP :8515 (control) / :8516 (data).
 
 ## Stack (default)
 
@@ -16,7 +14,7 @@ CRDOP (**MAX25-SoftModem** — MAX25-SoftModem) uses the **native MAX25 M25/KISS
 
 AX.25-compatible AFSK tones (1200 baud primary, up to 19200 baud design range). See [SOFTMODEM.md](SOFTMODEM.md).
 
-## Host TCP (native M25 — default)
+## Host TCP (native M25)
 
 | Port | Role |
 |------|------|
@@ -27,15 +25,7 @@ Common commands: `INITIALIZE` · `PROTOCOLMODE KISS` · `MYCALL` · `LISTEN` · 
 
 Implementation reference: `stacks/crdop/lib/m25_host_protocol.py`
 
-## ARDOP-plugin wire mode
-
-When `ardop_compat=true` on `soft-crdop` or in `crdop.ini` `[compat]`, **ARDOP-plugin** mode uses ARDOP host commands on the same ports (`\r` termination, FEC/ARQ modes).
-
-Registry: [plugins/external/ardop/README.md](../../../plugins/external/ardop/README.md)
-
-ARDOP reference: [pflarue/ardop Host_Interface_Commands.md](https://github.com/pflarue/ardop/blob/master/docs/Host_Interface_Commands.md)
-
-## CRDOP launch presets (native)
+## CRDOP launch presets
 
 | Profile | Role |
 |---------|------|

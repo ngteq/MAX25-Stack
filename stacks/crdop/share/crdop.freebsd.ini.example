@@ -1,0 +1,25 @@
+; MAX25-SoftModem (CRDOP) — FreeBSD / OSS
+; Copy: cp share/crdop/crdop.freebsd.ini.example ~/.config/crdop/crdop.ini
+; pkg install sox  (recommended for OSS capture/playback)
+
+[profile]
+radio_profile = cb
+
+[modem]
+speed_baud = 1200
+duplex = half
+max_speed_baud = 19200
+
+[host]
+port = 8515
+
+[mycall]
+call = NOCALL-0
+
+[audio]
+backend = oss
+no_pulse = yes
+; pcm0 from sysctl dev.pcm — typical OSS path:
+capture = /dev/dsp
+playback = /dev/dsp
+sample_rate = 48000

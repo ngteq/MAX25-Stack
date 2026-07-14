@@ -40,7 +40,6 @@ Interface specification for builders: [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE
 |-------|--------|
 | On-air / acoustic | AX.25-compatible AFSK tones (1200 baud primary) |
 | Host to max25d | MAX25-native TCP control + data (see [PROTOCOL.md](PROTOCOL.md)) |
-| ARDOP-plugin wire format | **Optional** — `ardop_compat=true` on `soft-crdop` |
 
 We study legacy stacks; we implement our own modem and document it for **reproducible hardware builds**.
 
@@ -66,7 +65,7 @@ Configure explicit devices in `crdop.ini` `[audio]` (`capture`, `playback`). See
 | **P2** | **300** HF AFSK | Optional |
 | — | **>19200 baud** | **Not implemented** — do not configure or expect |
 
-Full modulation matrix, RF paths, band context, phased milestones: **[ROADMAP.md](../ROADMAP.md)**.
+Full modulation matrix, RF paths, band context, delivery milestones: **[ROADMAP.md](../ROADMAP.md)**.
 
 Higher baud rates demand **proportionally better** audio hardware (sample rate, jitter, SNR, isolation). G3RUH requires a **direct FSK radio path** — not the CB FM mic/speaker route.
 
@@ -106,7 +105,7 @@ Documentation targets builders who want to **manufacture radio ↔ sound-card in
 - PTT integration (GPIO, serial — VOX not recommended for packet)
 - Acoustic coupler fixtures for bench validation
 
-Generic interface specification: [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE.md). Phased delivery: [ROADMAP.md](../ROADMAP.md).
+Generic interface specification: [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE.md). Delivery milestones: [ROADMAP.md](../ROADMAP.md).
 
 ## Build / release (MAX25-Stack-v1.0.0)
 

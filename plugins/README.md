@@ -17,7 +17,7 @@ Operating mode (`betriebsform/`)
 | Operating mode | `betriebsform/` | Standalone, service, HyBBX host |
 | Hardware | `hardware/` | Device family — TNCs, BayCom, soft modems |
 | Device | `devices/` | Concrete profile and HyBBX INI mapping |
-| Optional plugins | `external/` | ARDOP-plugin (optional wire mode on `soft-crdop`) |
+| Optional plugins | `external/` | ARDOP-plugin (optional third-party ARDOP host registry) |
 
 ## Discovery
 
@@ -52,7 +52,7 @@ See [docs/HYBBX.md](../docs/HYBBX.md).
 
 | Plugin | Notes |
 |--------|-------|
-| **ARDOP-plugin** | Optional wire mode on `soft-crdop` — [external/README.md](external/README.md) |
+| **ARDOP-plugin** | Separate third-party ARDOP host registry — [external/README.md](external/README.md) |
 
 ## Deferred (v1.1+)
 

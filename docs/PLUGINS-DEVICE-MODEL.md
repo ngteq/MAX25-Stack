@@ -4,6 +4,8 @@
 
 Registry: [plugins/README.md](../plugins/README.md) · Discovery: `./scripts/discover-plugins.sh` · Protocol: [include/max25/protocol.md](../include/max25/protocol.md)
 
+> **Host layout:** **1× Main** `max25d` plus **optional 5+ Secondaries** on a single server — [ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries). Legacy single-instance INI templates remain until wiring lands.
+
 ---
 
 ## Operator mental model (all devices)
@@ -44,7 +46,7 @@ The TNC path is the template every other device mirrors.
 
 | File | Purpose |
 |------|---------|
-| `share/max25/max25d.ini.example` | Daemon multi-device template |
+| `share/max25/max25d.ini.example` | Daemon one-device template |
 | `share/max25/serial/tnc2c-serial.env.example` | UART path, baud, line settings |
 | `share/clients/tnc2c.yaml` | Terminal profile (connection + defaults) |
 | `plugins/devices/tnc2c/plugin.yaml` | Registry metadata, HyBBX mapping |
@@ -90,7 +92,7 @@ CONNECT
 SEND hello
 ```
 
-Multi-device: add `pktnc2 = /dev/ttyS5` with `[serial.pktnc2]` — switch radios with `SET DEVICE pktnc2`. See [PACKET-RADIO.md](PACKET-RADIO.md).
+Second TNC on the same Linux host is **not planned** — use another machine for `pktnc2`. `SET DEVICE` still selects the single configured id for this M25/1 session. See [PACKET-RADIO.md](PACKET-RADIO.md).
 
 ---
 
@@ -145,22 +147,14 @@ SEND hello
 
 PTT is kernel-driven on TX; there is no separate M25/1 PTT command.
 
-### Example multi-device host layout (single BayCom, dual opt-in globally)
+### BayCom on Linux (one device per host)
 
-| Port | Example role |
-|------|-----------------|
-| `/dev/ttyS0` | PC-COM (BayCom kernel-ser12) — **only BayCom UART** |
-| `/dev/ttyS4` | TNC2C (`packet_radio`) |
-| `/dev/ttyS5` | PK-TNC2 (`packet_radio`) — **not BayCom** |
+Each Linux host running `max25d` picks **one** BayCom device id (`baycom-ser12` by default). UART assignment and site layout are still being designed — use the shipped single-modem template:
 
-**Never** run dual BayCom (`ttyS0` + `ttyS5`) on a host where TNCs already own those UARTs (`ttyS4`/`ttyS5`).
-
-| Layout | When | How |
-|--------|------|-----|
-| **Single (default)** | Most typical hosts | Shipped `baycom-pr.pccom-ttyS0-only.ini.example`; `max25-ctl` skips dual `/etc/baycom/baycom-pr.ini` |
-| **Dual (opt-in)** | Service mode, two radios, unique IRQ | `--baycom-profile dual` or `--baycom-ini stacks/baycom-pr/config/examples/baycom-pr.dual.ini` |
-
-Dual M25/1 ids: `baycom-a` / `baycom-b` — template `share/max25/max25d.dual-baycom.ini.example`.
+| Layout | Status | How |
+|--------|--------|-----|
+| **Single (default)** | **Target** for new sites | `baycom-pr.pccom-ttyS0-only.ini.example`; one `[devices]` id |
+| **Dual / multi-id** | **Legacy** — not for new Linux hosts | `baycom-pr.dual.ini`, `max25d.dual-baycom.ini.example` — see [BAYCOM.md](BAYCOM.md) § Dual modem (deprecated) |
 
 ---
 
@@ -168,9 +162,7 @@ Dual M25/1 ids: `baycom-a` / `baycom-b` — template `share/max25/max25d.dual-ba
 
 **CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`). CRDOP follows the same five-step model. Native M25/KISS host on TCP :8515/:8516 (acoustically AX.25-compatible).
 
-**ARDOP-plugin** is an optional MAX25-Stack plugin. Set `ardop_compat=true` for ARDOP wire mode on `soft-crdop`.
-
-MAX25 **develops and ships** native MAX25-SoftModem (`stacks/crdop/`). **ARDOP-plugin** is documented at [plugins/external/ardop/README.md](../plugins/external/ardop/README.md).
+MAX25 **develops and ships** native MAX25-SoftModem (`stacks/crdop/`). **ARDOP-plugin** (third-party ARDOP host) is a separate optional registry entry — [plugins/external/ardop/README.md](../plugins/external/ardop/README.md).
 
 ### Config surfaces
 
@@ -194,7 +186,6 @@ soft-crdop = crdop:default
 host = 127.0.0.1
 port = 8515
 listen = yes
-; ardop_compat = no   ; yes = ARDOP-plugin wire mode
 
 [stack]
 auto_start = yes
@@ -257,7 +248,7 @@ All devices share the same terminal protocol after connecting to `max25d`:
 | `DISCONNECT` | Detach session |
 | `RX device=<id> …` | Incoming traffic (daemon → client) |
 
-Multi-device station: `share/max25/max25d.full-station.ini.example` — TNC2C + PK-TNC2 + BayCom + CRDOP on one daemon.
+**Legacy template (do not use on new Linux hosts):** `share/max25/max25d.full-station.ini.example` — multi-id heterogeneous station; superseded by one-device-per-host policy.
 
 ---
 
@@ -302,7 +293,7 @@ Client profile registry: [share/clients/index.yaml](../share/clients/index.yaml)
 | Document | Content |
 |----------|---------|
 | [BAYCOM.md](BAYCOM.md) | BayCom operator guide, dual opt-in |
-| [PACKET-RADIO.md](PACKET-RADIO.md) | AX.25 / KISS / multi-device |
+| [PACKET-RADIO.md](PACKET-RADIO.md) | AX.25 / KISS / one device per host |
 | [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) | Host setup walkthrough |
 | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) | F10 menu, operator UI |
 | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) | v1 active vs deferred devices |

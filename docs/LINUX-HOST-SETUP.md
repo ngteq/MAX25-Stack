@@ -2,6 +2,8 @@
 
 Example **settings and install steps** for running **`max25d`** on a small Linux host with a USB TNC, BayCom modem, or sound-card modem. MAX25 does not recommend specific hardware platforms — use this as a configuration template.
 
+**v2 direction:** day-to-day operation without `sudo` (mandatory from v2.0.0) — one-time install/setup only. See [V2.0.0-SCOPE.md](V2.0.0-SCOPE.md). v1 examples below may still show `sudo` for BayCom kernel bring-up.
+
 Example INI: `share/max25/max25d.ini.host.example`
 
 ---
@@ -144,18 +146,17 @@ sudo nano /etc/max25/max25d.ini
 
 Set `[modem] callerid` / `callid` to your callsigns. Terminals can override live via F10 menu.
 
-### Multi-device (optional)
+### One RF device per host
 
-For multiple TNCs on one Linux host, add `[devices]` (see `share/max25/max25d.ini.example`):
+Each Linux host running `max25d` configures **one** `[devices]` id. Pick your hardware family and set a single path or backend alias (see `share/max25/max25d.ini.example`):
 
 ```ini
 [devices]
 default = tnc2c
 tnc2c = /dev/ttyUSB0
-pktnc2 = /dev/ttyUSB1
 ```
 
-M25/1: `SET DEVICE <id>`, `GET DEVICES`, `RX device=<id> …` — [MAX25-CLIENT.md](MAX25-CLIENT.md).
+`SET DEVICE <id>` selects that id for the M25/1 session (same as `[devices] default` when only one id is enabled). Host layout: [ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries), [MAX25-CLIENT.md](MAX25-CLIENT.md).
 
 ---
 

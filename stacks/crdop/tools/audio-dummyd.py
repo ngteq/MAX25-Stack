@@ -43,9 +43,9 @@ def main() -> int:
             return "ERR short payload"
         pcm = eng.mod.modulate_bits(payload)
         eng.sound.playback = sound.playback
-        from sound_proxy import SoundProxy
+        from sound_proxy import create_sound_proxy
 
-        SoundProxy(sound).play_pcm(pcm)
+        create_sound_proxy(sound).play_pcm(pcm)
         return "OK"
 
     host = M25SoftModemHost(args.ctrl_port, args.data_port, on_data_tx=on_tx)

@@ -35,6 +35,3 @@ no_pulse = yes
 [coupling]
 ; line | acoustic — radio or TNC/BayCom reference path
 mode = line
-
-[compat]
-; ardop_compat = no   ; yes = ARDOP-plugin wire mode on soft-crdop

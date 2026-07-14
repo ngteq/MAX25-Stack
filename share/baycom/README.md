@@ -24,21 +24,19 @@ Start via MAX25:
 
 Or let `max25d` auto-start (set `[device.baycom-ser12] baycom_ini = /etc/baycom/baycom-pr.ini`).
 
-## Example multi-device host layout (single PC-COM)
+## One device per Linux host
 
-Typical onboard-UART assignment when BayCom and two TNCs share one host:
+Each `max25d` on Linux runs **one** BayCom backend (`baycom-ser12` by default). UART assignment and host layout are still under design — see [ARCHITECTURE.md](../../docs/ARCHITECTURE.md#linux-host-policy--one-rf-device).
 
-| Port | Example role |
-|------|----------------|
-| `/dev/ttyS0` | PC-COM (BayCom kernel-ser12) — **only BayCom UART** |
-| `/dev/ttyS4` | TNC2C (`packet_radio`, boot-wait) |
-| `/dev/ttyS5` | PK-TNC2 (`packet_radio`, HyBBX) — **not BayCom** |
+Shipped single-modem template:
 
-Dual-modem BayCom (`ttyS0` + `ttyS5`) is **service-mode only** (`stacks/baycom-pr/config/examples/baycom-pr.dual.ini`) — do not use when `ttyS5` is already assigned to a TNC.
+| File | Use |
+|------|-----|
+| [`baycom-pr.pccom-ttyS0-only.ini.example`](baycom-pr.pccom-ttyS0-only.ini.example) | **One modem** — production default |
 
-## Dual modem (service mode, opt-in)
+## Dual modem (legacy, not for new Linux hosts)
 
-For two kernel-ser12 modems on **two free UARTs**:
+For two kernel-ser12 modems on **two free UARTs** (legacy service-mode layout — **not** for new `max25d` hosts):
 
 ```bash
 sudo cp stacks/baycom-pr/config/examples/baycom-pr.dual.ini /etc/baycom/baycom-pr.ini

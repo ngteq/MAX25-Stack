@@ -12,7 +12,7 @@
 |--------|---------|---------------|
 | `tnc2c` | serial KISS | UART open, boot-wait or reset script, KISS frame echo |
 | `baycom-ser12` | kernel BayCom | `baycom_test`, PTT/RX path |
-| `soft-crdop` | crdop-tcp | TCP :8515 connect + Phase 0 bench (RF optional) |
+| `soft-crdop` | crdop-tcp | TCP :8515 connect + P0 bench (RF optional) |
 
 ---
 
@@ -57,7 +57,7 @@ See [BAYCOM.md](BAYCOM.md), `share/baycom/` INI examples.
 |------|--------|------|
 | 1 | `crdopc` or `audio-dummyd` on :8515/:8516 | TCP OK |
 | 2 | `max25d` `soft-crdop` device | `CrdopTcpBackend` open |
-| 3 | Phase 0 bench | [ACOUSTIC-TEST-PROTOCOL.md](../stacks/crdop/docs/ACOUSTIC-TEST-PROTOCOL.md) T0–T6 |
+| 3 | P0 bench | [ACOUSTIC-TEST-PROTOCOL.md](../stacks/crdop/docs/ACOUSTIC-TEST-PROTOCOL.md) T0–T6 |
 | 4 | *(optional)* Line/acoustic to FM rig | AX.25 UI decoded on-air |
 
 **v1.0.0 tag:** Steps 1–3 sufficient offline. Step 4 = post-tag operator acceptance.

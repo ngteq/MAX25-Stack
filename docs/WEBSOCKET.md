@@ -1,7 +1,9 @@
 # WebSocket transport (browser terminal)
 
-> **Status: in development — full implementation planned for the near term.**  
-> The hyBBX-style stack (PHP UI, loopback WebSocket proxy, nginx/Apache/lighttpd examples) exists as a **scaffold** under `stacks/web/`. It is **not** a supported production surface in MAX25-Stack v1.0.0. This document describes the **target design** and current work-in-progress layout.
+> **Status: DEV-Level 3 — planned.**  
+> Implementation waits until **DEV-Level 1** (modular TCP/IP + Linux/FreeBSD compat) and **DEV-Level 2** (supervision, cross-host, `max25-tun`) are solid. The hyBBX-style stack (PHP UI, loopback WebSocket proxy, nginx/Apache/lighttpd examples) exists as a **scaffold** under `stacks/web/`. It is **not** a supported production surface in MAX25-Stack v1.0.0. This document describes the **target design** and current work-in-progress layout.
+
+**Roadmap:** [V2.0.0-SCOPE.md](V2.0.0-SCOPE.md#dev-levels-roadmap-stack-wide).
 
 **MAX25-Stack** — browser access to **max25d** M25/1 via a WebSocket forward-proxy on loopback. Public TLS terminates on **nginx**, **Apache httpd**, or **lighttpd**; the daemon does not serve PHP or static files.
 
@@ -11,13 +13,15 @@ This will be the **first Web UI step** — a terminal page for M25/1 commands. I
 
 ## Implementation roadmap
 
-| Phase | Scope | Status |
-|-------|--------|--------|
-| **Now (scaffold)** | PHP/JS UI shell, Python `max25-ws-proxy`, httpd config examples, dev helper, smoke test | **In tree** — experimental |
-| **Near term (target)** | Production-hardened proxy, operator docs, systemd integration, release install path | **Planned** |
-| **Later** | Admin/monitoring dashboard (separate from browser terminal) | **Planned** |
+| DEV-Level | Scope | Status |
+|-----------|--------|--------|
+| **DEV-Level 1** (*ca.* current) | Modular TCP/IP + Linux/FreeBSD platform base | **active** — gates WebSocket work |
+| **DEV-Level 2** (*ca.*) | Main + Secondary supervision · cross-host · `max25-tun` | **planned** |
+| **Scaffold** | PHP/JS UI shell, Python `max25-ws-proxy`, httpd config examples, dev helper, smoke test | **In tree** — experimental only |
+| **DEV-Level 3** (*ca.* target) | Production-hardened proxy, operator docs, systemd integration, release install path | **Planned** |
+| **Later** | Admin/monitoring dashboard (separate from browser terminal) · AI/assistant | **Deferred** |
 
-Until the near-term phase ships, use **`max25-terminal`** for all operator sessions.
+Until DEV-Level 3 ships, use **`max25-terminal`** for all operator sessions.
 
 ---
 

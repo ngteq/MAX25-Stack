@@ -1,0 +1,35 @@
+; MAX25-Stack — FreeBSD Secondary (CRDOP/OSS, modular TCP/IP service)
+; Copy: cp share/max25/max25d.freebsd.ini.example /usr/local/etc/max25/max25d.ini
+; Audio: pkg install sox — set capture/playback in share/crdop/crdop.freebsd.ini.example
+
+[daemon]
+mode = standalone
+hardware = soft-modems
+device = soft-crdop
+
+[devices]
+default = soft-crdop
+soft-crdop = crdop:default
+
+[device.soft-crdop]
+host = 127.0.0.1
+port = 8515
+
+[modular_tcp]
+enabled = yes
+role = secondary
+service_name = modular-tcp-server
+instance_id = secondary-1
+
+[network]
+tcp_host = 0.0.0.0
+tcp_port = 7326
+unix_socket = /var/run/max25/modem.sock
+
+[modem]
+callerid = CB-0
+callid = QST
+ax25_ui = yes
+
+[stack]
+auto_start = yes

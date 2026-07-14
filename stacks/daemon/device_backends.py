@@ -88,9 +88,7 @@ class DeviceBackendConfig:
     crdop_host: str = "127.0.0.1"
     crdop_port: int = 8515
     crdop_profile: str = "default"
-    crdop_fecmode: str = "4FSK.500.100S"
     crdop_listen: bool = True
-    crdop_ardop_compat: bool = False
     # Acoustic bench / audio-dummy
     audio_mode: str = "loopback"  # loopback | alsa | host
     audio_capture: str = ""
@@ -425,8 +423,7 @@ class KissRawSerialBackend(KissRawBackend):
 class CrdopTcpBackend(DeviceBackend):
     """MAX25-SoftModem (CRDOP) via TCP host interface (:8515 / :8516).
 
-    Default: native M25/KISS host protocol (MAX25-SoftModem).
-    Optional: ARDOP-plugin wire mode when crdop_ardop_compat=true.
+    Native M25/KISS host protocol (MAX25-SoftModem) only.
     """
 
     backend_type = "crdop-tcp"
@@ -451,7 +448,7 @@ class CrdopTcpBackend(DeviceBackend):
         self.status = "closed"
 
     def _line_term(self) -> str:
-        return "\r" if self._cfg.crdop_ardop_compat else "\n"
+        return "\n"
 
     def open(self) -> bool:
         host = self._cfg.crdop_host
@@ -531,20 +528,11 @@ class CrdopTcpBackend(DeviceBackend):
         if self._ctrl is None:
             return False
         self._mycall = mycall.upper()
-        if self._cfg.crdop_ardop_compat:
-            cmds = [
-                "INITIALIZE",
-                "PROTOCOLMODE FEC",
-                f"MYCALL {self._mycall}",
-                f"FECMODE {self._cfg.crdop_fecmode}",
-                "FECREPEATS 1",
-            ]
-        else:
-            cmds = [
-                "INITIALIZE",
-                "PROTOCOLMODE KISS",
-                f"MYCALL {self._mycall}",
-            ]
+        cmds = [
+            "INITIALIZE",
+            "PROTOCOLMODE KISS",
+            f"MYCALL {self._mycall}",
+        ]
         if self._cfg.crdop_listen:
             cmds.append("LISTEN TRUE")
         for cmd in cmds:
@@ -569,16 +557,10 @@ class CrdopTcpBackend(DeviceBackend):
             return False, "payload too long"
         with self._lock:
             try:
-                if self._cfg.crdop_ardop_compat:
-                    self._data.sendall(payload)
-                    self._cmd("PURGEBUFFER")
-                    reply = self._cmd("FECSEND TRUE")
-                    self._log(f"{self.device_id}: FECSEND → {reply}")
-                else:
-                    body = ax25_build_ui(src, dst, payload)
-                    if len(body) >= 2:
-                        body = body[:-2]
-                    self._data.sendall(body)
+                body = ax25_build_ui(src, dst, payload)
+                if len(body) >= 2:
+                    body = body[:-2]
+                self._data.sendall(body)
             except OSError as exc:
                 self.status = "error-tx"
                 return False, f"tx failed: {exc}"
@@ -608,17 +590,12 @@ class CrdopTcpBackend(DeviceBackend):
                 line = line.strip()
                 if not line:
                     continue
-                if self._cfg.crdop_ardop_compat:
-                    if line.startswith("STATUS ") and "frame received OK" in line:
-                        self._on_rx(f"[ARDOP RX {self.device_id}] {line[7:]}")
-                    elif line.startswith("FEC") and "data" in line.lower():
-                        self._on_rx(f"[ARDOP RX {self.device_id}] {line}")
-                elif line.startswith("STATUS"):
+                if line.startswith("STATUS"):
                     self._on_rx(f"[CRDOP RX {self.device_id}] {line}")
 
 
 class AudioDummyBackend(DeviceBackend):
-    """Acoustic bench dummy — loopback, ALSA sniff, or M25 host TCP (no ARDOP FEC)."""
+    """Acoustic bench dummy — loopback, ALSA sniff, or M25 host TCP."""
 
     backend_type = "audio-dummy"
 
@@ -894,12 +871,8 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
         dev.crdop_host = sec_opts["host"]
     if sec_opts.get("port"):
         dev.crdop_port = int(sec_opts["port"])
-    if sec_opts.get("fecmode"):
-        dev.crdop_fecmode = sec_opts["fecmode"]
     if sec_opts.get("listen"):
         dev.crdop_listen = sec_opts["listen"].lower() in ("1", "yes", "true", "on")
-    if sec_opts.get("ardop_compat"):
-        dev.crdop_ardop_compat = sec_opts["ardop_compat"].lower() in ("1", "yes", "true", "on")
     if sec_opts.get("mode"):
         dev.audio_mode = sec_opts["mode"]
     if sec_opts.get("capture"):

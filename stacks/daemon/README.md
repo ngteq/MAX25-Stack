@@ -35,18 +35,17 @@ Untested backends log a startup warning; SEND/RX return `ERR link not ready` whe
 sudo ./max25d -c /etc/max25/max25d.ini
 ```
 
-## Multi-device
+## One RF device per Linux host
+
+**Target:** one `[devices]` id per `max25d`. See [ARCHITECTURE.md](../../docs/ARCHITECTURE.md#linux-host-policy--one-rf-device).
 
 ```ini
 [devices]
 default = tnc2c
 tnc2c = /dev/ttyS4
-pktnc2 = /dev/ttyS5
-baycom-ser12 = baycom:a
-soft-crdop = crdop:default
 ```
 
-Full heterogeneous example: `share/max25/max25d.full-station.ini.example`.
+**Legacy multi-id** (deprecated for new sites): `share/max25/max25d.full-station.ini.example`, `max25d.dual-baycom.ini.example`.
 
 M25/1: `devices=` in `STATUS`, `SET DEVICE <id>`, `GET DEVICES`, `RX device=<id> …`.
 

@@ -53,7 +53,7 @@ line = 8n1
 dtr_rts = yes
 kiss_entry = kiss_on
 
-; Optional second TNC (uncomment — do not share ttyS0 with BayCom):
+; Second TNC — not on same Linux host (use another machine):
 ; pktnc2 = /dev/ttyS5
 ; [serial.pktnc2]
 ; baud = 9600
@@ -82,7 +82,6 @@ kiss_entry = kiss_on
 ; host = 127.0.0.1
 ; port = 8515
 ; listen = yes
-; ardop_compat = no
 ; Prep: cp stacks/crdop/share/crdop.ini.example ~/.config/crdop/crdop.ini (CB / 500MAX)
 
 ; Serial env search: /etc/max25/ → local/ → share/max25/serial/ → stacks/tncs/

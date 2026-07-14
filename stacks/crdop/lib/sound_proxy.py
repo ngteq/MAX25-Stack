@@ -1,16 +1,19 @@
 """
-MAX25 sound-proxy — kernel ALSA capture/playback (no PulseAudio).
+MAX25 sound-proxy — host audio capture/playback.
 
-Uses arecord/aplay subprocesses on hw:/plughw: devices when libasound CLI is present.
+Linux/KLinux: ALSA (arecord/aplay).
+FreeBSD: OSS via sound_proxy_oss (sox or /dev/dsp).
 """
 from __future__ import annotations
 
 import os
 import shutil
 import subprocess
+import sys
 import threading
 from dataclasses import dataclass
-from typing import Callable, Optional
+from pathlib import Path
+from typing import Callable, Optional, Protocol, runtime_checkable
 
 
 @dataclass
@@ -21,9 +24,51 @@ class SoundConfig:
     channels: int = 1
     period_frames: int = 256
     forbid_pulse: bool = True
+    backend: str = ""  # alsa | oss — empty = auto from platform
 
 
-class SoundProxy:
+@runtime_checkable
+class SoundProxyProto(Protocol):
+    def start_capture(self) -> None: ...
+    def read_capture(self, nbytes: int) -> bytes: ...
+    def play_pcm(self, pcm: bytes) -> None: ...
+    def sniff_loop(
+        self,
+        chunk_symbols: int,
+        on_pcm: Callable[[bytes], None],
+        stop: Optional[threading.Event] = None,
+    ) -> None: ...
+    def close(self) -> None: ...
+
+
+def _detect_backend(cfg: SoundConfig) -> str:
+    explicit = (cfg.backend or os.environ.get("MAX25_AUDIO_BACKEND", "")).strip().lower()
+    if explicit in ("alsa", "oss"):
+        return explicit
+    if sys.platform.startswith("freebsd"):
+        return "oss"
+    return "alsa"
+
+
+def create_sound_proxy(cfg: SoundConfig) -> SoundProxyProto:
+    backend = _detect_backend(cfg)
+    if backend == "oss":
+        from sound_proxy_oss import OssSoundConfig, OssSoundProxy
+
+        cap = cfg.capture if cfg.capture not in ("", "default") else "/dev/dsp"
+        pb = cfg.playback if cfg.playback not in ("", "default") else cap
+        return OssSoundProxy(
+            OssSoundConfig(
+                capture=cap,
+                playback=pb,
+                sample_rate=cfg.sample_rate,
+                channels=cfg.channels,
+            )
+        )
+    return AlsaSoundProxy(cfg)
+
+
+class AlsaSoundProxy:
     def __init__(self, cfg: SoundConfig) -> None:
         self.cfg = cfg
         self._rec_proc: Optional[subprocess.Popen[bytes]] = None
@@ -111,7 +156,6 @@ class SoundProxy:
         on_pcm: Callable[[bytes], None],
         stop: Optional[threading.Event] = None,
     ) -> None:
-        """Read fixed-size PCM chunks and invoke callback (sniffer / demod)."""
         stop_ev = stop or self._stop
         frame_bytes = (self.cfg.sample_rate // 1200) * 2 * chunk_symbols
         self.start_capture()
@@ -135,3 +179,7 @@ class SoundProxy:
                     proc.kill()
         self._rec_proc = None
         self._play_proc = None
+
+
+# Backward-compatible alias
+SoundProxy = AlsaSoundProxy

@@ -1,8 +1,8 @@
-# Acoustic bench test protocol — Phase 0 acceptance
+# Acoustic bench test protocol — P0 bench acceptance
 
-**Purpose:** Close CRDOP Phase 0 without RF. All steps runnable offline in CI or on a dev host.
+**Purpose:** Close CRDOP P0 bench without RF. All steps runnable offline in CI or on a dev host.
 
-**Related:** [HOST-PROTOCOL-SPEC.md](HOST-PROTOCOL-SPEC.md) · [DEVELOPER.md](DEVELOPER.md) · [ROADMAP.md](../ROADMAP.md) Phase 0.
+**Related:** [HOST-PROTOCOL-SPEC.md](HOST-PROTOCOL-SPEC.md) · [DEVELOPER.md](DEVELOPER.md) · [ROADMAP.md](../ROADMAP.md) P0 bench.
 
 ---
 
@@ -61,16 +61,16 @@ print(c.recv(64))
 
 ---
 
-## Phase 0 exit gate
+## P0 bench exit gate
 
-**100 % Phase 0** when:
+**100 % P0 bench** when:
 
 - [x] T0, T1, T2, T5, T6 pass in `release-check.sh`
 - [ ] T3 documented green in CI log (or explicit skip reason)
 - [ ] T4 manual or scripted smoke in release-check
 - [ ] Host ports unified: launcher, `audio-dummyd`, `max25d` use [HOST-PROTOCOL-SPEC.md](HOST-PROTOCOL-SPEC.md) defaults
 
-Phase 1 (on-air) starts only after Phase 0 exit — see [docs/HARDWARE-ACCEPTANCE.md](../../docs/HARDWARE-ACCEPTANCE.md).
+P0 on-air starts only after P0 bench exit — see [docs/HARDWARE-ACCEPTANCE.md](../../docs/HARDWARE-ACCEPTANCE.md).
 
 ---
 

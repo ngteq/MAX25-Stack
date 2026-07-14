@@ -22,10 +22,10 @@
 | Doc | One-line purpose |
 |-----|------------------|
 | [HOST-PROTOCOL-SPEC.md](HOST-PROTOCOL-SPEC.md) | **Frozen** M25/KISS TCP :8515/:8516 — normative host wire |
-| [ACOUSTIC-TEST-PROTOCOL.md](ACOUSTIC-TEST-PROTOCOL.md) | Phase 0 bench acceptance matrix |
+| [ACOUSTIC-TEST-PROTOCOL.md](ACOUSTIC-TEST-PROTOCOL.md) | P0 bench acceptance matrix |
 | [FEC-SPEC.md](FEC-SPEC.md) | Duplex + FEC strategy — implementable parameters |
 | [SOUNDCARD-QUALIFICATION.md](SOUNDCARD-QUALIFICATION.md) | Interface qualification tests (class A/B/C) |
-| [G3RUH-DESIGN.md](G3RUH-DESIGN.md) | Phase 2 P1 — 9600–19200 direct FSK |
+| [G3RUH-DESIGN.md](G3RUH-DESIGN.md) | P1 — 9600–19200 direct FSK (DEV-Level 4) |
 
 ---
 
@@ -46,7 +46,7 @@
 
 | Doc | One-line purpose |
 |-----|------------------|
-| [ROADMAP.md](../ROADMAP.md) | P0/P1/P2 modulation, RF paths, FEC, phased milestones |
+| [ROADMAP.md](../ROADMAP.md) | P0/P1/P2 modulation, RF paths, FEC, delivery milestones |
 
 ---
 
@@ -58,7 +58,7 @@
 | `audio-dummy` | device | Acoustic bench — loopback / ALSA / host (`acoustic-bench`) |
 | `soft-modems` | hardware | CRDOP device family |
 | `acoustic-bench` | hardware | Dev/test bench — no RF required |
-| `ardop-plugin` | optional | ARDOP wire mode on `soft-crdop` |
+| `ardop-plugin` | optional | Third-party ARDOP host registry (separate from CRDOP) |
 
 ---
 

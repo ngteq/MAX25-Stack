@@ -1,3 +1,7 @@
+; DEPRECATED for new Linux sites — dual kernel BayCom (legacy service mode).
+; Policy: one RF device per max25d host. Use a second Linux machine for another radio.
+; See docs/ARCHITECTURE.md § Linux host policy — one RF device.
+;
 ; Dual kernel BayCom — two SER12 modems (service mode, worldwide)
 ; Use only when ttyS4/ttyS5 are not assigned to TNCs. See docs/BAYCOM.md § Dual modem.
 ;

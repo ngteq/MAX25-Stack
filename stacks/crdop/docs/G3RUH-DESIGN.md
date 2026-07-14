@@ -1,10 +1,10 @@
-# G3RUH FSK — CRDOP Phase 2 design spec (P1)
+# G3RUH FSK — CRDOP P1 design spec
 
 **Scope:** 9600–**19200** baud direct FSK. **Hard maximum 19200** — nothing above.
 
-**Prerequisite:** Phase 1 (1200 AFSK) stable. **Not** CB FM mic path.
+**Prerequisite:** P0 on-air (1200 AFSK) stable. **Not** CB FM mic path.
 
-See [ROADMAP.md](../ROADMAP.md) Phase 2 (P1).
+See [ROADMAP.md](../ROADMAP.md) P1 milestone (stack scheduling: **DEV-Level 4**).
 
 ---
 
@@ -57,7 +57,7 @@ Host protocol unchanged — same M25/KISS TCP; baud selected via INI `speed_baud
 
 ---
 
-## Phase 2 exit criteria
+## P1 exit criteria
 
 1. Loopback with recorded baseband fixtures at 9600.
 2. Over-the-air exchange with reference 9600 FSK peer.

@@ -6,19 +6,18 @@
 
 | Item | Detail |
 |------|--------|
-| **Plugin** | **ARDOP-plugin** — optional MAX25-Stack plugin |
+| **Plugin** | **ARDOP-plugin** — optional registry for third-party ARDOP host wire |
 | **Registry** | [ardop/plugin.yaml](ardop/plugin.yaml) |
-| **Enable** | `ardop_compat = true` on `soft-crdop` or in `crdop.ini` `[compat]` |
-| **Ports** | TCP :8515 (control) / :8516 (data) |
+| **CRDOP coupling** | **None** — ARDOP is not enabled via `soft-crdop` or `crdop.ini` |
 | **Standard alternative** | Native CRDOP / M25-KISS host (default) |
 
 ### Using ARDOP-plugin
 
-1. Install and run an ARDOP-capable modem host on the operator machine.
-2. Set `ardop_compat=true` in `max25d.ini` `[device.soft-crdop]` or CRDOP INI.
-3. Point `max25d` `soft-crdop` at TCP :8515/:8516.
+1. Install and run an ARDOP-capable modem host on the operator machine (third-party software).
+2. Attach HyBBX or another consumer per that ARDOP host's documentation.
+3. Keep CRDOP on native M25/KISS — do not mix ARDOP wire mode into CRDOP configs.
 
-See [ardop/README.md](ardop/README.md) and [stacks/crdop/docs/MAX25-USAGE.md](../../stacks/crdop/docs/MAX25-USAGE.md).
+See [ardop/README.md](ardop/README.md).
 
 ## MAX25 standard (not ARDOP-plugin)
 
@@ -26,4 +25,4 @@ See [ardop/README.md](ardop/README.md) and [stacks/crdop/docs/MAX25-USAGE.md](..
 |------|------|
 | **CRDOP / MAX25-SoftModem** | In-house standard — `MAX25_BUILD_CRDOP=ON` (default) |
 | `stacks/crdop/` | CRDOP subproject — INI, launcher, native M25 host, docs |
-| `max25d` `crdop-tcp` backend | Standard integration (native M25/KISS by default) |
+| `max25d` `crdop-tcp` backend | Standard integration (native M25/KISS) |

@@ -40,16 +40,23 @@ $SRC/
 
 ---
 
-## 2. Sound-card-based development (mandatory)
+## 2. Sound-card path (platform audio)
 
-CRDOP is developed **only** on the **sound-card path**:
+CRDOP is developed on the **sound-card path** — host API depends on OS:
 
-- **Capture + playback** through a **good sound interface** (USB/PCI codec, isolated line I/O).
-- **Kernel ALSA only** — direct `hw:` / `plughw:` via libasound.
-- **MAX25 sound-proxy** — sole shim between modem DSP and ALSA (see [stacks/crdop/docs/AUDIO-ARCHITECTURE.md](../stacks/crdop/docs/AUDIO-ARCHITECTURE.md)).
-- **No PulseAudio**, **no PipeWire default route**, **no desktop sound server** in the production path.
+| Host | Audio API | Notes |
+|------|-----------|--------|
+| **Linux / KLinux** | **ALSA** (`libasound`) — `hw:` / `plughw:` | Primary development target |
+| **FreeBSD** (port) | **OSS** — native FreeBSD sound | **Not** Linux/ALSA on BSD |
+| **Other *BSD** | After FreeBSD — follow same OSS-class model | OpenBSD / NetBSD later |
 
-A suitable sound card is **required**, not optional: the modem must reproduce mark/space frequencies accurately; requirements **increase with baud rate**.
+Shared rules (all platforms):
+
+- **MAX25 sound-proxy** — shim between modem DSP and host audio ([stacks/crdop/docs/AUDIO-ARCHITECTURE.md](../stacks/crdop/docs/AUDIO-ARCHITECTURE.md)).
+- **No PulseAudio**, **no PipeWire** default route, **no desktop sound server** in the production path.
+- A suitable sound card is **required** — accurate mark/space tones; stricter at higher baud.
+
+**FreeBSD AX.25 (initial):** pure **SoftModem (CRDOP)** over OSS — no kernel BayCom/TNC path. Details: [FREEBSD-AX25.md](FREEBSD-AX25.md).
 
 ---
 
@@ -108,7 +115,7 @@ CRDOP is a **GNU GPLv3** project:
 
 - Source in `$SRC/stacks/crdop/` is licensed under **GPL-3.0-or-later** (see [LICENSE](../stacks/crdop/LICENSE) and repository root [LICENSE](../LICENSE)).
 - Derivative hardware documentation that ships with the repo follows the same free-software intent.
-- **ARDOP-plugin** is an optional MAX25-Stack plugin — enable with `ardop_compat=true` on `soft-crdop`. Registry: [plugins/external/ardop/README.md](../plugins/external/ardop/README.md).
+- **ARDOP-plugin** — optional registry for third-party ARDOP host software — **not** part of CRDOP. See [plugins/external/ardop/README.md](../plugins/external/ardop/README.md).
 
 Contributors grant rights consistent with GPLv3 copyleft.
 
@@ -118,7 +125,8 @@ Contributors grant rights consistent with GPLv3 copyleft.
 
 | Item | Policy |
 |------|--------|
-| ARDOP modem binary in MAX25 install | **Not included** — use **ARDOP-plugin** mode with operator ARDOP host |
+| ARDOP in CRDOP / `soft-crdop` | **Not supported** — use separate [ARDOP-plugin](../plugins/external/ardop/README.md) |
+| ARDOP modem binary in MAX25 install | **Not included** |
 | ARDOP vendor tree in release tarball | **Not included** |
 | PulseAudio / PipeWire production path | **Forbidden** |
 | Kernel AX.25 replacement | CRDOP is a **modem**, not `libax25` |
@@ -128,7 +136,9 @@ Contributors grant rights consistent with GPLv3 copyleft.
 
 ---
 
-## 7. Development phase (current)
+## 7. Development status (current)
+
+**Stack-wide priority:** CRDOP stays at **minimal/native** during **DEV-Level 1** (TCP/IP + Linux/FreeBSD compat). Major CRDOP expansion is **DEV-Level 4** — [V2.0.0-SCOPE.md](V2.0.0-SCOPE.md#dev-levels-roadmap-stack-wide). Subproject modulation milestones (P0/P1/P2) remain in [stacks/crdop/ROADMAP.md](../stacks/crdop/ROADMAP.md) but are **not** the current MAX25 implementation focus.
 
 | Milestone | State |
 |-----------|--------|

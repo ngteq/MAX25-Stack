@@ -42,19 +42,18 @@ elseif(APPLE)
         ${CRDOP_COREFOUNDATION_LIB}
         pthread m
     )
-elseif(CMAKE_SYSTEM_NAME MATCHES "FreeBSD|OpenBSD|NetBSD|DragonFly")
-    set(CRDOP_PLATFORM "bsd")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    set(CRDOP_PLATFORM "freebsd-oss")
     set(CRDOP_PLATFORM_SOURCES
-        src/linux/ALSASound.c
         src/linux/LinSerial.c
     )
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(ALSA REQUIRED alsa)
-    set(CRDOP_PLATFORM_INCLUDES ${ALSA_INCLUDE_DIRS})
-    set(CRDOP_PLATFORM_LIBS ${ALSA_LIBRARIES} pthread m)
-    if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-        list(APPEND CRDOP_PLATFORM_LIBS execinfo)
-    endif()
+    set(CRDOP_PLATFORM_LIBS pthread m)
+elseif(CMAKE_SYSTEM_NAME MATCHES "OpenBSD|NetBSD|DragonFly")
+    set(CRDOP_PLATFORM "bsd-oss")
+    set(CRDOP_PLATFORM_SOURCES
+        src/linux/LinSerial.c
+    )
+    set(CRDOP_PLATFORM_LIBS pthread m)
 elseif(UNIX)
     set(CRDOP_PLATFORM "linux")
     set(CRDOP_PLATFORM_SOURCES

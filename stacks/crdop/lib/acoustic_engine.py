@@ -18,7 +18,7 @@ from afsk_demodulator import AfskDemodulator  # noqa: E402
 from afsk_modulator import AfskModulator  # noqa: E402
 from bell202_line_code import TONE_MARK, TONE_SPACE  # noqa: E402
 from hdlc_codec import build_hdlc_frame, parse_hdlc_stream  # noqa: E402
-from sound_proxy import SoundConfig, SoundProxy  # noqa: E402
+from sound_proxy import SoundConfig, create_sound_proxy  # noqa: E402
 
 _ROOT = Path(__file__).resolve().parents[3]
 _DAEMON = _ROOT / "stacks" / "daemon"
@@ -83,7 +83,7 @@ class AcousticEngine:
         return self.analyze_pcm(pcm)
 
     def play_mark_calibration(self, seconds: float = 1.0) -> None:
-        SoundProxy(self.sound).play_pcm(self.mod.steady_tone(TONE_MARK, seconds))
+        create_sound_proxy(self.sound).play_pcm(self.mod.steady_tone(TONE_MARK, seconds))
 
     def play_space_calibration(self, seconds: float = 1.0) -> None:
-        SoundProxy(self.sound).play_pcm(self.mod.steady_tone(TONE_SPACE, seconds))
+        create_sound_proxy(self.sound).play_pcm(self.mod.steady_tone(TONE_SPACE, seconds))

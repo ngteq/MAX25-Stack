@@ -5,28 +5,26 @@ label: ARDOP-plugin
 status: optional
 
 note: |
-  ARDOP-plugin is an optional MAX25-Stack plugin for ARDOP host wire mode.
-  MAX25 ships CRDOP (MAX25-SoftModem) as the standard sound-card modem.
-  Enable ARDOP-plugin mode with ardop_compat=true on soft-crdop (TCP :8515/:8516).
+  ARDOP-plugin is an optional MAX25-Stack plugin registry entry for third-party
+  ARDOP host wire mode. It is separate from CRDOP (MAX25-SoftModem).
+  MAX25 ships CRDOP as the standard sound-card modem with native M25/KISS host.
+  Operators who need ARDOP run external ARDOP host software independently.
 
 policy:
   max25_standard_modem: CRDOP
-  ardop_plugin_mode: ardop_compat
   crdop_code_in_max25: true
   ardop_modem_binary_in_max25: false
-
-attach:
-  via_device: soft-crdop
-  ini_flag: ardop_compat
-  control_port: 8515
-  data_port: 8516
-  wire_format: ardop-host-tcp
+  crdop_ardop_compat: false
 
 standard_modem:
   product: MAX25-SoftModem
   device: soft-crdop
   stack: stacks/crdop
   protocol: max25-softmodem
+
+wire:
+  format: ardop-host-tcp
+  note: Third-party ARDOP host — not wired through CRDOP or soft-crdop INI
 
 docs:
   - plugins/external/README.md

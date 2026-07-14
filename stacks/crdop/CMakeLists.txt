@@ -25,6 +25,7 @@ function(crdop_install_scaffold)
         "${CRDOP_ROOT}/share/crdop.ini.example"
         "${CRDOP_ROOT}/share/crdop-dual.ini.example"
         "${CRDOP_ROOT}/share/crdop-amateur.ini.example"
+        "${CRDOP_ROOT}/share/crdop.freebsd.ini.example"
         DESTINATION ${CMAKE_INSTALL_DATADIR}/crdop
     )
     install(FILES "${CRDOP_ROOT}/VERSION" DESTINATION ${CMAKE_INSTALL_DATADIR}/crdop)

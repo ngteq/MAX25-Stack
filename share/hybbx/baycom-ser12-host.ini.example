@@ -1,11 +1,11 @@
 ; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary host (BayCom SER12)
-; Prerequisite: ./scripts/max25-ctl start --hardware modems --device baycom-ser12
-;   (or max25d auto_start with [device.baycom-ser12] baycom_ini=)
-; HyBBX build: -DHYBBX_PLUGIN_BAYCOM=ON
+; Requires max25d [features] baycom=yes and MAX25 BayCom prep.
+; HyBBX: use packet_radio + kiss_entry=none (not transport.baycom — runtime default off).
+; Legacy transport.baycom below — enable only with [networks] baycom=yes and explicit operator need.
 
 [networks]
-baycom = yes
-ax25 = no
+baycom = no
+ax25 = yes
 
 [transport.baycom1]
 backend = kernel

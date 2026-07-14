@@ -73,7 +73,7 @@ CRDOP-related tests in `max25_daemon_smoke`:
 | Test file | What it checks |
 |-----------|----------------|
 | `stacks/crdop/lib/test_bell202_line_code.py` | Bell 202 encode/decode round-trip |
-| `stacks/daemon/test_crdop_backend.py` | `CrdopTcpBackend` attach, TX, `ardop_compat` flag |
+| `stacks/daemon/test_crdop_backend.py` | `CrdopTcpBackend` attach, TX (native M25/KISS) |
 | `stacks/daemon/test_audio_dummy_backend.py` | `audio-dummy` loopback backend |
 | `stacks/daemon/test_multi_device.py` | Multi-device registry incl. `soft-crdop` |
 
@@ -173,7 +173,7 @@ Vendor tree is **never** installed in MAX25 releases.
 
 - **English** for all shipped docs and user-facing strings.
 - **No PulseAudio / PipeWire** in production audio path.
-- **ARDOP-plugin** wire format: optional via `ardop_compat=true` — see [plugins/external/ardop/README.md](../../../plugins/external/ardop/README.md).
+- **ARDOP** is a separate optional plugin — not part of CRDOP — see [plugins/external/ardop/README.md](../../../plugins/external/ardop/README.md).
 - Baud ceiling: **19200** (P1 G3RUH direct FSK). Above that: out of scope.
 
 ---
@@ -185,4 +185,4 @@ Vendor tree is **never** installed in MAX25 releases.
 | [MAX25-USAGE.md](MAX25-USAGE.md) | Operator workflow in MAX25-Stack |
 | [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE.md) | Radio interface spec for builders |
 | [AUDIO-ARCHITECTURE.md](AUDIO-ARCHITECTURE.md) | Sound-proxy design |
-| [ROADMAP.md](../ROADMAP.md) | P0/P1/P2 phases and module status |
+| [ROADMAP.md](../ROADMAP.md) | P0/P1/P2 milestones and module status |

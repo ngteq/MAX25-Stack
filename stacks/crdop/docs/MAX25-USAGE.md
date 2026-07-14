@@ -103,7 +103,6 @@ soft-crdop = crdop:default
 host = 127.0.0.1
 port = 8515
 listen = yes
-ardop_compat = no
 ```
 
 `max25-ctl start` launches `crdop` (→ `audio-dummyd`) when `auto_start = yes` in `[stack]`.
@@ -178,9 +177,6 @@ playback = plughw:1,0
 
 [host]
 port = 8515
-
-[compat]
-ardop_compat = no           ; yes = ARDOP-plugin wire mode
 ```
 
 Launch:
@@ -246,30 +242,6 @@ MAX25 owns modem lifecycle; HyBBX owns sessions. See [docs/HYBBX.md](../../../do
 
 ---
 
-## ARDOP-plugin
-
-Optional **MAX25-Stack plugin** for ARDOP wire mode on `soft-crdop`.
-
-| Item | Detail |
-|------|--------|
-| Registry | [plugins/external/ardop/README.md](../../../plugins/external/ardop/README.md) |
-| Enable | `ardop_compat = yes` in `crdop.ini` or `[device.soft-crdop]` |
-| Default | Native CRDOP / M25-KISS host (`ardop_compat = no`) |
-| ARDOP host | Operator runs ARDOP-capable modem; set `CRDOP_BIN` if using `crdopc` launcher |
-
-```ini
-[compat]
-ardop_compat = yes
-```
-
-```bash
-CRDOP_BIN=/path/to/ardopc CRDOP_INI=~/.config/crdop/crdop.ini crdop
-```
-
-Plugin metadata: `plugins/external/ardop/plugin.yaml`.
-
----
-
 ## Operator profiles
 
 | INI template | Profile | Use |
@@ -317,4 +289,4 @@ CRDOP-specific offline tests: `test_crdop_backend.py`, `test_audio_dummy_backend
 | [HARDWARE-INTERFACE.md](HARDWARE-INTERFACE.md) | Radio interface spec |
 | [docs/PLUGINS-DEVICE-MODEL.md](../../../docs/PLUGINS-DEVICE-MODEL.md) | Unified device workflow |
 | [docs/LINUX-HOST-SETUP.md](../../../docs/LINUX-HOST-SETUP.md) | Host prerequisites |
-| [ROADMAP.md](../ROADMAP.md) | Phases and modulation priorities |
+| [ROADMAP.md](../ROADMAP.md) | P0/P1/P2 milestones and modulation priorities |

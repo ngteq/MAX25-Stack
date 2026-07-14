@@ -15,8 +15,7 @@
 
 | Mode | Control terminator | Data semantics |
 |------|-------------------|----------------|
-| **Native (default)** | `\n` | KISS DATA equivalent — 16+ byte UI body |
-| **ARDOP-plugin** (`ardop_compat=true`) | `\r` | ARDOP host wire mode — see [plugins/external/ardop/README.md](../../../plugins/external/ardop/README.md) |
+| **Native M25/KISS** | `\n` | KISS DATA equivalent — 16+ byte UI body |
 
 ### Bench alternate ports
 
@@ -38,7 +37,7 @@ All commands are single lines. Reply is one line ending `\n`.
 | `STATUS` | — | `STATUS ready mycall=…` | State snapshot |
 | *(unknown)* | — | `ERR unknown command` | |
 
-**Not supported on native path:** `PROTOCOLMODE FEC`, `FECMODE`, ARQ bandwidth commands — use **ARDOP-plugin** (`ardop_compat=true`) if needed.
+**Not supported on native path:** `PROTOCOLMODE FEC`, `FECMODE`, ARQ bandwidth commands — ARDOP is a separate optional plugin, not part of CRDOP.
 
 ---
 
@@ -68,7 +67,6 @@ soft-crdop = crdop:default
 host = 127.0.0.1
 port = 8515
 listen = yes
-; ardop_compat = no   # default — native KISS
 ```
 
 `CrdopTcpBackend` on `open()`:

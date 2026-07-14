@@ -17,7 +17,7 @@ CRDOP connects a host sound card to a transceiver via one of:
 | **SSB audio** | USB/LSB suppressed carrier | **300** (P2 optional) |
 | **Acoustic coupling** | Speaker ↔ microphone (test / field) | **1200** |
 
-RF path matrix and phased delivery: [ROADMAP.md](../ROADMAP.md).
+RF path matrix and delivery milestones: [ROADMAP.md](../ROADMAP.md).
 
 ---
 

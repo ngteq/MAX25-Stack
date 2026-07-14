@@ -1,3 +1,7 @@
+; DEPRECATED for new Linux sites — heterogeneous multi-id station (legacy only).
+; Policy: one RF device per max25d host. Use separate Linux hosts for additional radios.
+; See docs/ARCHITECTURE.md § Linux host policy — one RF device.
+;
 ; Full heterogeneous station — TNC2C + PK-TNC2 + BayCom SER12 + CRDOP
 ; Copy to /etc/max25/max25d.ini and adjust paths for your site.
 ; BayCom + CRDOP backends are architecturally wired; live RF may be untested.

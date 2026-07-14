@@ -7,9 +7,9 @@
 | Surface | Purpose | Status |
 |---------|---------|--------|
 | **`max25-terminal`** | Operator session — connect, send, monitor, F10 menu | **Current** — text-only; **no graphical UI planned for a long time** |
-| **Web UI** | Browser-based stack administration and monitoring (alongside `max25d`) | **Near term** — WebSocket terminal in development; **not** a GUI replacement for `max25-terminal` |
+| **Web UI** | Browser-based stack administration and monitoring (alongside `max25d`) | **DEV-Level 3** (*ca.*); WebSocket scaffold only |
 
-**WebSocket browser terminal:** scaffold in `stacks/web/` — full implementation planned near term. Design: [WEBSOCKET.md](WEBSOCKET.md). **Not production-ready in v1.0.0.**
+**WebSocket browser terminal:** scaffold in `stacks/web/` — **DEV-Level 3** (*ca.*, after TCP/IP + platform base). Design: [WEBSOCKET.md](WEBSOCKET.md). **Not production-ready in v1.0.0.**
 
 Third parties may build their own M25/1 clients against [`include/max25/protocol.md`](../include/max25/protocol.md). Only `max25-terminal` is maintained as the official operator UI.
 
@@ -25,8 +25,8 @@ Per-modem terminal profiles (YAML): [`share/clients/`](../share/clients/README.m
 
 | Binary | Symlink | Role |
 |--------|---------|------|
-| `max25d` | — | **Linux only** — config, plugins, boot-wait, BayCom, KISS/PTY, device owner |
-| `max25-terminal` | `max25-client` | **v1 ready** — operator UI; connects to `max25d` on Linux |
+| `max25d` | — | **Mainstream OS only** — Linux/KLinux now; see [PLATFORMS.md](PLATFORMS.md) |
+| `max25-terminal` | `max25-client` | **v1 ready** — operator UI; local or remote M25/1 to `max25d` |
 
 The operator talks to the **modem** through the terminal; **`max25d` on Linux** owns hardware and BayCom.
 
@@ -34,12 +34,15 @@ The operator talks to the **modem** through the terminal; **`max25d` on Linux** 
 
 | Where | What runs |
 |-------|-----------|
-| **Linux** | `max25d` + optional local `max25-terminal` |
-| **Windows, macOS, *BSD, AmigaOS** | `max25-terminal` only → remote Linux `max25d` |
+| **Linux / KLinux** (`max25d` priority 1) | `max25d` + optional local `max25-terminal` |
+| **FreeBSD** (DEV-Level 1) | `max25-terminal` → FreeBSD `max25d` (Main/TCP/IP + minimal CRDOP) |
+| **OpenBSD / NetBSD** | after FreeBSD works |
+| **macOS / Windows** | `max25-terminal` → remote or local `max25d` when those tiers ship |
+| **Smaller systems** (AmigaOS) | `max25-terminal` or reduced M25/1 client — **no** `max25d` |
 
-Transport: TCP to Linux host (default port **7325**), not raw serial on the client machine. Unix socket optional for local Linux terminal only (`/run/max25/modem.sock`).
+Full port order: [PLATFORMS.md](PLATFORMS.md). Transport: TCP port **7325** (or Unix socket on local Linux).
 
-**AmigaOS:** reduced text client in `stacks/terminal/amiga/` — TCP-only, no F10/ncurses menu parity.
+**AmigaOS:** `stacks/terminal/amiga/` — TCP-only, no F10/ncurses menu parity. MS-DOS / FreeDOS / legacy DOS: **not** a client target.
 
 ## Client UI policy
 
@@ -54,9 +57,9 @@ The session client stays a **terminal program**, not a desktop or browser applic
 
 A graphical client (Qt, GTK, native windows, or similar) is **not** on the near- or mid-term roadmap for `max25-terminal`. Integrators should assume **years** of text-only operation for live modem sessions.
 
-### Web UI — separate, near term (in development)
+### Web UI — separate, DEV-Level 3 (*ca.*)
 
-A **Web UI** (browser access to `max25d` for status, configuration overview, or remote administration) is being implemented on the hyBBX reverse-proxy pattern. Full delivery is planned for the **near term**. It serves a different role than the operator client:
+A **Web UI** (browser access to `max25d` for status, configuration overview, or remote administration) is scaffolded on the hyBBX reverse-proxy pattern. Production delivery is **DEV-Level 3** — after modular TCP/IP + Linux/FreeBSD compat ([V2.0.0-SCOPE.md](V2.0.0-SCOPE.md#dev-levels-roadmap-stack-wide)). It serves a different role than the operator client:
 
 - **Does not** replace `max25-terminal` for live TX/RX or AX.25 UI sessions
 - **Does not** change the M25/1 client contract or F10 menu model
@@ -123,9 +126,9 @@ Validation: AX.25 address rules — 1–6 call characters, optional SSID `-0`…
 
 Default persistence: **session only**. Optional “save to profile” may write `share/max25/*.ini` later.
 
-### Multi-device (`SET DEVICE`)
+### `SET DEVICE` (session target)
 
-When `max25d.ini` lists multiple `[devices]` ids, pick the TX target before `SEND`:
+On Linux, `max25d` runs **one** RF backend per host. `SET DEVICE <id>` must match that configured id (or `[devices] default`). Legacy multi-id INI templates still parse but are **deprecated** for new sites.
 
 | Method | Example |
 |--------|---------|

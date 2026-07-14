@@ -8,7 +8,7 @@ MAX25 has **exactly one** operator client:
 
 | Binary | Symlink | Status |
 |--------|---------|--------|
-| `max25-terminal` | `max25-client` | **v1 ready** (Linux/*BSD/macOS/Windows/AmigaOS reduced) |
+| `max25-terminal` | `max25-client` | **v1 ready** — mainstream OS + AmigaOS (reduced) |
 
 There is **no second official operator client** from the MAX25 core — `max25-terminal` stays text-only. **Third-party GUI clients are welcome** (see below). For the foreseeable future the official client stays:
 
@@ -18,7 +18,7 @@ There is **no second official operator client** from the MAX25 core — `max25-t
 - optional **`--ax25-ui`**
 - optional **TCP auth** (`-P` / `MAX25_TCP_PASSWORD`)
 
-A **browser terminal** (WebSocket → M25/1) is **in development** for the near term — scaffold in `stacks/web/`; see [WEBSOCKET.md](WEBSOCKET.md). It will **not** replace `max25-terminal` for operator sessions.
+A **browser terminal** (WebSocket → M25/1) is **DEV-Level 3** (*ca.*) — scaffold in `stacks/web/`; see [WEBSOCKET.md](WEBSOCKET.md). It will **not** replace `max25-terminal` for operator sessions.
 
 All client changes to the **official** program go into **this one binary** in `stacks/terminal/`. The M25/1 protocol to `max25d` is the stable binding contract.
 
@@ -30,7 +30,7 @@ MAX25 does **not** plan an official Qt/GTK/windowing operator client. **Third-pa
 |-------------|------------|--------|
 | `max25-terminal` | MAX25 core | Official — text + F10 |
 | GUI / desktop / mobile | **Third-party developers** | **Encouraged** — protocol-bound |
-| Browser (WebSocket) | MAX25 (`stacks/web/`) | In development — near term |
+| Browser (WebSocket) | MAX25 (`stacks/web/`) | **DEV-Level 3** (*ca.*) |
 
 Contributors may add example client profiles under `share/clients/` (YAML schema v1). Do not bypass `max25d` to touch serial, KISS PTY, or sound hardware directly.
 
@@ -364,12 +364,12 @@ Before merge / release of the terminal:
 - listens on TCP (`max25d.ini` → `[network] tcp_port`) and optional Unix
 - one thread per client (`client_thread`)
 - shared `DaemonState` (CALLERID/CALLID global for all clients)
-- one device backend per enabled `[devices]` id (5+ supported): `kiss-serial`, `baycom-kiss`, `kiss-raw-serial`, `crdop-tcp`
+- one device backend per enabled `[devices]` id on each Linux host (target: **one** id): `kiss-serial`, `baycom-kiss`, `kiss-raw-serial`, `crdop-tcp`
 - plain-text TCP auth when `tcp_password` is set
 
 Configuration: `share/max25/max25d.ini.example`, systemd: `share/max25/max25d.service.example`.
 
-**Multi-device:** `[devices]` in `max25d.ini`; M25/1 `devices=`, `SET DEVICE`, `GET DEVICES`, `RX device=<id> …`. Legacy single `[daemon] device=` still works.
+**Host layout:** Main + optional Secondaries — [ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries). Configure `[devices]` per `max25d` instance. M25/1 `SET DEVICE`, `GET DEVICES`, and `RX device=<id> …` remain valid for session routing.
 
 **Note:** Hardware TX/RX bridge (KISS/serial) is server-side; the client contract (`SEND` / `RX`) stays stable.
 

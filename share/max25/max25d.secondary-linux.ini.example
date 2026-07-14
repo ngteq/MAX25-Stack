@@ -1,0 +1,45 @@
+; MAX25-Stack — Linux Secondary (hardware TNC, modular TCP/IP service)
+; Use when FreeBSD hosts Main + CRDOP — this Linux host extends RF only.
+; Copy: cp share/max25/max25d.secondary-linux.ini.example /etc/max25/max25d.ini
+; Register instance_id + host:port in FreeBSD Main [modular_tcp.secondaries].
+
+[features]
+baycom = no
+pccom = no
+
+[daemon]
+mode = service
+hardware = tncs
+device = tnc2c
+
+[devices]
+default = tnc2c
+tnc2c = /dev/ttyS4
+; baycom-ser12 = baycom:default   ; requires [features] baycom=yes
+
+[modular_tcp]
+enabled = yes
+role = secondary
+service_name = modular-tcp-server
+instance_id = secondary-linux-1
+
+[network]
+tcp_host = 0.0.0.0
+tcp_port = 7327
+unix_socket = /run/max25/modem.sock
+
+[modem]
+callerid = CB-0
+callid = QST
+ax25_ui = yes
+
+[stack]
+auto_start = yes
+
+[device.baycom-ser12]
+kiss_link = /var/run/baycom-pr/kiss
+baycom_ini = /etc/baycom/baycom-pr.ini
+
+; Optional TUN on Linux Secondary — interface name max25d0 only
+; [netdev]
+; enabled = no

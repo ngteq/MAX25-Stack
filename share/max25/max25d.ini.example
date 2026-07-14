@@ -1,6 +1,11 @@
 ; MainAX25-Stack — max25d daemon (Linux only)
 ; Copy to /etc/max25/max25d.ini or pass MAX25D_INI=
 
+[features]
+; BayCom / PC-COM kernel paths — disabled by default (enable when hardware needs them).
+baycom = no
+pccom = no
+
 [daemon]
 ; Operating mode: standalone | service | hybbx-host
 mode = standalone
@@ -10,18 +15,19 @@ hardware = tncs
 device = tnc2c
 
 [devices]
-; Multi-device: one backend per id (5+ supported).
+; Linux host: ONE RF device per max25d (design rule). Pick one id below.
+; Layout examples still under design — do not enable two backends on one host.
 ; Serial path, baycom:<modem>, or crdop:<profile>
 default = tnc2c
 tnc2c = /dev/ttyS4
-pktnc2 = /dev/ttyS5
+; pktnc2 = /dev/ttyS5          ; second device — not on same Linux host (use another machine)
 ; baycom-ser12 = baycom:a
 ; baycom-par96 = baycom:a
 ; baycom-kiss = /dev/ttyUSB0
 ; soft-crdop = crdop:default
 ; Acoustic bench (loopback / ALSA sniff / host daemon):
 ; audio-dummy = audio:loopback
-; enabled = tnc2c,pktnc2   ; optional — omit to enable all listed ids
+; enabled = tnc2c   ; optional — single id recommended
 
 [network]
 ; Terminal clients connect here (TCP). Unix socket always enabled on Linux.
@@ -103,18 +109,11 @@ serial_bootwait_escalate_cooldown = 300
 ; host = 127.0.0.1
 ; port = 8515
 ; listen = yes
-; ardop_compat = no   ; yes = ARDOP-plugin wire mode
-; fecmode = 4FSK.500.100S   ; only when ardop_compat = yes
 
-; --- Virtual IP netdev (TUN max25d — planned near term) ---
-; Full doc: docs/NETDEV.md · Example: share/max25/max25d.netdev.ini.example
+; --- Virtual IP netdev (TUN max25d0 — planned near term) ---
+; Full doc: docs/NETDEV.md · interface name is always max25d0
 ; [netdev]
 ; enabled = no
-; interface = max25d
 ; mode = tun
 ; ipv4 = 127.0.0.25/8
 ; ipv6 = ::25/128
-; extra_ipv4 =
-; extra_ipv6 =
-; encap = ax25-ui
-; m25_unix = /run/max25/modem.sock

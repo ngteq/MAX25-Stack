@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import configparser
 import os
+import sys
 from pathlib import Path
 
 _MANIFEST = Path("plugins/manifest.yaml")
@@ -99,6 +100,8 @@ def default_ini_candidates(tree: Path, prefix: Path | None) -> list[Path]:
         candidates.append(Path(env_ini))
     candidates.append(Path("/etc/max25/max25d.ini"))
     candidates.append(share_max25_dir(tree, prefix) / "max25d.ini.example")
+    if sys.platform.startswith("freebsd"):
+        candidates.append(share_max25_dir(tree, prefix) / "max25d.freebsd.ini.example")
     if prefix is None or tree != prefix:
         candidates.append(tree / _SHARE_MAX25 / "max25d.ini.example")
     return candidates

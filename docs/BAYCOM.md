@@ -2,7 +2,19 @@
 
 **MAX25** operator guide for kernel-driven SER12 and PAR96 modems (PC-COM, BayPac, LPT 9600). Stack implementation: [`stacks/baycom-pr/`](../stacks/baycom-pr/). Kernel deep dives: [`stacks/baycom-pr/docs/`](../stacks/baycom-pr/docs/INDEX.md) — do not duplicate here.
 
-[README](../README.md) · [PACKET-RADIO.md](PACKET-RADIO.md) · [HYBBX.md](HYBBX.md) · [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md)
+[README](../README.md) · [PACKET-RADIO.md](PACKET-RADIO.md) · [HYBBX.md](HYBBX.md) · [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) · **v2 goals:** [V2.0.0-SCOPE.md](V2.0.0-SCOPE.md)
+
+---
+
+## Root policy — v1 today, rootless v2 (mandatory)
+
+| | v1.0.0 (now) | v2.0.0+ (required) |
+|---|--------------|---------------------|
+| **Operator daily use** | `sudo` for `baycom-pr-ctl` / often `max25d` | **No root** — normal user |
+| **Kernel module / UART probe** | Each site documents `sudo setup` | **Once** at install or `max25-ctl setup` |
+| **Target audience** | Experienced Linux ops | Pi / homeserver + Windows-familiar admins |
+
+v1 accepts root for kernel BayCom; **v2 must not**. Privilege moves to one-time install (systemd, `modules-load.d`, udev, packaged units). Full goals: [V2.0.0-SCOPE.md](V2.0.0-SCOPE.md).
 
 ---
 
@@ -49,7 +61,7 @@ Without override, `max25-ctl` and `install-max25.sh` use the **single** template
 | Aspect | TNC (`tnc2c`) | BayCom (`baycom-ser12`) |
 |--------|---------------|-------------------------|
 | Site config | `*serial.env` | `baycom-pr.ini` |
-| Stack start | boot-wait (no root) | `baycom-pr-ctl` (**root**) |
+| Stack start | boot-wait (no root) | `baycom-pr-ctl` (**root in v1**; rootless in v2) |
 | max25d link | direct serial KISS | KISS PTY from kernel |
 | Client YAML | `share/clients/tnc2c.yaml` | `share/clients/baycom-ser12.yaml` (reference) |
 | Terminal flow | `SET DEVICE` → `CONNECT` → `SEND` | **identical** |
@@ -91,7 +103,7 @@ sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup      # first time: probe i
 sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini preflight
 ```
 
-KISS PTY after start: `/var/run/baycom-pr/kiss` · netdev: `bcsf0`
+KISS PTY after start: `/var/run/baycom-pr/kiss` · BayCom netdev: **`bcsf0`** (kernel, unchanged)
 
 ### 3. Start via MAX25 (every boot)
 
@@ -150,7 +162,7 @@ sudo baycom-pr-ctl preflight && sudo baycom-pr-ctl start
 | `/etc/baycom/baycom-pr.ini` | Installed system INI (from example or `make install`) |
 | `/etc/baycom/modems.ini` | Modem catalog (`albrecht-pc-com`, …) |
 | `stacks/baycom-pr/config/examples/` | CB, HAM, dual, LPT profiles — link only |
-| `share/max25/max25d*.ini.example` | Daemon multi-device templates (incl. `max25d.dual-baycom.ini.example`) |
+| `share/max25/max25d*.ini.example` | Daemon templates — Main/Secondary layout in progress (`max25d.dual-baycom.ini.example` legacy) |
 | `share/hybbx/baycom-ser12-host.ini.example` | HyBBX merge snippet |
 
 **Workflow:** edit under `local/` or `/etc/`, never commit site callsigns or IRQ values. Verify live UART:
@@ -187,7 +199,7 @@ irq = 4
 | Client profile | `share/clients/baycom-ser12.yaml` | Operator reference — connection + config pointers |
 | `baycom_test` | `-i bcsf0 -s /dev/ttyS0 quick` | Per-modem test (driver loaded) |
 
-M25/1: `SET DEVICE baycom-ser12`, `RX device=baycom-ser12 …`. Dual: `baycom-a` / `baycom-b` — see [§ Dual modem](#dual-modem-service-mode). Full station: `share/max25/max25d.full-station.ini.example`.
+M25/1: `SET DEVICE baycom-ser12`, `RX device=baycom-ser12 …`. Dual `baycom-a` / `baycom-b` and full-station templates are **legacy** — see [§ Dual modem](#dual-modem-service-mode--deprecated-for-new-linux-hosts).
 
 ---
 
@@ -227,9 +239,11 @@ For end-to-end TX via max25d: stack up → `max25d` with `baycom-ser12` → term
 
 ---
 
-## Dual modem (service mode)
+## Dual modem (service mode) — deprecated for new Linux hosts
 
-**General use:** two independent kernel-ser12 modems on **different UARTs** with **unique IRQs** is fully supported, documented, and tested. Use this for service mode (24/7), two radios, or HyBBX dual-transport sites — **not** when both UARTs are already assigned to TNCs or other serial owners.
+> **Layout:** Main + optional Secondaries on one host — dual-modem BayCom templates below are **legacy** ([ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries)).
+
+**Historical note:** two independent kernel-ser12 modems on **different UARTs** with **unique IRQs** was documented for service mode. Do not use when UARTs are assigned to TNCs or other serial owners.
 
 ### 1. BayCom INI (dual profile)
 
@@ -266,7 +280,9 @@ Staged start and IRQ safeguards: [`stacks/baycom-pr/docs/GUIDE.md`](../stacks/ba
 
 Aliases `baycom-a` / `baycom-b` map to the same kernel stack start as `baycom-ser12`. Or use `--baycom-profile dual` to resolve the shipped dual template without a path.
 
-### 3. max25d multi-device (two M25/1 device ids)
+### 3. max25d dual device ids (legacy)
+
+> **Not for new Linux hosts** — use one `baycom-ser12` id per machine. Template retained for backward compatibility:
 
 Template: `share/max25/max25d.dual-baycom.ini.example`
 
@@ -408,12 +424,12 @@ watch -n1 'grep -E "ttyS|baycom" /proc/interrupts'
 | `baycom-pr-ctl` lifecycle | **Mature** |
 | Freeze safeguards | **Implemented** |
 | `max25-ctl` → `baycom-pr-ctl -c` | **Wired** — single-modem INI by default; `--baycom-ini` / `--baycom-profile dual` for opt-in |
-| `max25d` dual `baycom:a` + `baycom:b` | **Wired** — shared stack start, per-modem KISS PTY, SET DEVICE |
+| `max25d` dual `baycom:a` + `baycom:b` | **Legacy** — wired for backward compatibility; not for new Linux hosts |
 | `max25d` `BayComKissBackend` + `auto_start` | **Wired** — passes `baycom_ini` to stack start; KISS PTY RX/TX poll |
 | M25/1 SEND → KISS → kernel PTT | **Wired** — no separate PTT command |
 | KISS PTY RX → `RX device=…` | **Wired** — background `_rx_loop` |
 | HyBBX `baycom` contract | **Documented** |
-| Dual kernel-ser12 24/7 | **Service mode** — opt-in; single PC-COM is the default |
+| Dual kernel-ser12 24/7 | **Legacy** — single PC-COM per host is the target |
 
 ---
 
@@ -425,5 +441,5 @@ watch -n1 'grep -E "ttyS|baycom" /proc/interrupts'
 | [`stacks/baycom-pr/docs/GUIDE.md`](../stacks/baycom-pr/docs/GUIDE.md) | Extended operator guide |
 | [`stacks/baycom-pr/docs/PLUGIN.md`](../stacks/baycom-pr/docs/PLUGIN.md) | HyBBX integration contract |
 | [`stacks/baycom-pr/docs/archive/STABILITY.md`](../stacks/baycom-pr/docs/archive/STABILITY.md) | Full freeze checklist |
-| [PACKET-RADIO.md](PACKET-RADIO.md) | AX.25 / multi-device overview |
+| [PACKET-RADIO.md](PACKET-RADIO.md) | AX.25 / Main + Secondary layout |
 | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) | v1 release scope |

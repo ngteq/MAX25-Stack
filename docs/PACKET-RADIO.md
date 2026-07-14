@@ -29,7 +29,7 @@ Operator
 | Kernel AX.25 | `stacks/baycom-pr` | `hdlcdrv`, `bcsf0`, `AF_PACKET` |
 | HyBBX attach | external | After stack is up — INI in `share/hybbx/` |
 
-**MAX25-SoftModem (CRDOP — MAX25-SoftModem)** (`soft-crdop`) is the in-house sound-card modem — **CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`); **MAX25-Stack standard** (built unless `MAX25_BUILD_CRDOP=OFF`). Development/test phase: acoustically AX.25-compatible at 1200 baud+, half/full duplex, max 19200 baud. Native M25/KISS host TCP; `max25d` `CrdopTcpBackend`. **ARDOP-plugin** optional via `ardop_compat=true`. See [stacks/crdop/docs/SOFTMODEM.md](../stacks/crdop/docs/SOFTMODEM.md).
+**MAX25-SoftModem (CRDOP — MAX25-SoftModem)** (`soft-crdop`) is the in-house sound-card modem — **CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`); **MAX25-Stack standard** (built unless `MAX25_BUILD_CRDOP=OFF`). Development/test phase: acoustically AX.25-compatible at 1200 baud+, half/full duplex, max 19200 baud. Native M25/KISS host TCP; `max25d` `CrdopTcpBackend`. FreeBSD: CRDOP/OSS only — [FREEBSD-AX25.md](FREEBSD-AX25.md).
 
 ---
 
@@ -237,29 +237,26 @@ For **broadcast** traffic on 1200 baud, keep UI payloads **short** (≤ **48** c
 | BayCom kernel loaded | **No** userspace serial client on raw UART |
 | MAX25 `max25d` owns prep | HyBBX opens serial **after** boot-wait / `baycom-pr-ctl start` |
 
-### Multi-device (max25d)
+### One RF device per Linux host (`max25d`)
 
-Configure multiple heterogeneous devices in `max25d.ini`:
+**Host layout:** **1× Main** `max25d` + optional **5+ Secondaries** on one server — each Secondary typically one RF backend. See [ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries).
 
 ```ini
 [devices]
 default = tnc2c
 tnc2c = /dev/ttyS4
-pktnc2 = /dev/ttyS5
-baycom-ser12 = baycom:a
-soft-crdop = crdop:default
 ```
 
-| Device id | Backend | Link |
-|-----------|---------|------|
+| Device id (pick **one**) | Backend | Link |
+|--------------------------|---------|------|
 | `tnc2c`, `pktnc2` | `kiss-serial` | Serial KISS after boot-wait |
 | `baycom-ser12`, `baycom-par96` | `baycom-kiss` | KISS PTY `/var/run/baycom-pr/kiss` |
 | `baycom-kiss` | `kiss-raw-serial` | USB/async KISS serial |
 | `soft-crdop` | `crdop-tcp` | CRDOP M25 host TCP `:8515` / `:8516` |
 
-Full station example: `share/max25/max25d.full-station.ini.example`.
+**Legacy (deprecated for new Linux sites):** multi-id `[devices]` templates (`share/max25/max25d.full-station.ini.example`, dual BayCom) — daemon may still parse them; do not deploy on new hosts.
 
-M25/1: `devices=` in `STATUS`, `SET DEVICE <id>` for TX routing, `RX device=<id> …` on receive. See [`include/max25/protocol.md`](../include/max25/protocol.md).
+M25/1: `SET DEVICE <id>` selects the configured id for this session (redundant when only one id is enabled). `devices=` in `STATUS`, `RX device=<id> …` on receive. See [`include/max25/protocol.md`](../include/max25/protocol.md).
 
 **Validation:** TNC2C serial KISS is CI-tested. BayCom `BayComKissBackend` and INI resolution are wired; **single-modem default** (shipped template). Dual kernel-ser12 (`baycom-a` / `baycom-b`) is supported globally for service mode — see [BAYCOM.md](BAYCOM.md). Live RF acceptance remains manual.
 
@@ -287,9 +284,9 @@ M25/1: `devices=` in `STATUS`, `SET DEVICE <id>` for TX routing, `RX device=<id>
 | CALLSIGN validation (6+SSID) | **max25d** + `max25-terminal` |
 | KISS encode + FCS strip | **max25d** `kiss_bridge.py` |
 | Serial KISS bridge (TNC2C/PK-TNC2) | **max25d** `kiss_bridge.py` |
-| Multi-device backends (5+ concurrent) | **max25d** `device_backends.py` |
+| Device backend registry (one active per Linux host) | **max25d** `device_backends.py` |
 | BayCom KISS PTY attach | **max25d** `BayComKissBackend` → `/var/run/baycom-pr/kiss` |
-| CRDOP M25 host TCP attach | **max25d** `CrdopTcpBackend` → `:8515/:8516` (native); optional ARDOP via `ardop_compat` |
+| CRDOP M25 host TCP attach | **max25d** `CrdopTcpBackend` → `:8515/:8516` (native M25/KISS) |
 | MYCALL + kiss entry per profile | **max25d** / stack scripts |
 | Kernel BayCom TX/RX | **stacks/baycom-pr** (mature) |
 | TNC2C boot-wait | **stacks/tncs** (mature) |

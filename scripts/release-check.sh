@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MainAX25-Stack (MAX25-Stack-v1.0.0) — release gates (offline, no root).
+# MainAX25-Stack (MAX25-Stack-v1.5.0) — release gates (offline, no root).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -175,7 +175,7 @@ fi
 if [[ -x "${BUILD_DIR}/bin/crdopc" ]]; then
   warn "vendor crdopc binary present (dev-only CRDOP_VENDOR_ARDOPCF build — not for release)"
 else
-  ok "no vendor crdopc binary (ARDOP-plugin uses operator ARDOP host)"
+  ok "no vendor crdopc binary (native SoftModem default)"
 fi
 if [[ -x "${BUILD_DIR}/bin/audio-dummyd" ]]; then
   ok "audio-dummyd binary (native SoftModem host)"
@@ -214,7 +214,7 @@ if [[ -x "${BUILD_DIR}/bin/crdopc" ]] && CRDOP_BIN="${PWD}/${BUILD_DIR}/bin/crdo
 elif [[ -x "${BUILD_DIR}/bin/crdopc" ]]; then
   fail "crdop smoke (vendor crdopc present but smoke failed)"
 else
-  ok "crdop vendor smoke skipped — native SoftModem default; ARDOP-plugin optional"
+  ok "crdop vendor smoke skipped — native SoftModem default"
 fi
 
 # --- discovery ---

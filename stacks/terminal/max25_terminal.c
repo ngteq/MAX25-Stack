@@ -77,7 +77,7 @@ static void usage(const char *prog)
             "      --ax25-ui         AX.25 UI mode (default on)\n"
             "      --no-ax25-ui      Plain SEND lines\n"
             "  -P, --password PASS   TCP auth password (plain-text M25/1 AUTH)\n"
-            "  -d, --device ID       SET DEVICE after connect (multi-device sites)\n"
+            "  -d, --device ID       SET DEVICE after connect (configured device id)\n"
             "  -v, --verbose         Protocol log on stderr\n"
             "      --probe           Connect, print STATUS, exit (CI)\n"
             "  -h, --help            Show help\n\n"

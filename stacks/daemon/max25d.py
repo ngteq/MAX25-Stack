@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-max25d — MainAX25-Stack daemon (Linux only).
+max25d — MainAX25-Stack daemon.
 
-Owns config, plugin hardware lifecycle, and M25/1 IPC for max25-terminal clients.
-Supports multiple concurrent heterogeneous devices (TNC, BayCom, CRDOP) via backends.
+Linux/KLinux: full hardware stack. FreeBSD: server + CRDOP/OSS (modular TCP/IP service).
 """
 from __future__ import annotations
 
@@ -36,15 +35,54 @@ from banlist import BanList, DEFAULT_BANS_FILE, extract_ax25_source  # noqa: E40
 from daemon_log import LOGGER, emit_startup_banner, emit_startup_complete  # noqa: E402
 from kiss_bridge import KissBridge  # noqa: E402 — tests patch this symbol
 from paths import ctl_path, resolve_baycom_ini, resolve_layout  # noqa: E402
+from max25_platform import (  # noqa: E402
+    default_unix_socket,
+    max25d_supported,
+    platform_label,
+    supported_device_ids,
+)
+from modular_tcp_server import ModularTcpMainService, ModularTcpConfig, load_modular_tcp  # noqa: E402
 
 _EXE = Path(__file__).resolve()
 TREE, PREFIX = resolve_layout(_EXE)
 ROOT = TREE  # dev checkout root or MAX25_ROOT / install prefix
 
 DEFAULT_TCP_PORT = 7325
-DEFAULT_UNIX = "/run/max25/modem.sock"
+DEFAULT_UNIX = default_unix_socket()
 CALLSIGN_RE = re.compile(r"^[A-Z0-9]{1,6}(-(1[0-5]|[0-9]))?$")
 RESERVED_DEVICE_KEYS = frozenset({"default", "enabled"})
+
+
+def _device_is_baycom(dev: DeviceBackendConfig) -> bool:
+    if dev.device_id.startswith("baycom"):
+        return True
+    spec = (dev.device_spec or "").strip()
+    if spec.startswith("baycom:"):
+        return True
+    return dev.backend_type == "baycom-kiss" and dev.hardware == "modems"
+
+
+def _device_is_pccom(dev: DeviceBackendConfig) -> bool:
+    if "pccom" in dev.device_id.lower():
+        return True
+    ini = (dev.baycom_ini or "").lower()
+    return "pccom" in ini
+
+
+def _device_allowed_by_features(dev: DeviceBackendConfig, cfg: DaemonConfig) -> bool:
+    if _device_is_baycom(dev) and not cfg.feature_baycom:
+        LOGGER.warn(
+            f"device {dev.device_id}: BayCom disabled — set [features] baycom=yes",
+            area="config",
+        )
+        return False
+    if _device_is_pccom(dev) and not cfg.feature_pccom:
+        LOGGER.warn(
+            f"device {dev.device_id}: PC-COM disabled — set [features] pccom=yes",
+            area="config",
+        )
+        return False
+    return True
 
 
 @dataclass
@@ -74,12 +112,15 @@ class DaemonConfig:
     serial_bootwait_escalate_cooldown: int = 300
     bans_file: str = str(DEFAULT_BANS_FILE)
     config_path: str = ""
+    feature_baycom: bool = False
+    feature_pccom: bool = False
     # Legacy single-device [serial] overrides (used when [devices] absent).
     serial_device: str = ""
     serial_baud: int = 0
     serial_line: str = ""
     serial_dtr_rts: str = ""
     serial_kiss_entry: str = ""
+    modular_tcp: ModularTcpConfig = field(default_factory=ModularTcpConfig)
 
 
 @dataclass
@@ -271,7 +312,25 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
         cfg.serial_dtr_rts = cp.get("serial", "dtr_rts", fallback="")
         cfg.serial_kiss_entry = cp.get("serial", "kiss_entry", fallback="")
 
+    if cp.has_section("features"):
+        cfg.feature_baycom = _truthy(cp.get("features", "baycom", fallback="no"))
+        cfg.feature_pccom = _truthy(cp.get("features", "pccom", fallback="no"))
+
     cfg.devices = parse_devices(cp, cfg)
+    cfg.devices = [d for d in cfg.devices if _device_allowed_by_features(d, cfg)]
+    allowed = supported_device_ids()
+    if allowed:
+        filtered: list[DeviceBackendConfig] = []
+        for dev in cfg.devices:
+            if dev.device_id in allowed:
+                filtered.append(dev)
+            else:
+                LOGGER.warn(
+                    f"device {dev.device_id} not supported on {platform_label()} — skipped",
+                    area="config",
+                )
+        cfg.devices = filtered
+    cfg.modular_tcp = load_modular_tcp(cp)
     if not cfg.default_device and cfg.devices:
         cfg.default_device = cfg.devices[0].device_id
     cfg.device = cfg.default_device
@@ -1217,11 +1276,11 @@ def make_listeners(cfg: DaemonConfig) -> list[tuple[socket.socket, bool]]:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    if sys.platform != "linux":
-        log("max25d is Linux-only (hardware + BayCom stack)")
+    if not max25d_supported():
+        log(f"max25d is not supported on {sys.platform}")
         return 1
 
-    parser = argparse.ArgumentParser(description="MAX25 daemon (Linux)")
+    parser = argparse.ArgumentParser(description=f"MAX25 daemon ({platform_label()})")
     parser.add_argument(
         "-c",
         "--config",
@@ -1275,6 +1334,22 @@ def main(argv: Optional[list[str]] = None) -> int:
         cfg.tcp_port = args.tcp_port
     if args.no_serial:
         cfg.serial_enabled = False
+
+    if cfg.modular_tcp.enabled and cfg.modular_tcp.role == "main":
+        svc = ModularTcpMainService(cfg.modular_tcp, cfg.tcp_host, cfg.tcp_port, log)
+        svc.start()
+        log(
+            f"modular TCP/IP Servers Service — Main '{cfg.modular_tcp.service_name}' "
+            f"({len(cfg.modular_tcp.secondaries)} secondaries)"
+        )
+        try:
+            while True:
+                time.sleep(1.0)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            svc.stop()
+        return 0
 
     state = DaemonState(cfg=cfg, bans=BanList(cfg.bans_file))
     init_device_runtimes(state)

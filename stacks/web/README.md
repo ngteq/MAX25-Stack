@@ -1,6 +1,8 @@
-# MAX25 Web UI (in development)
+# MAX25 Web UI (DEV-Level 3 — planned)
 
-> **Status: near-term implementation.** Scaffold ported from the hyBBX reverse-proxy pattern. **Not production-ready** in MAX25-Stack v1.0.0.
+> **Status: DEV-Level 3 — planned until TCP/IP + Linux/FreeBSD compat (DEV-Level 1) and supervision extras (DEV-Level 2) are solid.** Scaffold ported from the hyBBX reverse-proxy pattern. **Not production-ready** in MAX25-Stack v1.0.0.
+
+**Roadmap:** [docs/V2.0.0-SCOPE.md](../../docs/V2.0.0-SCOPE.md#dev-levels-roadmap-stack-wide) · [docs/WEBSOCKET.md](../../docs/WEBSOCKET.md).
 
 Browser terminal scaffold for **max25d** M25/1 — target architecture below.
 
@@ -20,8 +22,8 @@ This is **not** a replacement for `max25-terminal` — see [docs/MAX25-TERMINAL.
 | PHP + JS UI (`docroot/max25-websocket/`) | Scaffold — hyBBX look |
 | `max25-ws-proxy.py` | Scaffold — dev smoke test passes |
 | httpd examples (nginx, Apache, lighttpd) | Draft configs |
-| Production deploy / systemd on site | **Planned near term** |
-| Admin dashboard | Later phase |
+| Production deploy / systemd on site | **DEV-Level 3** (planned) |
+| Admin dashboard | **Later** (beyond DEV-Level 3) |
 
 Operator doc (target design): [docs/WEBSOCKET.md](../../docs/WEBSOCKET.md).
 

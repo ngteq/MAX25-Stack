@@ -243,7 +243,9 @@ start_baycom_kernel() {
     echo "baycom-pr.ini not found — copy share/baycom/baycom-pr.pccom-ttyS0-only.ini.example to /etc/baycom/baycom-pr.ini" >&2
     exit 1
   }
-  echo "BayCom PR-Stack start (root required) device=${device} ini=${ini}"
+  # v1: kernel BayCom still needs sudo (modprobe, UART). v2 mandatory: rootless operator path
+  # via systemd + one-time install — docs/V2.0.0-SCOPE.md
+  echo "BayCom PR-Stack start (root required in v1) device=${device} ini=${ini}"
   echo "Next: max25d with [devices] baycom-ser12 = baycom:a · terminal: SET DEVICE baycom-ser12 → CONNECT → SEND"
   echo "Guide: docs/PLUGINS-DEVICE-MODEL.md · docs/BAYCOM.md"
   sudo "${baycom_ctl}" -c "${ini}" preflight

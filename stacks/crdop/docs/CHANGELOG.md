@@ -13,7 +13,7 @@
 Target standalone CRDOP v0.5 after v1.0.0 stack ship.
 
 - Standalone CRDOP modem (`crdopc`) with native DSP
-- Embedded optional `vendor/ardopcf` (MIT) for legacy wire-compat dev builds only
+- Embedded optional `vendor/ardopcf` (MIT) for dev-only legacy builds only
 - CB / dual / amateur profiles; Linux and *BSD tested
 
 ## [0.1.0-l2-cb] — 2026-07-03

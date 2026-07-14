@@ -6,7 +6,7 @@
 
 **Stack dependency:** CRDOP sources live in `stacks/crdop/` and are **standalone-capable** in principle, but **MAX25-Stack is required for integration** (build, `max25d`, INI, operator tooling) until **CRDOP-v1.0.0** (or later) marks a mature standalone release. Current stack product: **MAX25-Stack-v1.0.0**.
 
-**Nature:** MAX25 in-house development — open development and test program for the kernel-ALSA sound-card modem. **ARDOP-plugin** is optional; CRDOP is the standard modem.
+**Nature:** MAX25 in-house development — open development and test program for the kernel-ALSA sound-card modem. CRDOP is the standard modem; ARDOP is a separate optional plugin.
 
 **Research synthesis:** 2026-07-13 — modem and integration priorities synthesized into this ROADMAP and linked in-repo docs below. **No duplicate re-copy** of external notes into this tree.
 
@@ -19,7 +19,7 @@
 | **A** | Classic AX.25 packet (HDLC, frequency-toggle line code) | **P0/P1/P2 targets** — 1200 AFSK, G3RUH, 300 HF |
 | **B** | AX.25 + FEC extension | **Reference** — FX.25 informs FEC block design |
 | **C** | New L2 (not AX.25 on-air) | **Reference** — IL2P lessons (no bit-stuffing, RS FEC) |
-| **D** | HF/VHF data modems (Winlink ecosystem) | **Out of scope** on-air — **ARDOP-plugin** optional for ARDOP wire |
+| **D** | HF/VHF data modems (Winlink ecosystem) | **Out of scope** on-air — separate ARDOP-plugin registry |
 | **E** | Keyboard/chat modes (PSK31, RTTY, …) | **Out of scope** — boundary only |
 
 ---
@@ -39,6 +39,20 @@ HyBBX boundary: [docs/HYBBX.md](../../docs/HYBBX.md) · [docs/PLUGINS-DEVICE-MOD
 
 ---
 
+## MAX25-Stack DEV-Level gate
+
+> Stack DEV-Levels are approximate (*ca.*) — see [docs/V2.0.0-SCOPE.md](../../docs/V2.0.0-SCOPE.md#dev-levels-roadmap-stack-wide). CRDOP modulation milestones (P0/P1/P2 below) are **subproject delivery** labels, not stack DEV-Levels.
+
+**DEV-Level 1 (*ca.* current — stack priority):** modular TCP/IP + Linux/FreeBSD platform compat. CRDOP work in DEV-Level 1 is **minimal/native only** — existing backend, bench DSP, enough OSS path for FreeBSD TCP/IP hub. **Do not expand CRDOP scope** ahead of DEV-Level 1.
+
+**DEV-Level 4 (*ca.*):** CRDOP expansion (OSS polish, G3RUH, acoustic validation, hardware docs). Modulation milestones below remain valid but are **scheduled for DEV-Level 4** unless required to unblock DEV-Level 1 platform work.
+
+**WebSocket** is **DEV-Level 3** — separate from CRDOP expansion.
+
+Stack roadmap: [docs/V2.0.0-SCOPE.md](../../docs/V2.0.0-SCOPE.md#dev-levels-roadmap-stack-wide).
+
+---
+
 ## Current phase: development and test
 
 | Area | Status |
@@ -50,8 +64,8 @@ HyBBX boundary: [docs/HYBBX.md](../../docs/HYBBX.md) · [docs/PLUGINS-DEVICE-MOD
 | Acoustic AX.25 validation vs reference 1200 AFSK paths | **In progress** |
 | Half- and full-duplex operator paths + FEC strategy | **In progress** |
 | Open hardware interface documentation | **In progress** |
-| G3RUH 9600–19200 (direct FSK rig path) | **Planned** (Phase 2) |
-| 300 baud HF AFSK | **Optional** (Phase 3) |
+| G3RUH 9600–19200 (direct FSK rig path) | **Planned** (DEV-Level 4 / P1) |
+| 300 baud HF AFSK | **Optional** (P2) |
 | Speeds >19200 baud | **Out of scope** |
 
 ---
@@ -69,7 +83,7 @@ Synthesized from research catalog — implementation order for CRDOP native DSP.
 | — | 2400/4800 AFSK | V.26/V.27 class | 2400–4800 | Audio | VHF | Low priority incremental |
 | 📋 | FX.25 / IL2P | FEC wrappers / new L2 | 1200+ | Audio or FSK PHY | VHF/HF | **Reference only** — inform FEC design |
 | ❌ | VARA / PACTOR / WINMOR | Proprietary DSP | various | Audio / SSB / hardware | HF/VHF/CB | **Out of scope** |
-| 📋 | ARDOP | 4FSK/PSK/QAM Winlink modes | adaptiv | Soundcard SSB | HF/VHF | **ARDOP-plugin** (`ardop_compat=true`) |
+| 📋 | ARDOP | 4FSK/PSK/QAM Winlink modes | adaptiv | Soundcard SSB | HF/VHF | **Separate plugin** — not CRDOP |
 
 **Rule:** CRDOP on-air goal is **AX.25-compatible PHY + framing** at P0/P1/P2. Winlink-class protocols (VARA, PACTOR, ARDOP OTA) are **not** CRDOP targets.
 
@@ -79,12 +93,12 @@ Synthesized from research catalog — implementation order for CRDOP native DSP.
 
 What CRDOP implements per physical interface — hardware choice drives baud ceiling.
 
-| RF path | Connection | Practical max baud | CB | Amateur (VHF/UHF) | Amateur (HF) | CRDOP phase |
-|---------|------------|-------------------|-----|-------------------|--------------|-------------|
-| **Audio AFSK** | Mic IN / Speaker OUT / Line | ~4800 theory; **1200 field** | ✅ K24/K25 | ✅ APRS, digipeater access | — | **Phase 0–1** (P0) |
+| RF path | Connection | Practical max baud | CB | Amateur (VHF/UHF) | Amateur (HF) | CRDOP milestone |
+|---------|------------|-------------------|-----|-------------------|--------------|-----------------|
+| **Audio AFSK** | Mic IN / Speaker OUT / Line | ~4800 theory; **1200 field** | ✅ K24/K25 | ✅ APRS, digipeater access | — | **P0 bench–on-air** |
 | **Audio wide** | Line, de-emphasis off | up to ~9600 (difficult) | rare | experimental | — | not primary |
-| **Direct FSK** | Varactor TX + FM discriminator RX | **9600–19200** | ❌ | ✅ backbone, sat | ❌ | **Phase 2** (P1) |
-| **SSB audio** | USB/LSB suppressed carrier | **300** packet; kHz-BW modes separate | ❌ | 10 m APRS exception | ✅ | **Phase 3** (P2 optional) |
+| **Direct FSK** | Varactor TX + FM discriminator RX | **9600–19200** | ❌ | ✅ backbone, sat | ❌ | **P1** (DEV-Level 4) |
+| **SSB audio** | USB/LSB suppressed carrier | **300** packet; kHz-BW modes separate | ❌ | 10 m APRS exception | ✅ | **P2 optional** |
 
 **CB note:** 9600+ G3RUH requires direct RF modulation and wide IF — standard CB FM rigs are **not** 9k6-ready. CRDOP does **not** target high baud on 27 MHz.
 
@@ -154,8 +168,8 @@ Radio (FM audio / direct FSK / SSB)
 | **Framing** | HDLC flags `0x7E`, bit-stuffing, CRC-16-CCITT | `hdlc_codec.py` |
 | **Line code** | Bell 202 frequency-toggle (bit 0 → tone change) | `bell202_line_code.py` |
 | **PHY 1200** | Continuous-phase AFSK 1200/2200 Hz, Goertzel demod | `afsk_modulator.py`, `afsk_demodulator.py` |
-| **PHY 9k6+** | G3RUH scrambler + FSK — **not yet in lib/** | planned Phase 2 |
-| **PHY 300 HF** | 200 Hz shift tone pairs — **not yet in lib/** | planned Phase 3 |
+| **PHY 9k6+** | G3RUH scrambler + FSK — **not yet in lib/** | planned P1 (DEV-Level 4) |
+| **PHY 300 HF** | 200 Hz shift tone pairs — **not yet in lib/** | planned P2 optional |
 | **Audio I/O** | ALSA capture/playback, no PulseAudio | `sound_proxy.py` |
 | **Bench integration** | Loopback encode/decode, sniffer | `acoustic_engine.py` |
 | **Host TCP** | M25-family ctrl + KISS-semantics data | `m25_host_protocol.py` → `audio-dummyd` |
@@ -218,7 +232,6 @@ Packet on CB/VHF (poor SNR, QRM, half-duplex collisions) favours **short UI fram
 | `max25d CrdopTcpBackend` (default) | `PROTOCOLMODE KISS`, `[CRDOP AX25 UI …]` display |
 | `m25_host_protocol.py` | Defaults **8515/8516** — matches `crdopc` INI |
 | `audio-dummyd` bench | Same ports via CLI; `audio-dummy` max25d **host** mode may use **8520** when :8515 busy |
-| `ardop_compat=true` | **ARDOP-plugin** wire mode — not default |
 
 ---
 
@@ -239,7 +252,7 @@ Honest mapping — 2026-07-13.
 | `audio-dummyd` | `tools/audio-dummyd.py` | **In progress** | M25 host + `AcousticEngine`; default launcher target |
 | `max25-signal-sniffer` | `tools/max25-signal-sniffer.py` | **In progress** | ALSA/WAV/loopback Bell 202 analysis |
 | G3RUH 9600–19200 | — | **Planned** | No module yet; direct FSK radio required |
-| 300 HF AFSK | — | **Planned** | Optional Phase 3 |
+| 300 HF AFSK | — | **Planned** | Optional P2 |
 | FEC codec (short blocks) | — | **Planned** | Offline inject-bit-error tests first |
 | `speed_baud` INI → launcher | — | **Not implemented** | Research gap |
 | Native C `crdopc` DSP binary | `include/crdop/` | **Scaffold** | Python lib leads; C port follows validation |
@@ -247,9 +260,11 @@ Honest mapping — 2026-07-13.
 
 ---
 
-## Milestones — phased delivery
+## Milestones — modulation delivery (P0 / P1 / P2)
 
-### Phase 0 — Acoustic bench (current)
+> CRDOP subproject milestones — distinct from stack [DEV-Levels](../../docs/V2.0.0-SCOPE.md#dev-levels-roadmap-stack-wide). P0/P1/P2 work lands primarily in **DEV-Level 4** except bench/minimal path in DEV-Level 1.
+
+### P0 bench — Acoustic bench (current)
 
 **Goal:** Prove Bell 202 + HDLC + AX.25 UI in software loopback and ALSA bench — no RF required.
 
@@ -264,7 +279,7 @@ Honest mapping — 2026-07-13.
 
 **Exit criteria:** Stable loopback decode; sniffer reports AX.25 UI from generated PCM; `test_crdop_backend.py` green.
 
-### Phase 1 — CB/VHF 1200 on-air
+### P0 on-air — CB/VHF 1200 on-air
 
 **Goal:** Field-validated 1200 AFSK interoperable with standard AX.25 packet peers on CB and VHF APRS-class paths.
 
@@ -279,7 +294,7 @@ Honest mapping — 2026-07-13.
 
 **Exit criteria:** Verified AX.25 UI exchange with at least one reference 1200 AFSK path (acoustic or line-level).
 
-### Phase 2 — G3RUH 9600–19200
+### P1 — G3RUH 9600–19200
 
 **Goal:** Direct-FSK VHF/UHF backbone rates up to **19200 baud** hard maximum.
 
@@ -290,11 +305,11 @@ Honest mapping — 2026-07-13.
 | Wide-IF rig requirements checklist | Planned |
 | Loopback with recorded IQ/baseband fixtures | Planned |
 
-**Prerequisite:** Phase 1 stable; radio with suitable data port and wide-IF path for direct FSK.
+**Prerequisite:** P0 on-air stable; radio with suitable data port and wide-IF path for direct FSK.
 
 **Exit criteria:** Scrambler-compatible exchange with G3RUH reference captures or peer at 9600 minimum.
 
-### Phase 3 — HF 300 baud (optional)
+### P2 — HF 300 baud (optional)
 
 **Goal:** SSB USB/LSB 300 bd packet — 1600/1800 Hz pair first.
 
@@ -312,13 +327,13 @@ Honest mapping — 2026-07-13.
 
 Interop validation uses **reference signal classes**, not product endorsements.
 
-| Reference class | Mode | Interface | CRDOP phase |
-|-----------------|------|-----------|-------------|
-| **1200 AFSK hardware modem** | Bell 202 | Serial KISS or acoustic | Phase 0–1 |
-| **Kernel bit-bang modem** | 1200 AFSK | Parallel/serial | Phase 0–1 tone reference |
-| **Mobile KISS → audio** | 1200 AFSK | Bluetooth/audio bridge | Phase 1 mobile |
-| **G3RUH FSK modem** | 4800–19200 | Direct FSK data port | Phase 2 golden reference |
-| **Multi-mode HF TNC** | 300 HF + 1200 VHF | Multi-mode serial | Phase 3 optional |
+| Reference class | Mode | Interface | CRDOP milestone |
+|-----------------|------|-----------|-----------------|
+| **1200 AFSK hardware modem** | Bell 202 | Serial KISS or acoustic | P0 bench–on-air |
+| **Kernel bit-bang modem** | 1200 AFSK | Parallel/serial | P0 bench tone reference |
+| **Mobile KISS → audio** | 1200 AFSK | Bluetooth/audio bridge | P0 on-air mobile |
+| **G3RUH FSK modem** | 4800–19200 | Direct FSK data port | P1 golden reference |
+| **Multi-mode HF TNC** | 300 HF + 1200 VHF | Multi-mode serial | P2 optional |
 | **Sound-card reference decoder** | 300–9600+ | ALSA | Software decode parity (1200) |
 
 Open-hardware documentation: [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFACE.md). Audio QA: [docs/SOUNDCARD-QUALIFICATION.md](docs/SOUNDCARD-QUALIFICATION.md).
@@ -341,9 +356,6 @@ Open-hardware documentation: [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFAC
 
 | Item | Policy |
 |------|--------|
-| Item | Policy |
-|------|--------|
-| **ARDOP-plugin** | Optional — `ardop_compat=true`; operator ARDOP host |
 | `vendor/ardopcf` dev tree | Local dev only (`CRDOP_VENDOR_ARDOPCF=ON`); not in release install |
 | **libax25 / ax25-tools / ax25-apps** bundles | Reference tarballs only — not shipped as CRDOP dependency |
 | VARA / PACTOR / WINMOR implementations | Out of scope |
@@ -375,8 +387,8 @@ Synthesis **2026-07-13** — topics below are covered in this ROADMAP and in-rep
 | `amateur-hf-packet-solutions.md` | HF 300 bd, Winlink boundary |
 | `l2-fec-protocols.md` | FEC layers, FX.25/IL2P takeaways |
 | `modern-softmodems.md` | Class D out-of-scope, decision matrix (generic) |
-| `bell-202-afsk-1200.md` | P0 PHY parameters, Phase 0–1 |
-| `g3ruh-fsk-9600-19200.md` | P1 direct FSK, Phase 2 |
+| `bell-202-afsk-1200.md` | P0 PHY parameters, P0 bench–on-air |
+| `g3ruh-fsk-9600-19200.md` | P1 direct FSK, DEV-Level 4 |
 | `hf-300-baud-afsk.md` | P2 tone pairs, SSB path |
 | `nrzi-hdlc-ax25-layers.md` | Layer model + `lib/` mapping |
 | `MODULATION-REFERENCE.md` | Modulation priority matrix |
@@ -418,10 +430,10 @@ Synthesis **2026-07-13** — topics below are covered in this ROADMAP and in-rep
 | [docs/HARDWARE-INTERFACE.md](docs/HARDWARE-INTERFACE.md) | Generic radio interface spec |
 | [docs/LICENSE-USAGE.md](docs/LICENSE-USAGE.md) | GPLv3 private + commercial |
 | [docs/HOST-PROTOCOL-SPEC.md](../stacks/crdop/docs/HOST-PROTOCOL-SPEC.md) | M25 host wire (frozen) |
-| [docs/ACOUSTIC-TEST-PROTOCOL.md](../stacks/crdop/docs/ACOUSTIC-TEST-PROTOCOL.md) | Phase 0 bench |
+| [docs/ACOUSTIC-TEST-PROTOCOL.md](../stacks/crdop/docs/ACOUSTIC-TEST-PROTOCOL.md) | P0 bench |
 | [docs/FEC-SPEC.md](../stacks/crdop/docs/FEC-SPEC.md) | FEC/duplex parameters |
 | [docs/SOUNDCARD-QUALIFICATION.md](../stacks/crdop/docs/SOUNDCARD-QUALIFICATION.md) | Audio interface QA |
-| [docs/G3RUH-DESIGN.md](../stacks/crdop/docs/G3RUH-DESIGN.md) | Phase 2 P1 |
+| [docs/G3RUH-DESIGN.md](../stacks/crdop/docs/G3RUH-DESIGN.md) | P1 — 9600–19200 direct FSK |
 | [docs/CRDOP.md](../../docs/CRDOP.md) | Static project rule |
 | [docs/AUDIO-ARCHITECTURE.md](docs/AUDIO-ARCHITECTURE.md) | Kernel ALSA, sound-proxy |
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | Host TCP interface |
@@ -429,4 +441,5 @@ Synthesis **2026-07-13** — topics below are covered in this ROADMAP and in-rep
 
 ---
 
-*Roadmap synthesized 2026-07-13 from modem catalog and MAX25 integration notes. Update when phase gates close or modulation priorities change.*
+*Roadmap synthesized 2026-07-13 from modem catalog and MAX25 integration notes. Update when DEV-Level gates close or modulation priorities change.*
+.*

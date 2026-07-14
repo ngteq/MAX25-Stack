@@ -136,7 +136,9 @@ With `ax25_ui=on`, framed text looks like: `[AX25 UI <callerid>><callid>] <paylo
 - Hardware lifecycle (`stack=running`) is owned by `max25d` per device, not the terminal.
 - Each enabled device owns one serial port exclusively (one `KissBridge` each).
 
-## Multi-device configuration
+## Multi-device configuration (legacy)
+
+> **Host layout:** **1× Main** + optional **5+ Secondaries** per server — [ARCHITECTURE.md](../../docs/ARCHITECTURE.md#host-layout--main--secondaries). Multi-id syntax below remains for backward compatibility.
 
 `max25d.ini` `[devices]` section (see `share/max25/max25d.ini.example`):
 
@@ -144,6 +146,11 @@ With `ax25_ui=on`, framed text looks like: `[AX25 UI <callerid>><callid>] <paylo
 [devices]
 default = tnc2c
 tnc2c = /dev/ttyS4
+```
+
+Legacy multi-id example (deprecated for new sites):
+
+```ini
 pktnc2 = /dev/ttyS5
 ```
 
@@ -157,7 +164,7 @@ Per-device serial overrides: `[serial.<id>]` sections (baud, line, dtr_rts, kiss
 
 ```
 ← OK
-← STATUS hardware=tncs device=tnc2c devices=tnc2c,pktnc2 mode=standalone callerid=CB-0 callid=QST ax25_ui=on connected=no stack=stopped
+← STATUS hardware=tncs device=tnc2c devices=tnc2c mode=standalone callerid=CB-0 callid=QST ax25_ui=on connected=no stack=stopped
 → SET DEVICE tnc2c
 ← OK
 → CONNECT

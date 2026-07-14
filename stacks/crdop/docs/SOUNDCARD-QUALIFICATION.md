@@ -92,4 +92,4 @@ Requirements **rise faster than linear** above 1200 bd:
 
 ## Community list (planned)
 
-Phase 0 exit: publish operator-submitted **class + Q1–Q2 result** table — no vendor ranking.
+P0 bench exit: publish operator-submitted **class + Q1–Q2 result** table — no vendor ranking.

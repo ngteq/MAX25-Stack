@@ -46,16 +46,6 @@ modem:
   audio_required: true
   coupling: [line_level, acoustic]
 
-ardop_plugin:
-  id: ardop-plugin
-  optional: true
-  ini_flag: ardop_compat
-  ini_sections:
-    - device.soft-crdop   # max25d.ini
-    - compat              # crdop.ini
-  note: ARDOP-plugin — optional MAX25-Stack plugin wire mode on soft-crdop
-  registry: plugins/external/ardop/plugin.yaml
-
 runtime:
   ctl_start: stacks/crdop/scripts/crdopc
   default_ini: stacks/crdop/share/crdop.ini.example

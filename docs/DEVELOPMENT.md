@@ -1,6 +1,30 @@
 # Development
 
-[AGENTS.md](../AGENTS.md) · [CONTRIBUTING.md](../CONTRIBUTING.md) · Doc index: [README.md](README.md) · **v1.0.0**
+[AGENT-INDEX.md](../AGENT-INDEX.md) · [AGENTS.md](../AGENTS.md) · [CONTRIBUTING.md](../CONTRIBUTING.md) · Doc index: [README.md](README.md) · **v1.0.0**
+
+## Publication standard (static rule)
+
+**Repo boundary:** MAX25-Stack = **code** for agents. **All documentation** = only in **0-RESEARCHES** (`projects/max25-stack/`) — [vault AGENT-INDEX §0.5](../0-RESEARCHES/AGENT-INDEX.md#05-documentation-sole-workspace-static-rule). Agents do **not** write `docs/` here unless the operator explicitly orders a shipped sync. See also [AGENT-INDEX.md §0.1](../AGENT-INDEX.md#01-static-repo-boundary-internal--owner-rule).
+
+Applies to shipped text when the owner publishes from the vault — full spec in [AGENT-INDEX.md §0](../AGENT-INDEX.md#0-publication-standard-all-projects) and [0-RESEARCHES AGENT-INDEX](../0-RESEARCHES/AGENT-INDEX.md#0-publication-standard-all-projects).
+
+| Requirement | MAX25 shipped docs |
+|-------------|-------------------|
+| Complete + compact | Operator can act from docs + `share/` examples |
+| English only | All user-facing text in English |
+| AI/human-readable | Tables, stable plugin/device terminology |
+| Generic | `$SRC`, `$PREFIX`, placeholder devices — [PATHS.md](PATHS.md) |
+| Investigations | Research vault `projects/max25-stack/` — not `docs/` dumps |
+
+## Research vault boundary (static rule)
+
+| Agents in MAX25-Stack | Research vault `0-RESEARCHES/` |
+|-----------------------|--------------------------------|
+| **Code + publication** (VERSION, release-check, `share/` when shipping) | **All documentation work** — architecture, roadmaps, scope, operator manuals |
+| Read frozen `docs/` for context | Inbound-only, no deletion without replacement — [vault §0.1](../0-RESEARCHES/AGENT-INDEX.md#01-vault-retention-research-vault-only) |
+| — | Dedup: `tools/vault-duplicate-check.sh`; REGISTER: `vault-register-check.sh` |
+
+Workflow: [0-RESEARCHES/AGENT-INDEX.md](../0-RESEARCHES/AGENT-INDEX.md) §0.2 · [operations/2026-07-13-vault-automation-roadmap.md](../0-RESEARCHES/operations/2026-07-13-vault-automation-roadmap.md).
 
 ## Toolchain
 
@@ -27,14 +51,16 @@ cmake --install build --prefix /usr/local
 cmake -B build -DMAX25_BUILD_CRDOP=OFF && cmake --build build -j$(nproc)
 ```
 
-Host example: [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md). *BSD porting deferred — [PLATFORMS.md](PLATFORMS.md).
+Host example: [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md). FreeBSD server port (CRDOP, light) — [FREEBSD-AX25.md](FREEBSD-AX25.md) · [PLATFORMS.md](PLATFORMS.md).
 
 ## Daemon vs terminal
 
-| Component | Linux | Other OS |
-|-----------|-------|----------|
-| `max25d` | **Yes** | **No** |
-| `max25-terminal` | Yes | Yes — remote TCP to Linux `max25d` |
+| Component | `max25d` host (mainstream OS) | Client platforms |
+|-----------|------------------------------|------------------|
+| **`max25d`** | Linux/KLinux (full stack) → FreeBSD **server+CRDOP** → OpenBSD → NetBSD → macOS → Windows | not on AmigaOS / legacy DOS |
+| **`max25-terminal`** | yes (local or remote) | mainstream + AmigaOS — remote M25/1 TCP |
+
+Port order: Linux/KLinux → **FreeBSD** (first *BSD) → OpenBSD → NetBSD. FreeBSD `max25d` deferred until Linux/KLinux tier is complete.
 
 One official client: `max25-terminal` / `max25-client` — [MAX25-CLIENT.md](MAX25-CLIENT.md).
 
@@ -49,6 +75,10 @@ MAX25 maintains **one** official operator client (`max25-terminal`, text-only). 
 | Near-term MAX25 | WebSocket browser terminal (`stacks/web/`) | In development — not v1.0.0 production |
 
 Bind to `max25d` via the documented protocol; do not open `/dev/tty*` or kernel modem devices directly. See [MAX25-CLIENT.md](MAX25-CLIENT.md) and [MAX25-TERMINAL.md](MAX25-TERMINAL.md).
+
+**Host layout:** Main + optional Secondaries on one server — [ARCHITECTURE.md](ARCHITECTURE.md#host-layout--main--secondaries). Linux TUN: **`max25d0`** — [NETDEV.md](NETDEV.md).
+
+**v2 mandatory:** rootless day-to-day operation and guided setup ([V2.0.0-SCOPE.md](V2.0.0-SCOPE.md)) — BayCom currently still uses `sudo` in v1; implementation targets systemd + one-time install boundary.
 
 ## Layout
 

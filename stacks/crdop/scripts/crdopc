@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# CRDOP launcher — native MAX25-SoftModem (audio-dummyd / M25 host) by default.
-# Optional: legacy ARDOP vendor binary when ardop_compat=true (dev-only, never shipped).
+# CRDOP launcher — native MAX25-SoftModem (audio-dummyd / M25 host).
+# ARDOP is a separate optional MAX25-Stack plugin — not part of CRDOP.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -8,7 +8,6 @@ ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 MAX25_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 PREFIX_SHARE="${SCRIPT_DIR}/../share/crdop"
 
-# Default INI: user config → installed share → source tree
 if [[ -n "${CRDOP_INI:-}" ]]; then
     INI="${CRDOP_INI}"
 elif [[ -f "${HOME}/.config/crdop/crdop.ini" ]]; then
@@ -18,8 +17,6 @@ elif [[ -f "${PREFIX_SHARE}/crdop.ini.example" ]]; then
 else
     INI="${ROOT}/share/crdop.ini.example"
 fi
-
-# --- INI reader ---------------------------------------------------------------
 
 ini_get() {
     local section="$1" key="$2" default="$3" file="$4"
@@ -44,30 +41,6 @@ resolve_ini() {
     fi
 }
 
-# --- Profile presets (CB-primary) ---------------------------------------------
-
-profile_default_bw() {
-    case "$1" in
-        amateur) echo "1000MAX" ;;
-        dual|cb|*) echo "500MAX" ;;
-    esac
-}
-
-profile_busy_det() {
-    case "$1" in
-        amateur) echo "" ;;
-        dual|cb|*) echo "1" ;;
-    esac
-}
-
-profile_half_delay_ms() {
-    case "$1" in
-        amateur) echo "80" ;;
-        dual)    echo "200" ;;
-        cb|*)    echo "150" ;;
-    esac
-}
-
 normalize_profile() {
     case "${1,,}" in
         cb|dual|amateur) echo "${1,,}" ;;
@@ -88,75 +61,56 @@ normalize_duplex() {
     esac
 }
 
-build_ardop_host_commands() {
-    local profile="$1" duplex="$2" arqbw="$3" mycall="$4" extra_override="$5"
-    local cmds="INITIALIZE;PROTOCOLMODE ARQ;ARQBW ${arqbw};MYCALL ${mycall}"
-    case "${profile}" in
-        amateur) cmds="${cmds};ARQTIMEOUT 45" ;;
-        dual)    cmds="${cmds};ARQTIMEOUT 35" ;;
-        *)       cmds="${cmds};ARQTIMEOUT 30" ;;
-    esac
-    local busy
-    busy="$(profile_busy_det "${profile}")"
-    [[ -n "${busy}" ]] && cmds="${cmds};BUSYDET ${busy}"
-    local delay
-    if [[ -n "${extra_override}" ]]; then
-        delay="${extra_override}"
-    elif [[ "${duplex}" == "full" ]]; then
-        delay="0"
-    else
-        delay="$(profile_half_delay_ms "${profile}")"
+enforce_host_audio() {
+    local backend
+    backend="$(ini_get audio backend "" "${INI}")"
+    if [[ -z "${backend}" ]]; then
+        case "$(uname -s)" in
+            FreeBSD) backend="oss" ;;
+            *) backend="alsa" ;;
+        esac
     fi
-    cmds="${cmds};EXTRADELAY ${delay}"
-    echo "${cmds}"
-}
-
-# --- Audio: kernel ALSA only (MAX25 sound-proxy) -----------------------------
-
-enforce_kernel_alsa() {
-    local no_pulse
-    no_pulse="$(ini_get audio no_pulse yes "${INI}")"
-    case "${no_pulse,,}" in
-        1|yes|true|on)
-            unset PULSE_SERVER PULSE_COOKIE PIPEWIRE_RUNTIME_DIR 2>/dev/null || true
-            export PULSE_SERVER=
-            export ALSA_CARD="${ALSA_CARD:-}"
-            ;;
-    esac
+    if [[ "${backend}" == "alsa" ]]; then
+        local no_pulse
+        no_pulse="$(ini_get audio no_pulse yes "${INI}")"
+        case "${no_pulse,,}" in
+            1|yes|true|on)
+                unset PULSE_SERVER PULSE_COOKIE PIPEWIRE_RUNTIME_DIR 2>/dev/null || true
+                export PULSE_SERVER=
+                export ALSA_CARD="${ALSA_CARD:-}"
+                ;;
+        esac
+    fi
 }
 
 audio_cli_args() {
-    local cap pb
+    local cap pb backend
+    backend="$(ini_get audio backend "" "${INI}")"
+    if [[ -z "${backend}" ]]; then
+        case "$(uname -s)" in
+            FreeBSD) backend="oss" ;;
+            *) backend="alsa" ;;
+        esac
+    fi
     cap="$(ini_get audio capture "" "${INI}")"
     pb="$(ini_get audio playback "" "${INI}")"
     local args=()
     [[ -n "${cap}" ]] && args+=("${cap}")
     [[ -n "${pb}" ]] && args+=("${pb}")
     if [[ ${#args[@]} -gt 0 ]]; then
-        for a in "${args[@]}"; do
-            if [[ "${a}" == *pulse* || "${a}" == *pipewire* || "${a}" == default ]]; then
-                echo "error: audio device '${a}' — use hw:/plughw: kernel ALSA (see docs/AUDIO-ARCHITECTURE.md)" >&2
-                exit 1
-            fi
-        done
+        if [[ "${backend}" == "alsa" ]]; then
+            for a in "${args[@]}"; do
+                if [[ "${a}" == *pulse* || "${a}" == *pipewire* || "${a}" == default ]]; then
+                    echo "error: audio device '${a}' — use hw:/plughw: kernel ALSA" >&2
+                    exit 1
+                fi
+            done
+        fi
         printf '%s\n' "${args[@]}"
+    elif [[ "${backend}" == "oss" ]]; then
+        echo "/dev/dsp"
+        echo "/dev/dsp"
     fi
-}
-
-find_vendor_binary() {
-  if [[ -n "${CRDOP_BIN:-}" && -x "${CRDOP_BIN}" ]]; then
-    echo "${CRDOP_BIN}"
-    return
-  fi
-  for candidate in \
-    "${MAX25_ROOT}/build/bin/crdopc" \
-    "${ROOT}/build/crdopc" \
-    "$(command -v crdopc 2>/dev/null || true)"; do
-    [[ -n "${candidate}" && -x "${candidate}" ]] || continue
-    echo "${candidate}"
-    return
-  done
-  return 1
 }
 
 find_audio_dummyd() {
@@ -171,8 +125,6 @@ find_audio_dummyd() {
   return 1
 }
 
-# --- Main ---------------------------------------------------------------------
-
 resolve_ini
 
 if [[ -f "${PREFIX_SHARE}/VERSION" ]]; then
@@ -185,13 +137,9 @@ fi
 
 PROFILE="$(normalize_profile "$(ini_get profile radio_profile cb "${INI}")")"
 DUPLEX="$(normalize_duplex "$(ini_get modem duplex half "${INI}")")"
-DEFAULT_BW="$(profile_default_bw "${PROFILE}")"
-ARQBW="$(ini_get modem arq_bandwidth "${DEFAULT_BW}" "${INI}")"
 MYCALL="$(ini_get mycall call NOCALL-0 "${INI}")"
 HOST_PORT="$(ini_get host port 8515 "${INI}")"
 DATA_PORT=$((HOST_PORT + 1))
-EXTRA_OVERRIDE="$(ini_get modem extra_delay_ms "" "${INI}")"
-ARDOP_COMPAT="$(ini_get compat ardop_compat no "${INI}")"
 SAMPLE_RATE="$(ini_get audio sample_rate 48000 "${INI}")"
 
 if [[ $# -ge 1 && "${1}" =~ ^[0-9]+$ ]]; then
@@ -201,20 +149,7 @@ if [[ $# -ge 1 && "${1}" =~ ^[0-9]+$ ]]; then
 fi
 
 mapfile -t AUDIO_ARGS < <(audio_cli_args || true)
-enforce_kernel_alsa
-
-case "${ARDOP_COMPAT,,}" in
-    1|yes|true|on)
-        VENDOR_BIN="$(find_vendor_binary || true)"
-        if [[ -z "${VENDOR_BIN}" ]]; then
-            echo "error: ardop_compat=true but no vendor crdopc binary — install third-party ARDOP or set CRDOP_BIN" >&2
-            exit 1
-        fi
-        HOSTCMDS="$(build_ardop_host_commands "${PROFILE}" "${DUPLEX}" "${ARQBW}" "${MYCALL}" "${EXTRA_OVERRIDE}")"
-        echo "CRDOP ${CRDOP_VERSION} ardop_compat profile=${PROFILE} port=${HOST_PORT} (external ARDOP vendor)"
-        exec "${VENDOR_BIN}" "${HOST_PORT}" "${AUDIO_ARGS[@]}" "$@" -H "${HOSTCMDS}"
-        ;;
-esac
+enforce_host_audio
 
 DUMMY="$(find_audio_dummyd || true)"
 if [[ -z "${DUMMY}" ]]; then
@@ -230,5 +165,7 @@ if [[ ${#AUDIO_ARGS[@]} -ge 2 ]]; then
     DUMMY_ARGS+=(-P "${AUDIO_ARGS[1]}")
 fi
 
-echo "CRDOP ${CRDOP_VERSION} profile=${PROFILE} duplex=${DUPLEX} ctrl=:${HOST_PORT} data=:${DATA_PORT} call=${MYCALL} audio=alsa-kernel (native M25)"
+AUDIO_BACKEND="$(ini_get audio backend "" "${INI}")"
+[[ -z "${AUDIO_BACKEND}" ]] && case "$(uname -s)" in FreeBSD) AUDIO_BACKEND="oss" ;; *) AUDIO_BACKEND="alsa" ;; esac
+echo "CRDOP ${CRDOP_VERSION} profile=${PROFILE} duplex=${DUPLEX} ctrl=:${HOST_PORT} data=:${DATA_PORT} call=${MYCALL} audio=${AUDIO_BACKEND} (native M25)"
 exec "${DUMMY}" "${DUMMY_ARGS[@]}" "$@"

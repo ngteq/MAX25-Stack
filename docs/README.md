@@ -8,10 +8,12 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 
 | Role | Document |
 |------|----------|
+| **Master operator guide (synced)** | **[MASTER-GUIDE.md](MASTER-GUIDE.md)** — linear start |
+| **Dual-TNC / AX25SRV** | [AX25SRV-OPERATOR-GUIDE.md](AX25SRV-OPERATOR-GUIDE.md) |
 | Host setup | [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) |
 | **Unified device workflow** | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) — TNC reference, all backends |
 | Terminal operator | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) |
-| Browser terminal (Web UI) | [WEBSOCKET.md](WEBSOCKET.md) *(in development)* · [stacks/web/README.md](../stacks/web/README.md) |
+| Browser terminal (Web UI) | [WEBSOCKET.md](WEBSOCKET.md) *(DEV-Level 3 — planned)* · [stacks/web/README.md](../stacks/web/README.md) |
 | Client developer | [MAX25-CLIENT.md](MAX25-CLIENT.md) · [include/max25/protocol.md](../include/max25/protocol.md) |
 | Terminal profiles | [share/clients/README.md](../share/clients/README.md) · [share/clients/index.yaml](../share/clients/index.yaml) |
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
@@ -20,8 +22,9 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | **All devices (full list)** | [DEVICES-LIST-FULL.md](DEVICES-LIST-FULL.md) |
 | AX.25 codec | [AX25-NATIVE-CODEC.md](AX25-NATIVE-CODEC.md) |
 | Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) · [PATHS.md](PATHS.md) |
-| Virtual netdev `max25d` (TUN, IPv4/IPv6) | [NETDEV.md](NETDEV.md) |
+| Virtual netdev **`max25d0`** (TUN, IPv4/IPv6) | [NETDEV.md](NETDEV.md) |
 | v1 release | [V1.0.0-SCOPE.md](V1.0.0-SCOPE.md) |
+| **v2 goals (rootless, auto setup)** | [V2.0.0-SCOPE.md](V2.0.0-SCOPE.md) — includes **DEV-Levels roadmap** |
 
 ## Technical reference
 
@@ -32,7 +35,8 @@ Main AX.25 Stack (**MAX25**) — compact doc map for v1.0.
 | BayCom kernel modems | [BAYCOM.md](BAYCOM.md) |
 | **CRDOP / MAX25-SoftModem** | [CRDOP.md](CRDOP.md) · [stacks/crdop/docs/INDEX.md](../stacks/crdop/docs/INDEX.md) · [stacks/crdop/README.md](../stacks/crdop/README.md) |
 | Platforms | [PLATFORMS.md](PLATFORMS.md) |
-| *BSD deferred | [FREEBSD-AX25.md](FREEBSD-AX25.md) |
+| *BSD port plan | [FREEBSD-AX25.md](FREEBSD-AX25.md) — FreeBSD → OpenBSD → NetBSD |
+| **Modular TCP/IP Servers Service** | [MODULAR-TCPIP-SERVER.md](MODULAR-TCPIP-SERVER.md) |
 | Merge archive | [MERGE-REPORT.md](MERGE-REPORT.md) |
 
 ## Stack READMEs (link — do not duplicate here)
