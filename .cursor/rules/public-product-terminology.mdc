@@ -1,0 +1,25 @@
+---
+description: Public product terminology — HyBBX BBX (not BBS); never AX25SRV in shipped docs
+alwaysApply: true
+---
+
+# Public product terminology (static rule)
+
+**Scope:** GitHub-facing and shipped `*.md` in this repo. Full spec: MASTER vault [AGENT-INDEX §0.16](https://github.com/ngteq/0-RESEARCHES/blob/main/AGENT-INDEX.md#016-public-product-terminology-static-rule) · `operations/2026-07-15-public-product-terminology-rule.md`.
+
+## HyBBX — use BBX, not BBS
+
+| Context | Term |
+|---------|------|
+| HyBBX product / UN1TME instance | **BBX** |
+| Forbidden in HyBBX public copy | **BBS** |
+
+## MAX25-Stack — BBS OK, no AX25SRV
+
+| Context | Term |
+|---------|------|
+| Generic packet bulletin systems | **BBS** OK |
+| HyBBX product reference | **HyBBX** or **BBX** |
+| Shipped docs | **Never** `AX25SRV`, `ax25srv` in prose or doc filenames |
+
+**Relation:** document-standard · terms-exclusion
