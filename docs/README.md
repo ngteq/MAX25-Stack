@@ -14,7 +14,6 @@ Compact doc map for MAX25 — start at MASTER-GUIDE for linear operator flow.
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
 | BayCom / PC-COM | [BAYCOM.md](BAYCOM.md) |
 | Operator runbook | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) |
-| All devices | [DEVICES-LIST-FULL.md](DEVICES-LIST-FULL.md) |
 | Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) |
 
 ## Technical reference matrix
