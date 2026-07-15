@@ -74,7 +74,7 @@ devices:
     path: devices/baycom-kiss
     hardware: modems
     hybbx_backend: kiss
-    status: scaffold
+    status: active
   - id: soft-crdop
     path: devices/soft-crdop
     hardware: soft-modems

@@ -296,6 +296,21 @@ def main() -> int:
 
     modprobe_hint_par(modems)
 
+    kiss_serial = [m for m in modems if m["backend"] == "kiss-serial"]
+    for m in kiss_serial:
+        dev = m["serial"]
+        if not dev:
+            err(f"{m['label']}: missing serial for kiss-serial")
+            continue
+        check_serial_idle(dev, m["label"])
+        if validator.is_usb_serial(dev):
+            ok(f"{m['label']}: USB KISS path — no setserial/iobase required")
+        elif dev.startswith("/dev/ttyS"):
+            warn(
+                f"{m['label']}: kiss-serial on {dev} — "
+                f"prefer kiss-serial-rs232 catalog or hardware UART ser12"
+            )
+
     try:
         lsmod = subprocess.check_output(["lsmod"], text=True)
         if "baycom_ser_fdx" in lsmod:

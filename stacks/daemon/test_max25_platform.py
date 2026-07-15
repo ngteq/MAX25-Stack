@@ -24,7 +24,8 @@ def test_linux_defaults() -> None:
     assert max25d_supported()
     assert "tnc2c" in supported_device_ids()
     assert "baycom-a" in supported_device_ids()
-    assert "baycom-b" in supported_device_ids()
+    assert "baycom-kiss" in supported_device_ids()
+    assert "pccom-kiss" in supported_device_ids()
     assert crdop_audio_backend() == "alsa"
     assert default_unix_socket() == "/run/max25/modem.sock"
     assert default_bans_file() == "/var/lib/max25/bans.txt"

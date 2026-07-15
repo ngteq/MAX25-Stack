@@ -56,7 +56,11 @@ grep -q 'BP_M0_BACKEND=kernel-par96' /tmp/baycom-par96-load.out || fail "par96 i
 pass "baycom-pr.par96.ini example"
 python3 tools/baycom_validate_config.py config/examples/baycom-pr.cb.ini || fail "CB example invalid"
 python3 tools/baycom_validate_config.py config/examples/baycom-pr.ham.ini || fail "HAM example invalid"
-pass "CB + HAM example INIs"
+python3 tools/baycom_validate_config.py config/examples/baycom-pr.usb.ini || fail "USB example invalid"
+python3 tools/baycom_ini_load.py config/examples/baycom-pr.usb.ini >/tmp/baycom-usb-load.out
+grep -q 'BP_M0_BACKEND=kiss-serial' /tmp/baycom-usb-load.out || fail "USB ini loader backend"
+grep -q 'BP_M0_SERIAL=/dev/ttyUSB0' /tmp/baycom-usb-load.out || fail "USB ini loader serial"
+pass "CB + HAM + USB example INIs"
 
 echo ""
 echo "=== 4. INI loader ==="
@@ -87,7 +91,8 @@ pass "modems.ini"
 
 echo ""
 echo "=== 6. Python tools ==="
-python3 -m py_compile tools/baycom_ini_load.py tools/baycom_validate_config.py tools/baycom_preflight.py tools/baycom_serial_status.py tools/baycom_probe.py tools/baycom_doctor.py tools/baycom_axports.py
+python3 -m py_compile tools/baycom_ini_load.py tools/baycom_validate_config.py tools/baycom_preflight.py tools/baycom_serial_status.py tools/baycom_probe.py tools/baycom_doctor.py tools/baycom_axports.py tools/test_baycom_validate_usb.py
+python3 tools/test_baycom_validate_usb.py
 pass "python syntax"
 
 echo ""
@@ -114,6 +119,7 @@ for p in \
 	config/examples/baycom-pr.ham.ini \
 	config/examples/baycom-pr.par96.ini \
 	config/examples/baycom-pr.picpar.ini \
+	config/examples/baycom-pr.usb.ini \
 	docs/INDEX.md \
 	docs/GUIDE.md \
 	docs/REFERENCE.md \

@@ -1,0 +1,29 @@
+; MAX25 — BayCom USB KISS (ttyUSB / ttyACM) — canonical example
+; Kernel ser12 (PC-COM on ttyS0) is a different path — see baycom-pr.pccom-ttyS0-only.ini.example
+;
+; Install (root):
+;   sudo cp share/baycom/baycom-pr.kiss-usb.ini.example /etc/baycom/baycom-pr.ini
+;   sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini preflight
+;
+; max25d (pick ONE path per USB port):
+;   [features] baycom=yes pccom=yes
+;   baycom-ser12 = baycom:a     ; KISS PTY from baycom-pr stack
+;   ; pccom-kiss = /dev/ttyUSB0 ; direct max25d KISS — do not combine with baycom-pr on same port
+
+[stack]
+state_dir = /var/run/baycom-pr
+kiss_bridge = yes
+catalog = /etc/baycom/modems.ini
+bindir = /usr/local/sbin
+
+[profile]
+name = kiss-usb-single
+modems = a
+
+[modem.a]
+catalog = kiss-serial-usb
+label = USB KISS Radio
+serial = /dev/ttyUSB0
+kiss_link = /var/run/baycom-pr/kiss
+ax25_port = radio
+callsign = N0CALL-0

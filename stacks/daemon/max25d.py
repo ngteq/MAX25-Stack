@@ -614,10 +614,13 @@ def uses_inline_tnc_prep(state: DaemonState, dev_id: str) -> bool:
 
 
 def hybbx_host_hybbx_owns_serial(state: DaemonState, dev_id: str) -> bool:
-    """In hybbx-host mode HyBBX opens /dev/tty* after max25d prep."""
+    """In hybbx-host mode HyBBX opens /dev/tty* after max25d prep (or directly for USB KISS)."""
     if state.cfg.mode != "hybbx-host":
         return False
-    if device_backend_kind(state, dev_id) != "kiss-serial":
+    kind = device_backend_kind(state, dev_id)
+    if kind == "kiss-raw-serial":
+        return True
+    if kind != "kiss-serial":
         return False
     rt = state.devices.get(dev_id)
     return rt is not None and rt.prep_done and rt.backend is None
@@ -729,6 +732,11 @@ def open_backend(state: DaemonState, dev_id: str) -> bool:
         if rt is not None:
             rt.link_status = "n/a"
         return False
+    if hybbx_host_hybbx_owns_serial(state, dev_id):
+        rt.link_status = "ready"
+        rt.prep_done = True
+        rt.stack_status = "ready"
+        return True
     if rt.backend is not None and rt.backend.status not in BACKEND_RETRY_STATUSES:
         return rt.backend.status in ("open", "ready")
     if (

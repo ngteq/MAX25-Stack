@@ -49,6 +49,7 @@ DEVICE_REGISTRY: dict[str, dict[str, str | bool]] = {
     "baycom-b": {"hardware": "modems", "backend": "baycom-kiss", "tested": True},
     "baycom-par96": {"hardware": "modems", "backend": "baycom-kiss", "tested": False},
     "baycom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
+    "pccom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
     "soft-crdop": {"hardware": "soft-modems", "backend": "crdop-tcp", "tested": True},
     "audio-dummy": {"hardware": "acoustic-bench", "backend": "audio-dummy", "tested": True},
 }
@@ -418,17 +419,18 @@ class KissRawSerialBackend(KissRawBackend):
         root: str,
         on_rx: RxFn,
         log: Optional[LogFn] = None,
+        prefix: Optional[str] = None,
     ) -> None:
-        prof = SerialProfile(baud=9600, line="8n1", dtr_rts=False)
+        overrides: dict[str, str] = {}
         if cfg.serial_device:
-            prof.device = cfg.serial_device
+            overrides["device"] = cfg.serial_device
         if cfg.serial_baud:
-            prof.baud = cfg.serial_baud
+            overrides["baud"] = str(cfg.serial_baud)
         if cfg.serial_line:
-            prof.line = cfg.serial_line
-        env_path = os.path.join(root, "stacks", "baycom-pr", "config", "baycom-pr.ini")
-        if os.path.isfile(env_path) and not cfg.serial_device:
-            pass
+            overrides["line"] = cfg.serial_line
+        if cfg.serial_dtr_rts:
+            overrides["dtr_rts"] = cfg.serial_dtr_rts
+        prof = serial_profile_for_device(cfg.device_id, root, overrides, prefix=prefix)
         path = cfg.serial_device or prof.device
         super().__init__(cfg, path, prof, on_rx, log, is_pty=False)
 
@@ -941,7 +943,7 @@ def create_backend(
     if kind == "baycom-kiss":
         return BayComKissBackend(dev_cfg, on_rx, log)
     if kind == "kiss-raw-serial":
-        return KissRawSerialBackend(dev_cfg, root, on_rx, log)
+        return KissRawSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix)
     if kind == "crdop-tcp":
         return CrdopTcpBackend(dev_cfg, on_rx, log)
     if kind == "audio-dummy":

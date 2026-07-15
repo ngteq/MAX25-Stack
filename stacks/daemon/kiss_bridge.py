@@ -192,6 +192,14 @@ def serial_profile_for_device(
             prof.dtr_rts = False
         if "kiss_entry" not in ini:
             prof.kiss_entry = "auto"
+    elif device_id in ("pccom-kiss", "baycom-kiss"):
+        prof.device = ini.get("device") or env.get("PCCOM_KISS_DEV", prof.device or "/dev/ttyUSB0")
+        prof.baud = int(ini.get("baud") or env.get("PCCOM_KISS_BAUD", "9600"))
+        prof.line = (ini.get("line") or env.get("PCCOM_KISS_LINE", "8n1")).lower()
+        dtr = ini.get("dtr_rts") or env.get("PCCOM_KISS_DTR_RTS", "no")
+        prof.dtr_rts = str(dtr).lower() in ("1", "yes", "true", "on")
+        if "kiss_entry" not in ini:
+            prof.kiss_entry = "none"
     return prof
 
 

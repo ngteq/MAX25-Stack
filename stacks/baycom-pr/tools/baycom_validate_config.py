@@ -15,8 +15,15 @@ KISS_SERIAL_DRIVERS = {"kiss_serial"}
 PAR_DRIVERS = {"baycom_par"}
 SER12_MODE_RE = re.compile(r"^ser(12|3)[*+]?$", re.I)
 PAR_MODE_RE = re.compile(r"^par96\*?$|^picpar$", re.I)
+USB_SERIAL_RE = re.compile(r"^/dev/tty(USB|ACM)", re.I)
+SER12_CATALOG_KINDS = frozenset({"ser12"})
+KISS_CATALOG_KINDS = frozenset({"kiss"})
 FAIL = 0
 WARN = 0
+
+
+def is_usb_serial(path: str) -> bool:
+    return bool(USB_SERIAL_RE.match(path.strip()))
 
 
 def err(msg: str) -> None:
@@ -225,6 +232,36 @@ def validate_site(ini_path: Path) -> int:
         entry = validate_catalog(cat, cat_id, sec)
         if entry:
             ok(f"[{sec}] catalog={cat_id} ({entry.get('name', cat_id)})")
+            cat_kind = entry.get("kind", "").strip().lower()
+            cat_stack = entry.get("stack", "").strip().lower()
+            if cat_id == "unsupported-ser12-usb-adapter":
+                err(
+                    f"[{sec}] catalog '{cat_id}' is unsupported — "
+                    f"use kiss-serial-usb on {serial or 'ttyUSB/ttyACM'}"
+                )
+            if backend == "kernel-ser12" and serial and is_usb_serial(serial):
+                err(
+                    f"[{sec}] kernel-ser12 cannot use USB serial {serial} — "
+                    f"use catalog=kiss-serial-usb and kiss-serial backend"
+                )
+            if cat_kind in SER12_CATALOG_KINDS and serial and is_usb_serial(serial):
+                err(
+                    f"[{sec}] ser12 catalog '{cat_id}' on USB {serial} — "
+                    f"use kiss-serial-usb (kernel bit-bang needs hardware UART)"
+                )
+            if backend == "kiss-serial" and cat_kind in SER12_CATALOG_KINDS:
+                err(
+                    f"[{sec}] kiss-serial backend requires kiss catalog "
+                    f"(got '{cat_id}' kind={cat_kind or '?'})"
+                )
+            if backend == "kiss-serial" and cat_stack == "unsupported":
+                err(f"[{sec}] catalog '{cat_id}' is unsupported for kiss-serial")
+            if backend == "kiss-serial" and serial and not is_usb_serial(serial):
+                if not Path(serial).name.startswith("ttyS"):
+                    warn(
+                        f"[{sec}] kiss-serial on {serial} — "
+                        f"expected /dev/ttyUSB* or /dev/ttyACM* or RS-232 kiss-serial-rs232"
+                    )
 
     print(f"\n== Config validation: {FAIL} error(s), {WARN} warning(s) ==")
     return 1 if FAIL else 0

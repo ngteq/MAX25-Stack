@@ -1,0 +1,27 @@
+; MainAX25-Stack (MAX25-Stack) — HyBBX secondary host (USB KISS / PC-COM)
+; max25d: mode=hybbx-host, [features] baycom=yes pccom=yes
+; HyBBX opens /dev/ttyUSB* directly — max25d does not hold the serial port.
+;
+; Prefer stable udev path: /dev/serial/by-id/usb-...
+
+[networks]
+baycom = no
+ax25 = yes
+
+[transport.packet_radio1]
+backend = kiss
+device = /dev/ttyUSB0
+baud = 9600
+line = 8n1
+dtr_rts = no
+kiss_entry = none
+radio_baud = 1200
+txdelay = 30
+slot = 10
+persist = 128
+txtail = 1
+circuit_host = main.example.com
+circuit_port = 7323
+link_id = max25-pccom-kiss
+link_password = changeme
+frequency_mhz = 27.205

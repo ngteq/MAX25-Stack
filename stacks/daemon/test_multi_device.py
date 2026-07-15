@@ -126,6 +126,28 @@ baud = 9600
     assert cfg.default_device == "tnc2c"
 
 
+def test_parse_pccom_kiss_device() -> None:
+    mod = load_max25d_module()
+    cp = configparser.ConfigParser()
+    cp.read_string(
+        """
+[features]
+baycom = yes
+pccom = yes
+[devices]
+default = pccom-kiss
+pccom-kiss = /dev/ttyUSB0
+"""
+    )
+    cfg = mod.DaemonConfig()
+    cfg.feature_baycom = True
+    cfg.feature_pccom = True
+    devices = mod.parse_devices(cp, cfg)
+    by_id = {d.device_id: d for d in devices}
+    assert by_id["pccom-kiss"].backend_type == "kiss-raw-serial"
+    assert by_id["pccom-kiss"].serial_device == "/dev/ttyUSB0"
+
+
 def test_parse_heterogeneous_devices() -> None:
     mod = load_max25d_module()
     cp = configparser.ConfigParser()

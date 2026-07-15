@@ -79,6 +79,32 @@ def test_serial_profile_pktnc2() -> None:
     assert prof.kiss_entry == "auto"
 
 
+def test_serial_profile_pccom_kiss_env() -> None:
+    import os
+    import tempfile
+
+    tmp = Path(tempfile.mkdtemp())
+    env = tmp / "local" / "pccom-kiss-serial.env"
+    env.parent.mkdir(parents=True)
+    env.write_text(
+        "PCCOM_KISS_DEV=/dev/ttyUSB2\nPCCOM_KISS_BAUD=9600\nPCCOM_KISS_DTR_RTS=no\n",
+        encoding="utf-8",
+    )
+    old = os.environ.get("MAX25_ROOT")
+    os.environ["MAX25_ROOT"] = str(tmp)
+    try:
+        prof = serial_profile_for_device("pccom-kiss", str(tmp), {})
+        assert prof.device == "/dev/ttyUSB2"
+        assert prof.baud == 9600
+        assert prof.dtr_rts is False
+        assert prof.kiss_entry == "none"
+    finally:
+        if old is None:
+            os.environ.pop("MAX25_ROOT", None)
+        else:
+            os.environ["MAX25_ROOT"] = old
+
+
 def test_crc_known_vector() -> None:
     body = bytes(range(256))
     assert ax25_crc(body) == 0x303C
@@ -119,6 +145,7 @@ def main() -> int:
         test_format_rx,
         test_serial_profile_tnc2c,
         test_serial_profile_pktnc2,
+        test_serial_profile_pccom_kiss_env,
         test_crc_known_vector,
         test_kiss_non_data_ignored,
         test_invalid_callsign_tx,

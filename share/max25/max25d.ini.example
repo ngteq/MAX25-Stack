@@ -24,6 +24,7 @@ tnc2c = /dev/ttyS4
 ; baycom-ser12 = baycom:a
 ; baycom-par96 = baycom:a
 ; baycom-kiss = /dev/ttyUSB0
+; pccom-kiss = /dev/ttyUSB0   ; alias — direct KISS (see share/max25/serial/pccom-kiss-serial.env.example)
 ; soft-crdop = crdop:default
 ; Acoustic bench (loopback / ALSA sniff / host daemon):
 ; audio-dummy = audio:loopback
