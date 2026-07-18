@@ -13,6 +13,7 @@ Compact doc map for MAX25 — start at MASTER-GUIDE for linear operator flow.
 | Client / M25/1 | [MAX25-CLIENT.md](MAX25-CLIENT.md) |
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
 | BayCom / PC-COM | [BAYCOM.md](BAYCOM.md) |
+| BayCom freeze warning (RX/TX) | [BAYCOM-FREEZES.md](BAYCOM-FREEZES.md) |
 | Operator runbook | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) |
 | Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) |
 

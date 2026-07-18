@@ -2,6 +2,8 @@
 
 Kernel BayCom SER12 lifecycle — single PC-COM default, dual modem opt-in.
 
+> **Warning — host freezes (RX / TX):** A BayCom-compatible **PC-COM** modem on `baycom_ser_fdx` can **hard-freeze** or soft-hang some hosts (TX/calibrate even with radio off; RX/RF EMI even with the driver unloaded). Read **[BAYCOM-FREEZES.md](BAYCOM-FREEZES.md)** before start or calibrate. Do **not** run `baycom_test calibrate` on interactive desktops.
+
 ## Device matrix
 
 | Device id | Hardware | HyBBX plugin |
@@ -43,5 +45,6 @@ Radio ← UART ← baycom-pr-ctl (kernel) ← KISS PTY ← max25d ← M25/1 / Hy
 
 | Goal | Doc |
 |------|-----|
+| **Host freeze warning (RX/TX)** | **[BAYCOM-FREEZES.md](BAYCOM-FREEZES.md)** |
 | HyBBX attach | [HYBBX.md](HYBBX.md) |
 | Device model | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |

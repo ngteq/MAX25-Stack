@@ -117,7 +117,9 @@ Axports apply runs automatically on `setup` and `start`. Optional boot unit: `co
 
 ## 6. Freeze prevention
 
-Wrong IRQ is the #1 host-freeze cause. Built-in protection:
+> **Also read:** [BAYCOM-FREEZES.md](../../../docs/BAYCOM-FREEZES.md) — RX/TX and calibrate freezes with PC-COM / BayCom-compatible SER12 (beyond wrong-IRQ storms).
+
+Wrong IRQ is a common host-freeze cause. Built-in protection:
 
 | Layer | Tool |
 |-------|------|
@@ -155,7 +157,7 @@ Env overrides: `BAYCOM_STAGED_START=0` (skip staged), `BAYCOM_MAX_IRQ_PER_SEC=80
 | Config only | `python3 tools/baycom_validate_config.py /etc/baycom/baycom-pr.ini` |
 | With hardware | `sudo baycom-pr-ctl selftest` |
 | IRQ activity | `baycom_test irq 2` (while stack up) |
-| PTT path | `baycom_test calibrate 2` (optional, needs root) |
+| PTT path | **Avoid on desktops** — `baycom_test calibrate` can **hard-freeze** the host ([BAYCOM-FREEZES.md](../../../docs/BAYCOM-FREEZES.md)) |
 
 On-air RX/TX is operator responsibility — not covered by offline tests.
 

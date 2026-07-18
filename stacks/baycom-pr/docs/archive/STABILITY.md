@@ -1,8 +1,8 @@
 # Stability and freeze prevention
 
-**v0.5.0** · [TESTING.md](TESTING.md) · [HARDWARE.md](HARDWARE.md)
+**v0.5.0** · [TESTING.md](TESTING.md) · [HARDWARE.md](HARDWARE.md) · shipped warning: [BAYCOM-FREEZES.md](../../../../docs/BAYCOM-FREEZES.md)
 
-Kernel-ser12 (`baycom_ser_fdx`) bit-bangs UART control lines under interrupt load. **Wrong IRQ, UART conflicts, or dual-modem misconfiguration can freeze the host.** This document describes safeguards built into the stack and safe operating procedure.
+Kernel-ser12 (`baycom_ser_fdx`) bit-bangs UART control lines under interrupt load. **Wrong IRQ, UART conflicts, dual-modem misconfiguration, SER12 TX/calibrate, or RF EMI near the host can freeze the machine.** This document describes safeguards built into the stack and safe operating procedure.
 
 ## Built-in safeguards
 
