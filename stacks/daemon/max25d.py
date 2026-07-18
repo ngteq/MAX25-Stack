@@ -73,6 +73,16 @@ def _device_is_pccom(dev: DeviceBackendConfig) -> bool:
     return "pccom" in ini
 
 
+
+def _device_is_bcpr(dev: DeviceBackendConfig) -> bool:
+    if dev.device_id.startswith("bcpr"):
+        return True
+    spec = (dev.device_spec or "").strip()
+    if spec.startswith("bcpr:"):
+        return True
+    return dev.backend_type == "bcpr-kiss"
+
+
 def _device_allowed_by_features(dev: DeviceBackendConfig, cfg: DaemonConfig) -> bool:
     if _device_is_baycom(dev) and not cfg.feature_baycom:
         LOGGER.warn(
@@ -83,6 +93,12 @@ def _device_allowed_by_features(dev: DeviceBackendConfig, cfg: DaemonConfig) -> 
     if _device_is_pccom(dev) and not cfg.feature_pccom:
         LOGGER.warn(
             f"device {dev.device_id}: PC-COM disabled — set [features] pccom=yes",
+            area="config",
+        )
+        return False
+    if _device_is_bcpr(dev) and not cfg.feature_bcpr:
+        LOGGER.warn(
+            f"device {dev.device_id}: bcpr disabled — set [features] bcpr=yes",
             area="config",
         )
         return False
@@ -118,6 +134,7 @@ class DaemonConfig:
     config_path: str = ""
     feature_baycom: bool = False
     feature_pccom: bool = False
+    feature_bcpr: bool = False
     report_error_transmissions: bool = True
     report_voice_transmissions: bool = True
     report_data_passes: int = 3
@@ -380,6 +397,7 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
     if cp.has_section("features"):
         cfg.feature_baycom = _truthy(cp.get("features", "baycom", fallback="no"))
         cfg.feature_pccom = _truthy(cp.get("features", "pccom", fallback="no"))
+        cfg.feature_bcpr = _truthy(cp.get("features", "bcpr", fallback="no"))
     cfg.report_error_transmissions = _truthy(
         cp.get("reporting", "error_transmissions", fallback="yes")
     )
@@ -816,7 +834,7 @@ def backend_enabled(state: DaemonState, dev_id: str) -> bool:
     if rt is None:
         return False
     kind = rt.cfg.backend_type
-    return kind in ("kiss-serial", "baycom-kiss", "kiss-raw-serial", "crdop-tcp")
+    return kind in ("kiss-serial", "baycom-kiss", "bcpr-kiss", "kiss-raw-serial", "crdop-tcp")
 
 
 def aggregate_stack_status(state: DaemonState) -> str:
@@ -882,6 +900,64 @@ def send_line(sock: socket.socket, line: str) -> None:
     sock.sendall((line + "\n").encode("utf-8"))
 
 
+
+def resolve_bcpr_ini(explicit: str = "") -> Path | None:
+    """Resolve bcpr.ini for userspace SER12 (max25e0)."""
+    from pathlib import Path as _P
+    if explicit:
+        p = _P(explicit)
+        return p if p.is_file() else None
+    for cand in (
+        ROOT / "local" / "bcpr.ini",
+        _P("/etc/max25/bcpr.ini"),
+        ROOT / "stacks" / "bcpr" / "share" / "bcpr.ini.example",
+        ROOT / "share" / "bcpr" / "bcpr.ini.example",
+    ):
+        if cand.is_file():
+            return cand
+    return None
+
+
+def resolve_bcpr_ctl() -> Path | None:
+    from pathlib import Path as _P
+    for cand in (
+        ROOT / "stacks" / "bcpr" / "tools" / "bcpr-ctl",
+        _P("/usr/local/sbin/bcpr-ctl"),
+        _P("/usr/sbin/bcpr-ctl"),
+    ):
+        if cand.is_file():
+            return cand
+    return None
+
+
+def start_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
+    """Start bcprd once via bcpr-ctl for shared bcpr_ini."""
+    rt = state.devices[dev_id]
+    ctl = resolve_bcpr_ctl()
+    if ctl is None:
+        rt.stack_status = "error-no-ctl"
+        log(f"bcpr-ctl not found ({dev_id})")
+        return
+    args = [str(ctl), "-c", str(ini), "start"]
+    env = os.environ.copy()
+    try:
+        proc = subprocess.Popen(
+            args,
+            cwd=str(ROOT),
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        log(f"bcpr start failed ({dev_id}): {exc}")
+        rt.stack_status = "error"
+        return
+    rt.stack_proc = proc
+    rt.stack_status = "running"
+    log(f"bcpr started pid={proc.pid} ({dev_id}, ini={ini})")
+
+
 def start_device_stack(state: DaemonState, dev_id: str) -> None:
     if uses_inline_tnc_prep(state, dev_id):
         prep_inline_serial_device(state, dev_id)
@@ -936,13 +1012,32 @@ def start_device_stack(state: DaemonState, dev_id: str) -> None:
 
 
 def start_stacks(state: DaemonState) -> None:
-    """Start per-device stacks; one baycom-pr-ctl per shared baycom_ini."""
+    """Start per-device stacks; one baycom-pr-ctl / bcpr-ctl per shared ini."""
     started_baycom_ini: dict[str, str] = {}
+    started_bcpr_ini: dict[str, str] = {}
     for dev_id in enabled_device_ids(state):
         rt = state.devices[dev_id]
         kind = rt.cfg.backend_type or ""
         if uses_inline_tnc_prep(state, dev_id):
             prep_inline_serial_device(state, dev_id)
+            continue
+        if kind == "bcpr-kiss":
+            explicit = rt.cfg.bcpr_ini or ""
+            resolved = resolve_bcpr_ini(explicit)
+            ini_key = str(resolved) if resolved else ""
+            if ini_key and ini_key in started_bcpr_ini:
+                primary = started_bcpr_ini[ini_key]
+                primary_rt = state.devices[primary]
+                rt.stack_proc = primary_rt.stack_proc
+                rt.stack_status = primary_rt.stack_status
+                log(f"bcpr stack shared with {primary} ({dev_id}, ini={ini_key})")
+                continue
+            if resolved:
+                start_bcpr_stack(state, dev_id, resolved)
+                started_bcpr_ini[str(resolved)] = dev_id
+            else:
+                rt.stack_status = "error-no-ini"
+                log(f"bcpr.ini not found ({dev_id})")
             continue
         if kind == "baycom-kiss":
             explicit = rt.cfg.baycom_ini or ""

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(MainAX25Stack VERSION 1.5.0 LANGUAGES C)
 
 include(GNUInstallDirs)
+enable_testing()
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
@@ -18,6 +19,7 @@ include(MAX25Ax25)
 option(MAX25_BUILD_TNCS "Build stacks/tncs tools" ON)
 option(MAX25_BUILD_BAYCOM "Build stacks/baycom-pr tools (runtime default off via [features])" ON)
 option(MAX25_BUILD_CRDOP "Build and install MAX25-SoftModem (CRDOP) — disable only if not needed" ON)
+option(MAX25_BUILD_BCPR "Build stacks/bcpr userspace BayCom-compatible SER12 plugin" ON)
 option(MAX25_BUILD_TERMINAL "Build max25-terminal / max25-client" ON)
 option(MAX25_BUILD_DAEMON "Install max25d" ON)
 option(MAX25_BUILD_WEB "Install MAX25 web UI scaffold" ON)
@@ -32,6 +34,10 @@ endif()
 
 if(MAX25_BUILD_CRDOP)
     add_subdirectory(stacks/crdop "${CMAKE_BINARY_DIR}/crdop")
+endif()
+
+if(MAX25_BUILD_BCPR)
+    add_subdirectory(stacks/bcpr "${CMAKE_BINARY_DIR}/bcpr")
 endif()
 
 if(MAX25_BUILD_TERMINAL)
@@ -146,6 +152,11 @@ install(FILES "${CMAKE_SOURCE_DIR}/share/baycom/baycom-pr.pccom-ttyS0-only.ini.e
         RENAME "baycom-pr.ini.example")
 endif()
 
+if(MAX25_BUILD_BCPR)
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/bcpr/tools/bcpr-ctl"
+            DESTINATION "${CMAKE_INSTALL_SBINDIR}")
+endif()
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/share/max25/max25d.service.example")
     install(FILES "${CMAKE_SOURCE_DIR}/share/max25/max25d.service.example"
             DESTINATION "${CMAKE_INSTALL_DATADIR}/max25")
@@ -187,6 +198,8 @@ add_custom_target(max25_daemon_smoke
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_kiss_bridge.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_baycom_backend.py"
+    COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
+            python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_bcpr_backend.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=
             python3 "${CMAKE_SOURCE_DIR}/stacks/daemon/test_crdop_backend.py"
     COMMAND "${CMAKE_COMMAND}" -E env PYTHONPATH=

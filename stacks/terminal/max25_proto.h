@@ -46,6 +46,8 @@ int max25_client_command(max25_client_t *client, const char *cmd,
 int max25_client_read_line(max25_client_t *client, char *line, size_t line_sz);
 max25_line_kind_t max25_client_classify_line(const char *line);
 int max25_client_parse_status(const char *line, max25_status_t *status);
+/** Apply EVENT connected / EVENT disconnected to status. Returns 1 if handled. */
+int max25_client_apply_event(const char *line, max25_status_t *status);
 
 int max25_valid_callsign(const char *value);
 

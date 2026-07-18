@@ -366,6 +366,22 @@ static void copy_field(const char *src, char *dst, size_t dst_sz)
     dst[dst_sz - 1] = '\0';
 }
 
+int max25_client_apply_event(const char *line, max25_status_t *status)
+{
+    if (line == NULL || status == NULL || strncmp(line, "EVENT ", 6) != 0) {
+        return 0;
+    }
+    if (strcmp(line, "EVENT connected") == 0) {
+        status->connected = 1;
+        return 1;
+    }
+    if (strcmp(line, "EVENT disconnected") == 0) {
+        status->connected = 0;
+        return 1;
+    }
+    return 0;
+}
+
 int max25_client_parse_status(const char *line, max25_status_t *status)
 {
     char buf[MAX25_LINE_MAX];

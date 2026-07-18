@@ -26,6 +26,9 @@ def test_linux_defaults() -> None:
     assert "baycom-a" in supported_device_ids()
     assert "baycom-kiss" in supported_device_ids()
     assert "pccom-kiss" in supported_device_ids()
+    assert "bcpr" in supported_device_ids()
+    assert "bcpr-bc0" in supported_device_ids()
+    assert "bcpr-bc1" in supported_device_ids()
     assert crdop_audio_backend() == "alsa"
     assert default_unix_socket() == "/run/max25/modem.sock"
     assert default_bans_file() == "/var/lib/max25/bans.txt"
@@ -37,6 +40,8 @@ def test_freebsd_profile() -> None:
     assert max25d_supported()
     assert "soft-crdop" in supported_device_ids()
     assert "tnc2c" not in supported_device_ids()
+    assert "bcpr-bc0" not in supported_device_ids()
+    assert "bcpr" not in supported_device_ids()
     assert crdop_audio_backend() == "oss"
     assert default_unix_socket() == "/var/run/max25/modem.sock"
     assert default_bans_file() == "/var/db/max25/bans.txt"

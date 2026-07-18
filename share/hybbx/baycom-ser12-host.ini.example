@@ -1,25 +1,19 @@
-; MainAX25-Stack (MAX25-Stack) — HyBBX Secondary host (BayCom SER12)
-; Requires max25d [features] baycom=yes and MAX25 BayCom prep.
-; HyBBX: use packet_radio + kiss_entry=none (not transport.baycom — runtime default off).
-; Legacy transport.baycom below — enable only with [networks] baycom=yes and explicit operator need.
+; LEGACY EXAMPLE — do not use for UN1TME production (TNCs only).
+; BayCom/based on MAX25: prefer stacks/bcpr (bcprd / [features] bcpr=yes).
+; Kernel baycom_ser_fdx / bcsf* is not the product path.
+; Optional non-UN1TME HyBBX sites: attach BayCom/based only via MAX25 after bcpr prove-out.
+; This file kept for historical Secondary/kernel experiments only.
 
 [networks]
 baycom = no
 ax25 = yes
 
-[transport.baycom1]
-backend = kernel
-mode = ser12*
-interface = bcsf0
-iobase = 0x3f8
-irq = 4
-radio_baud = 1200
-txdelay = 30
-slot = 10
-persist = 128
-txtail = 1
-circuit_host = main.example.com
-circuit_port = 7323
-link_id = max25-baycom-ser12
-link_password = changeme
-frequency_mhz = 27.205
+; --- obsolete kernel SER12 sketch (do not enable on UN1TME) ---
+; [transport.baycom1]
+; backend = kernel
+; mode = ser12*
+; interface = bcsf0
+; iobase = 0x3f8
+; irq = 4
+; radio_baud = 1200
+; Prefer instead: max25d device bcpr-bc0 = bcpr:bc0 + /etc/max25/bcpr.ini

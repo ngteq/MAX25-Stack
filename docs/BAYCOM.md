@@ -1,54 +1,72 @@
-# BayCom / PC-COM · MAX25-Stack 1.5.0
+# BayCom/based · MAX25-Stack
 
-Kernel BayCom SER12 lifecycle — single PC-COM default, dual modem opt-in.
+Public mark: **BayCom/based**. Preferred path: **bcpr** (userspace SER12). Never use kernel `baycom_ser_fdx` as the product path.
 
-> **Warning — host freezes (RX / TX):** A BayCom-compatible **PC-COM** modem on `baycom_ser_fdx` can **hard-freeze** or soft-hang some hosts (TX/calibrate even with radio off; RX/RF EMI even with the driver unloaded). Read **[BAYCOM-FREEZES.md](BAYCOM-FREEZES.md)** before start or calibrate. Do **not** run `baycom_test calibrate` on interactive desktops.
+## Preferred path: **bcpr**
 
-## Device matrix
+For Albrecht PC-COM / **BayCom/based** TCM3105-class AFSK hardware, use the **bcpr** MAX25 plugin.
 
-| Device id | Hardware | HyBBX plugin |
-|-----------|----------|--------------|
-| `baycom-ser12` | SER12 / PC-COM on 8250 UART | `baycom` |
-| deferred | `baycom-par96`, `baycom-kiss` | — |
+| Item | Value |
+|------|--------|
+| Plugin | `stacks/bcpr/` · `bcprd` / `bcpr-ctl` |
+| Feature | `[features] bcpr = yes` |
+| Device | `bcpr-bc0 = bcpr:bc0` |
+| Host face | **`max25e0:bc0`** / `bc1` (max 2) |
+| Hardware | **BayCom/based** bits↔AFSK + PTT (UART modem-control) — not a TNC |
+| Hard law | Real IRQ · exclusive COM lock · max 2 · freeze after INI/autoprobe · no calibrate |
 
-## v1.5.0 feature gate matrix
-
-| Item | Default |
-|------|---------|
-| `[features] baycom` | `no` in INI examples |
-| `[features] pccom` | `no` in INI examples |
-| Enable | set `baycom=yes` in INI + run setup |
-
-## Stack path matrix
-
-```
-Radio ← UART ← baycom-pr-ctl (kernel) ← KISS PTY ← max25d ← M25/1 / HyBBX
+```text
+Radio AF/PTT ↔ PC-COM (TCM3105) ↔ UART
+                         ↕
+                    bcprd (SER12+HDLC)
+                         ↕
+              KISS PTY ← max25d ← M25/1
 ```
 
-## Direction (userspace)
+### Quick start
 
-We will try a **userspace** SER12 / PC-COM host path (bitbang + HDLC), **with or without** the Linux `baycom_ser_fdx` kernel module. Whether the kernel driver stays optional, required for bring-up only, or is dropped for product use is **still to be determined**. Host face target remains MAX25 (`max25e0` / related), not a separate BayCom product netdev. Until that lands, treat the kernel path as the existing reference — and respect [BAYCOM-FREEZES.md](BAYCOM-FREEZES.md).
+```bash
+# 1) Build
+cmake -S . -B build-bcpr -DMAX25_BUILD_BCPR=ON
+cmake --build build-bcpr --target bcprd
 
-## Start matrix
+# 2) Offline dry-run
+./build-bcpr/bin/bcprd -c stacks/bcpr/share/bcpr.ini.example --dry-run --once
 
-| Step | Command |
-|------|---------|
-| INI | `share/baycom/baycom-pr.pccom-ttyS0-only.ini.example` |
-| Setup | `baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup` |
-| Start | `max25-ctl start --hardware modems --device baycom-ser12` |
-| Netdev | `bcsf0` (SER12*) |
+# 3) Live (owned COM, real IRQ in INI)
+sudo cp stacks/bcpr/share/bcpr.ini.example /etc/max25/bcpr.ini
+# edit: dry_run=no, serial/iobase/irq to match setserial
+sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini preflight
+sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini start
 
-## When to use matrix
+# 4) max25d
+# [features] bcpr = yes
+# [devices] bcpr-bc0 = bcpr:bc0
+# [device.bcpr-bc0] kiss_link=… bcpr_ini=/etc/max25/bcpr.ini
+```
 
-| Use BayCom when | Use TNC when |
-|-----------------|--------------|
-| PC-COM / SER12 on real 8250 UART | TNC2C, PK-TNC2, USB serial KISS |
-| Linux `baycom_ser_fdx` path | Boot-wait + firmware KISS |
+Details: [`stacks/bcpr/README.md`](../stacks/bcpr/README.md).
+
+> **Freezes:** SQ-open / RF EMI class still applies on some desktops — see **[BAYCOM-FREEZES.md](BAYCOM-FREEZES.md)**. Do **not** calibrate.
+
+---
+
+## Legacy (optional): kernel baycom-pr
+
+The in-tree `baycom_ser_fdx` / `baycom-pr-ctl` path remains in-tree for reference and older setups. It is **not** the product path for new PC-COM bring-up.
+
+| Feature | Default |
+|---------|---------|
+| `[features] baycom` | `no` |
+| `[features] pccom` | `no` |
+| Netdev | `bcsf*` — do not use as MAX25 host face |
+
+If you must use it: `share/baycom/` + [BAYCOM-FREEZES.md](BAYCOM-FREEZES.md). Prefer **bcpr** instead.
 
 ## Related
 
 | Goal | Doc |
 |------|-----|
-| **Host freeze warning (RX/TX)** | **[BAYCOM-FREEZES.md](BAYCOM-FREEZES.md)** |
-| HyBBX attach | [HYBBX.md](HYBBX.md) |
+| Freeze warning | [BAYCOM-FREEZES.md](BAYCOM-FREEZES.md) |
+| bcpr plugin | [stacks/bcpr/README.md](../stacks/bcpr/README.md) |
 | Device model | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |

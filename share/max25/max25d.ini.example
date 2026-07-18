@@ -2,9 +2,10 @@
 ; Copy to /etc/max25/max25d.ini or pass MAX25D_INI=
 
 [features]
-; BayCom / PC-COM kernel paths — disabled by default (enable when hardware needs them).
+; PC-COM / SER12: use bcpr (userspace). Kernel baycom = legacy, off by default.
 baycom = no
 pccom = no
+bcpr = no
 
 [daemon]
 ; Operating mode: standalone | service | hybbx-host
@@ -20,11 +21,13 @@ device = tnc2c
 ; Serial path, baycom:<modem>, or crdop:<profile>
 default = tnc2c
 tnc2c = /dev/ttyS4
-; pktnc2 = /dev/ttyS5          ; second device — not on same Linux host (use another machine)
-; baycom-ser12 = baycom:a
-; baycom-par96 = baycom:a
+; pktnc2 = /dev/ttyS5
+; --- PC-COM preferred: bcpr userspace SER12 ---
+; bcpr = yes   ; under [features]
+; bcpr-bc0 = bcpr:bc0
+; baycom-ser12 = baycom:a   ; LEGACY kernel path — prefer bcpr
 ; baycom-kiss = /dev/ttyUSB0
-; pccom-kiss = /dev/ttyUSB0   ; alias — direct KISS (see share/max25/serial/pccom-kiss-serial.env.example)
+; pccom-kiss = /dev/ttyUSB0
 ; soft-crdop = crdop:default
 ; Acoustic bench (loopback / ALSA sniff / host daemon):
 ; audio-dummy = audio:loopback
@@ -102,13 +105,20 @@ serial_bootwait_escalate_cooldown = 300
 ; dtr_rts = no
 ; kiss_entry = auto
 
-; --- BayCom kernel modem (SER12 / PAR96) ---
-; Uncomment for PC-COM on ttyS0 (single modem — v1 default):
+; --- BayCom kernel (LEGACY — prefer bcpr above) ---
 ; baycom-ser12 = baycom:a
 ; [device.baycom-ser12]
 ; kiss_link = /var/run/baycom-pr/kiss
 ; modem = a
 ; baycom_ini = /etc/baycom/baycom-pr.ini
+
+; --- bcpr userspace SER12 (BayCom/based — preferred private PC-COM) ---
+; [features] bcpr = yes
+; bcpr-bc0 = bcpr:bc0
+; [device.bcpr-bc0]
+; kiss_link = /tmp/bcpr/kiss-bc0
+; bcpr_ini = /etc/max25/bcpr.ini
+; UN1TME production: TNCs only — do not enable bcpr there.
 
 ; --- USB/async BayCom KISS serial ---
 ; [serial.baycom-kiss]

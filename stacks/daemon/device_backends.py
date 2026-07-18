@@ -50,6 +50,10 @@ DEVICE_REGISTRY: dict[str, dict[str, str | bool]] = {
     "baycom-par96": {"hardware": "modems", "backend": "baycom-kiss", "tested": False},
     "baycom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
     "pccom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
+    # bcpr: userspace SER12 for PC-COM SER12 (bits↔AFSK+PTT) — not kernel baycom_ser_fdx
+    "bcpr": {"hardware": "modems", "backend": "bcpr-kiss", "tested": False},
+    "bcpr-bc0": {"hardware": "modems", "backend": "bcpr-kiss", "tested": False},
+    "bcpr-bc1": {"hardware": "modems", "backend": "bcpr-kiss", "tested": False},
     "soft-crdop": {"hardware": "soft-modems", "backend": "crdop-tcp", "tested": True},
     "audio-dummy": {"hardware": "acoustic-bench", "backend": "audio-dummy", "tested": True},
 }
@@ -95,6 +99,9 @@ class DeviceBackendConfig:
     kiss_link: str = ""
     baycom_modem: str = "a"
     baycom_ini: str = ""
+    # bcpr userspace SER12 — max25e0:bc0/bc1
+    bcpr_ini: str = ""
+    bcpr_device: str = ""  # bc0 | bc1
     # CRDOP TCP
     crdop_host: str = "127.0.0.1"
     crdop_port: int = 8515
@@ -404,6 +411,26 @@ class BayComKissBackend(KissRawBackend):
             default = "/var/run/baycom-pr/kiss"
             if os.path.exists(default) or not os.path.exists(kiss):
                 kiss = default
+        profile = SerialProfile(baud=9600, line="8n1", dtr_rts=False)
+        super().__init__(cfg, kiss, profile, on_rx, log, is_pty=True)
+
+
+class BcprKissBackend(KissRawBackend):
+    """bcpr userspace SER12 via KISS PTY (max25e0:bc0/bc1).
+
+    Hardware is a TCM3105-class AFSK modem chip (bits↔AFSK + PTT) only — not a TNC.
+    """
+
+    backend_type = "bcpr-kiss"
+
+    def __init__(
+        self,
+        cfg: DeviceBackendConfig,
+        on_rx: RxFn,
+        log: Optional[LogFn] = None,
+    ) -> None:
+        tag = (cfg.bcpr_device or "bc0").strip() or "bc0"
+        kiss = cfg.kiss_link or f"/var/run/bcpr/kiss-{tag}"
         profile = SerialProfile(baud=9600, line="8n1", dtr_rts=False)
         super().__init__(cfg, kiss, profile, on_rx, log, is_pty=True)
 
@@ -872,6 +899,14 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
         dev.backend_type = "baycom-kiss"
         dev.baycom_modem = spec.split(":", 1)[1].strip() or "a"
         dev.hardware = "modems"
+    elif spec.startswith("bcpr:"):
+        # Userspace SER12 path — host max25e0:bc0/bc1
+        dev.backend_type = "bcpr-kiss"
+        dev.bcpr_device = spec.split(":", 1)[1].strip() or "bc0"
+        dev.hardware = "modems"
+        if not sec_opts.get("kiss_link"):
+            tag = dev.bcpr_device or "bc0"
+            dev.kiss_link = f"/var/run/bcpr/kiss-{tag}"
     elif spec.startswith("crdop:"):
         dev.backend_type = "crdop-tcp"
         dev.crdop_profile = spec.split(":", 1)[1].strip() or "default"
@@ -896,6 +931,10 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
         dev.baycom_modem = sec_opts["modem"]
     if sec_opts.get("baycom_ini"):
         dev.baycom_ini = sec_opts["baycom_ini"]
+    if sec_opts.get("bcpr_ini"):
+        dev.bcpr_ini = sec_opts["bcpr_ini"]
+    if sec_opts.get("bcpr_device"):
+        dev.bcpr_device = sec_opts["bcpr_device"]
     if sec_opts.get("host"):
         dev.crdop_host = sec_opts["host"]
     if sec_opts.get("port"):
@@ -942,6 +981,8 @@ def create_backend(
         return KissSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix, on_invalid=on_invalid)
     if kind == "baycom-kiss":
         return BayComKissBackend(dev_cfg, on_rx, log)
+    if kind == "bcpr-kiss":
+        return BcprKissBackend(dev_cfg, on_rx, log)
     if kind == "kiss-raw-serial":
         return KissRawSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix)
     if kind == "crdop-tcp":
@@ -952,7 +993,14 @@ def create_backend(
 
 
 def backend_needs_stack(kind: str) -> bool:
-    return kind in ("kiss-serial", "baycom-kiss", "kiss-raw-serial", "crdop-tcp", "audio-dummy")
+    return kind in (
+        "kiss-serial",
+        "baycom-kiss",
+        "bcpr-kiss",
+        "kiss-raw-serial",
+        "crdop-tcp",
+        "audio-dummy",
+    )
 
 
 def backend_serial_label(backend: Optional[DeviceBackend]) -> str:

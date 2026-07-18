@@ -84,15 +84,17 @@ max25-ctl start --hardware tncs --device tnc2c
 
 Boot-wait: DTR+RTS high during power-on (Landolt TNC2C). Software recovery ladder before power cycle.
 
-### BayCom (kernel SER12)
+### PC-COM / SER12 (**bcpr** userspace — preferred)
 
 ```bash
-sudo cp share/baycom/baycom-pr.pccom-ttyS0-only.ini.example /etc/baycom/baycom-pr.ini
-sudo baycom-pr-ctl -c /etc/baycom/baycom-pr.ini setup
-max25-ctl start --hardware modems --device baycom-ser12
+sudo cp stacks/bcpr/share/bcpr.ini.example /etc/max25/bcpr.ini
+# edit serial/iobase/irq; dry_run=no
+sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini preflight
+sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini start
+# max25d: [features] bcpr=yes · bcpr-bc0 = bcpr:bc0
 ```
 
-v1: `sudo` for kernel module. v2 target: rootless daily operation.
+Legacy kernel `baycom-pr-ctl` / `baycom_ser_fdx`: optional only — see [BAYCOM.md](BAYCOM.md).
 
 ### CRDOP (soft modem)
 
@@ -146,20 +148,19 @@ Frozen: `MAX25-Stack/stacks/tncs/docs/TNC-RECOVERY.md`.
 
 ---
 
-## 7. BayCom ↔ max25d
+## 7. PC-COM / SER12 ↔ max25d (**bcpr**)
 
 ```
-Radio ← UART ← baycom-pr-ctl (kernel) ← KISS PTY ← max25d BayComKissBackend ← M25/1 / HyBBX
+Radio ← UART ← bcprd (userspace SER12+HDLC) ← KISS PTY ← max25d BcprKissBackend ← M25/1
 ```
 
-| Use BayCom when | Use TNC when |
-|-----------------|--------------|
-| PC-COM / SER12 on real 8250 UART | TNC2C, PK-TNC2, USB serial KISS |
-| Linux `baycom_ser_fdx` path | Boot-wait + firmware KISS |
+Host face: **`max25e0:bc0`/`bc1`**. Kernel `baycom_ser_fdx` is **not** the product path.
 
-Alias compatibility: [2026-07-13-baycom-max25d-alias-compatibility.md](2026-07-13-baycom-max25d-alias-compatibility.md).
+| Use bcpr when | Use TNC when |
+|---------------|--------------|
+| PC-COM / TCM3105 on real 8250 UART | TNC2C, PK-TNC2, USB serial KISS |
 
-Frozen: `docs/BAYCOM.md`.
+Frozen: `docs/BAYCOM.md` · `stacks/bcpr/README.md`.
 
 ---
 
@@ -228,7 +229,7 @@ Frozen: `docs/NETDEV.md`.
 | Serial busy | One owner — stop minicom; max25d **or** HyBBX |
 | TNC silent / echo-only | Recovery ladder; DTR at boot |
 | max25d unreachable | HyBBX skips local TNC when `[max25] check=yes` |
-| BayCom no KISS PTY | `baycom-pr-ctl status`; module loaded |
+| BayCom/bcpr no KISS PTY | `bcpr-ctl status` (preferred) or legacy `baycom-pr-ctl status` |
 | CRDOP TCP fail | Ports 8515/8516; `crdopc` running |
 
 Release audit: [2026-07-12-max25-v1.0.0-release-audit.md](2026-07-12-max25-v1.0.0-release-audit.md).

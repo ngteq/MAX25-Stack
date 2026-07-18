@@ -16,5 +16,13 @@ else
 fi
 
 "${TERM}" --help >/dev/null
+
+# Unit: EVENT connected/disconnected updates status (header bug regression)
+UNIT="${ROOT}/.test_apply_event"
+gcc -std=c11 -Wall -Wextra -O2 -I"${ROOT}" \
+    -o "${UNIT}" "${ROOT}/test_apply_event.c" "${ROOT}/max25_proto.c"
+"${UNIT}"
+rm -f "${UNIT}"
+
 MAX25_TERMINAL="${TERM}" python3 "${ROOT}/test_connect.py"
 echo "OK: max25-terminal"

@@ -52,11 +52,16 @@ def supported_device_ids() -> frozenset[str]:
                 "pccom-kiss",
                 "baycom-a",
                 "baycom-b",
+                # bcpr userspace SER12 (BayCom/based) — same host class as baycom-kiss
+                "bcpr",
+                "bcpr-bc0",
+                "bcpr-bc1",
                 "soft-crdop",
                 "audio-dummy",
             }
         )
     if is_freebsd():
+        # No SER12/UART bcpr on FreeBSD — CRDOP/OSS only
         return frozenset({"soft-crdop", "audio-dummy"})
     return frozenset({"soft-crdop"})
 

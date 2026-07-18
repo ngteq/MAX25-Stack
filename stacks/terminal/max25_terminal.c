@@ -158,6 +158,25 @@ static int dispatch_daemon_line(const char *line, session_io_t *io,
         return 0;
     }
 
+    /* CONNECT/DISCONNECT emit EVENT before OK — update header even while waiting. */
+    if (kind == MAX25_LINE_EVENT) {
+        if (max25_client_apply_event(line, status)) {
+            max25_ui_append_rx(ui, line);
+            if (need_redraw != NULL) {
+                *need_redraw = 1;
+            }
+        } else if (cfg->verbose) {
+            max25_ui_append_rx(ui, line);
+            if (need_redraw != NULL) {
+                *need_redraw = 1;
+            }
+        }
+        if (io->waiting_reply) {
+            return 0;
+        }
+        return 0;
+    }
+
     if (io->waiting_reply) {
         if (kind == MAX25_LINE_STATUS && status != NULL) {
             max25_client_parse_status(line, status);
@@ -189,11 +208,6 @@ static int dispatch_daemon_line(const char *line, session_io_t *io,
     }
 
     if (kind == MAX25_LINE_ERR) {
-        max25_ui_append_rx(ui, line);
-        if (need_redraw != NULL) {
-            *need_redraw = 1;
-        }
-    } else if (kind == MAX25_LINE_EVENT && cfg->verbose) {
         max25_ui_append_rx(ui, line);
         if (need_redraw != NULL) {
             *need_redraw = 1;

@@ -1,0 +1,295 @@
+#!/usr/bin/env bash
+# bcpr-ctl — preflight / start / status / stop / smoke for bcprd (SER12 userspace).
+# PC-COM / BayCom/based: TCM3105 AFSK + PTT. Host owns HDLC/KISS.
+# No calibrate. No baycom_ser_fdx product path.
+set -euo pipefail
+
+INI="${BCPR_INI:-/etc/max25/bcpr.ini}"
+BCPRD="${BCPRD:-bcprd}"
+PIDFILE="${BCPR_PIDFILE:-/tmp/bcpr/bcprd.pid}"
+STATE_DIR="/tmp/bcpr"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SMOKE_SH="$SCRIPT_DIR/bcpr-rxtx-smoke.sh"
+
+usage() {
+  cat <<USAGE
+Usage: bcpr-ctl [-c ini] {preflight|start|status|stop|smoke|version} [smoke-opts]
+  smoke [--live] [--tx] [--seconds N]  — L0 offline always; --live RX; --tx needs --live
+  Default smoke: NO TX. No calibrate. Prefer more probes (H11).
+  Warn: SQ-open / RX-edge noise can stress hosts — see docs/BAYCOM-FREEZES.md
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -c) INI="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) break ;;
+  esac
+done
+CMD="${1:-}"
+if [[ $# -gt 0 ]]; then
+  shift
+fi
+
+resolve_bcprd() {
+  if [[ -n "${BCPRD:-}" && "$BCPRD" != "bcprd" && -x "$BCPRD" ]]; then
+    echo "$BCPRD"; return
+  fi
+  if command -v "$BCPRD" >/dev/null 2>&1; then
+    command -v "$BCPRD"; return
+  fi
+  local root cand
+  root="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+  for cand in \
+    "${BCPR_BUILD_DIR:-}/bin/bcprd" \
+    "$root/build-bcpr/bin/bcprd" \
+    "$root/build-bcpr-${USER:-user}/bin/bcprd" \
+    "/tmp/max25-build-bcpr-${USER:-user}/bin/bcprd" \
+    "$root/build/bin/bcprd" \
+    /usr/local/bin/bcprd /usr/bin/bcprd; do
+    [[ -n "$cand" && -x "$cand" ]] && { echo "$cand"; return; }
+  done
+  return 1
+}
+
+ini_get() {
+  local section="$1" key="$2"
+  awk -F= -v s="[$section]" -v k="$key" '
+    $0 ~ /^\[/ { cur=$0; gsub(/[[:space:]]/,"",cur) }
+    cur==s && $1 ~ "^[[:space:]]*"k"[[:space:]]*$" {
+      v=$2; gsub(/^[[:space:]]+|[[:space:]]+$/,"",v); print v; exit
+    }' "$INI" 2>/dev/null || true
+}
+
+is_truthy() {
+  case "${1,,}" in yes|true|on|1) return 0 ;; *) return 1 ;; esac
+}
+
+find_setserial() {
+  local p
+  for p in /usr/bin/setserial /bin/setserial /sbin/setserial /usr/sbin/setserial; do
+    [[ -x "$p" ]] && { echo "$p"; return; }
+  done
+  command -v setserial 2>/dev/null || true
+}
+
+# Parse "Port: 0x3f8" / "irq: 4" from setserial -g
+setserial_port_irq() {
+  local bin="$1" dev="$2" out port irq
+  out="$("$bin" -g "$dev" 2>/dev/null)" || return 1
+  # Typical: /dev/ttyS0, UART: 16550A, Port: 0x3f8, IRQ: 4
+  port="$(printf '%s\n' "$out" | sed -n 's/.*Port:[[:space:]]*\(0x[0-9a-fA-F]\+\).*/\1/p' | head -1)"
+  irq="$(printf '%s\n' "$out" | sed -n 's/.*IRQ:[[:space:]]*\([0-9]\+\).*/\1/p' | head -1)"
+  printf '%s %s\n' "${port:-}" "${irq:-}"
+}
+
+norm_hex() {
+  # lowercase 0x… without leading zeros differences: 0x3f8 vs 0x03f8
+  local v="${1,,}"
+  if [[ "$v" =~ ^0x ]]; then
+    printf '0x%x' "$((v))"
+  else
+    printf '%s' "$v"
+  fi
+}
+
+port_busy() {
+  local serial="$1"
+  if command -v fuser >/dev/null 2>&1; then
+    if fuser "$serial" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  if command -v lsof >/dev/null 2>&1; then
+    if lsof "$serial" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+baycom_modules_loaded() {
+  local m
+  if ! command -v lsmod >/dev/null 2>&1; then
+    return 1
+  fi
+  for m in baycom_ser_fdx baycom_ser_hdx baycom_par baycom_epp; do
+    if lsmod 2>/dev/null | awk '{print $1}' | grep -qx "$m"; then
+      echo "$m"
+      return 0
+    fi
+  done
+  return 1
+}
+
+cmd_preflight() {
+  local err=0 dry serial irq iobase name sysirq got ss ss_port ss_irq pair
+  local -a seen_irq=() seen_serial=()
+  [[ -f "$INI" ]] || { echo "ERROR: missing $INI"; return 1; }
+  dry="$(ini_get bcpr dry_run)"
+  sd="$(ini_get bcpr state_dir)"
+  [[ -n "$sd" ]] && STATE_DIR="$sd"
+  echo "bcpr-ctl preflight ini=$INI"
+  echo "NOTE: preferred PC-COM path is bcpr userspace → max25e0 (not baycom_ser_fdx)"
+
+  # Kernel BayCom modules must not share the path (A–O–Z isolate).
+  if mod="$(baycom_modules_loaded)"; then
+    echo "  ERROR: kernel module loaded: $mod — unload before bcpr (isolate)"
+    err=1
+  else
+    echo "  OK: no baycom_* modules loaded"
+  fi
+
+  ss="$(find_setserial)"
+  if [[ -z "$ss" ]]; then
+    echo "  WARN: setserial not found — iobase check limited to INI/sysfs"
+  else
+    echo "  OK: setserial=$ss"
+  fi
+
+  for sec in bc0 bc1; do
+    serial="$(ini_get "$sec" serial)"
+    [[ -z "$serial" ]] && continue
+    enabled="$(ini_get "$sec" enabled)"
+    if [[ -n "$enabled" ]] && ! is_truthy "$enabled"; then
+      echo "  [$sec] enabled=no — skip"
+      continue
+    fi
+    irq="$(ini_get "$sec" irq)"
+    iobase="$(ini_get "$sec" iobase)"
+    echo "  [$sec] serial=$serial irq=$irq iobase=$iobase"
+
+    if is_truthy "$dry"; then
+      echo "  dry_run=yes — skip live tty/IRQ/idle checks"
+      continue
+    fi
+
+    if [[ ! -e "$serial" ]]; then
+      echo "  ERROR: $serial missing"; err=1; continue
+    fi
+    echo "  OK: serial node exists"
+
+    if port_busy "$serial"; then
+      echo "  ERROR: $serial busy (fuser/lsof) — exclusive lock fail-closed"; err=1
+    else
+      echo "  OK: port idle"
+    fi
+
+    if [[ -z "$irq" || "$irq" == "0" ]]; then
+      echo "  ERROR: irq must be real (non-zero)"; err=1
+    fi
+
+    name="${serial##*/}"
+    sysirq="/sys/class/tty/${name}/irq"
+    if [[ -r "$sysirq" ]]; then
+      got="$(tr -d '[:space:]' <"$sysirq")"
+      if [[ -n "$irq" && "$irq" != "0" && "$got" != "$irq" ]]; then
+        echo "  ERROR: IRQ mismatch INI=$irq sysfs=$got"; err=1
+      elif [[ -n "$irq" && "$irq" != "0" ]]; then
+        echo "  OK: IRQ $irq matches sysfs"
+      fi
+    else
+      echo "  WARN: cannot read $sysirq"
+    fi
+
+    if [[ -n "$ss" && -n "$iobase" ]]; then
+      pair="$(setserial_port_irq "$ss" "$serial" || true)"
+      ss_port="$(printf '%s' "$pair" | awk '{print $1}')"
+      ss_irq="$(printf '%s' "$pair" | awk '{print $2}')"
+      if [[ -n "$ss_port" ]]; then
+        if [[ "$(norm_hex "$iobase")" != "$(norm_hex "$ss_port")" ]]; then
+          echo "  ERROR: iobase mismatch INI=$iobase setserial=$ss_port"; err=1
+        else
+          echo "  OK: iobase $iobase matches setserial"
+        fi
+      else
+        echo "  WARN: setserial did not report Port for $serial"
+      fi
+      if [[ -n "$ss_irq" && -n "$irq" && "$irq" != "0" && "$ss_irq" != "$irq" ]]; then
+        echo "  ERROR: IRQ mismatch INI=$irq setserial=$ss_irq"; err=1
+      elif [[ -n "$ss_irq" && -n "$irq" && "$irq" != "0" ]]; then
+        echo "  OK: IRQ $irq matches setserial"
+      fi
+    elif [[ -n "$iobase" && -z "$ss" ]]; then
+      echo "  WARN: cannot verify iobase=$iobase without setserial"
+    fi
+
+    # Dual uniqueness
+    for s in "${seen_serial[@]:-}"; do
+      if [[ -n "$s" && "$s" == "$serial" ]]; then
+        echo "  ERROR: duplicate serial $serial"; err=1
+      fi
+    done
+    for i in "${seen_irq[@]:-}"; do
+      if [[ -n "$i" && -n "$irq" && "$irq" != "0" && "$i" == "$irq" ]]; then
+        echo "  ERROR: duplicate IRQ $irq (bc0/bc1 must be distinct)"; err=1
+      fi
+    done
+    seen_serial+=("$serial")
+    [[ -n "$irq" && "$irq" != "0" ]] && seen_irq+=("$irq")
+  done
+
+  return "$err"
+}
+
+cmd_start() {
+  local bin dry
+  bin="$(resolve_bcprd)" || { echo "bcprd not found — build with MAX25_BUILD_BCPR=ON"; return 1; }
+  cmd_preflight || { echo "preflight failed"; return 1; }
+  sd="$(ini_get bcpr state_dir)"; [[ -n "$sd" ]] && STATE_DIR="$sd"
+  mkdir -p "$STATE_DIR"
+  PIDFILE="$STATE_DIR/bcprd.pid"
+  if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "already running pid=$(cat "$PIDFILE")"; return 0
+  fi
+  dry="$(ini_get bcpr dry_run)"
+  if is_truthy "$dry"; then
+    "$bin" -c "$INI" --dry-run &
+  else
+    "$bin" -c "$INI" &
+  fi
+  echo $! >"$PIDFILE"
+  echo "started bcprd pid=$(cat "$PIDFILE") → max25e0"
+}
+
+cmd_stop() {
+  sd="$(ini_get bcpr state_dir 2>/dev/null || true)"; [[ -n "${sd:-}" ]] && STATE_DIR="$sd"
+  PIDFILE="$STATE_DIR/bcprd.pid"
+  if [[ -f "$PIDFILE" ]]; then
+    kill "$(cat "$PIDFILE")" 2>/dev/null || true
+    rm -f "$PIDFILE"
+  fi
+  pkill -x bcprd 2>/dev/null || true
+  echo "stopped"
+}
+
+cmd_status() {
+  sd="$(ini_get bcpr state_dir 2>/dev/null || true)"; [[ -n "${sd:-}" ]] && STATE_DIR="$sd"
+  PIDFILE="$STATE_DIR/bcprd.pid"
+  if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "bcprd: running pid=$(cat "$PIDFILE")"
+  else
+    echo "bcprd: not running"
+  fi
+  for link in "$STATE_DIR"/kiss-bc*; do
+    [[ -e "$link" ]] || continue
+    echo "  kiss_link $link -> $(readlink -f "$link" 2>/dev/null || echo '?')"
+  done
+}
+
+cmd_smoke() {
+  [[ -x "$SMOKE_SH" ]] || { echo "ERROR: missing $SMOKE_SH"; return 1; }
+  # Forward remaining args; default INI from -c
+  exec "$SMOKE_SH" -c "$INI" "$@"
+}
+
+case "$CMD" in
+  preflight) cmd_preflight ;;
+  start) cmd_start ;;
+  stop) cmd_stop ;;
+  status) cmd_status ;;
+  smoke) cmd_smoke "$@" ;;
+  version) echo "bcpr-ctl 0.2.0 (SER12 userspace → max25e0; smoke L0–L4)" ;;
+  *) usage; exit 1 ;;
+esac
