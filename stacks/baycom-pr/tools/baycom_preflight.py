@@ -128,8 +128,8 @@ def check_irq_notes(dev: str, label: str, irq: int, *, multi_modem: bool) -> Non
         )
     elif not multi_modem and re.search(r"ttyS[4-5]$", dev):
         warn(
-            f"{label}: {dev} is reserved for TNCs on AX25SRV (PK-TNC2/HyBBX) — "
-            f"use single-modem INI with PC-COM on /dev/ttyS0 only"
+            f"{label}: {dev} is often used for TNC serial on multi-port cards — "
+            f"prefer a dedicated PC-COM port (e.g. /dev/ttyS0) in single-modem INI"
         )
 
 

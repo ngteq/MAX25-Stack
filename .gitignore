@@ -14,6 +14,7 @@ stacks/crdop/build/
 stacks/baycom-pr/tools/baycom_test
 local/*
 !local/README.md
+.cursor/cache/
 third_party/ax25/*-rc5/
 third_party/_build-test/
 third_party/ax25/_build-test/
