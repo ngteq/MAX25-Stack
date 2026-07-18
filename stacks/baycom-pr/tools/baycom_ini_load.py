@@ -8,6 +8,7 @@ from __future__ import annotations
 import configparser
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -42,13 +43,17 @@ def default_iface(cat: dict, idx: int, backend: str, explicit: str) -> str:
 
 
 def setserial_query(dev: str) -> tuple[int | None, int | None]:
-    for bin_path in ("/sbin/setserial", "/usr/sbin/setserial"):
-        p = Path(bin_path)
-        if not p.exists():
-            continue
+    bins: list[str] = []
+    for p in ("/usr/bin/setserial", "/bin/setserial", "/sbin/setserial", "/usr/sbin/setserial"):
+        if Path(p).exists():
+            bins.append(p)
+    which = shutil.which("setserial")
+    if which and which not in bins:
+        bins.append(which)
+    for bin_path in bins:
         try:
-            out = subprocess.check_output([str(p), "-g", dev], text=True, stderr=subprocess.DEVNULL)
-        except (subprocess.CalledProcessError, FileNotFoundError):
+            out = subprocess.check_output([bin_path, "-g", dev], text=True, stderr=subprocess.DEVNULL)
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             continue
         m = re.search(r"Port:\s*(0x[0-9a-fA-F]+)", out)
         n = re.search(r"IRQ:\s*(\d+)", out)

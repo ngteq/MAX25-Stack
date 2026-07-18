@@ -25,6 +25,10 @@ Kernel BayCom SER12 lifecycle — single PC-COM default, dual modem opt-in.
 Radio ← UART ← baycom-pr-ctl (kernel) ← KISS PTY ← max25d ← M25/1 / HyBBX
 ```
 
+## Direction (userspace)
+
+We will try a **userspace** SER12 / PC-COM host path (bitbang + HDLC), **with or without** the Linux `baycom_ser_fdx` kernel module. Whether the kernel driver stays optional, required for bring-up only, or is dropped for product use is **still to be determined**. Host face target remains MAX25 (`max25e0` / related), not a separate BayCom product netdev. Until that lands, treat the kernel path as the existing reference — and respect [BAYCOM-FREEZES.md](BAYCOM-FREEZES.md).
+
 ## Start matrix
 
 | Step | Command |

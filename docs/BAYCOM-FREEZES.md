@@ -34,11 +34,15 @@ The Linux `baycom_ser_fdx` driver bit-bangs the UART under interrupt load (`loca
 | Move keyboard/mouse to motherboard USB ports | Avoid front/shared hubs near RF |
 | After any freeze: `baycom-pr-ctl recover` | Then doctor / preflight before start |
 
+## Direction
+
+Planned follow-on: **userspace** SER12/PC-COM solution **with or without** `baycom_ser_fdx` — still TBD. See [BAYCOM.md § Direction](BAYCOM.md#direction-userspace).
+
 ## Related
 
 | Doc | Role |
 |-----|------|
-| [BAYCOM.md](BAYCOM.md) | Device / start matrix |
+| [BAYCOM.md](BAYCOM.md) | Device / start matrix · userspace direction |
 | [stacks/baycom-pr/docs/GUIDE.md](../stacks/baycom-pr/docs/GUIDE.md) | Operator bring-up + freeze recovery |
 | [stacks/baycom-pr/docs/kernel/BAYCOM-DRIVER-ANALYSIS.md](../stacks/baycom-pr/docs/kernel/BAYCOM-DRIVER-ANALYSIS.md) | Driver IRQ path |
 | [stacks/baycom-pr/docs/archive/STABILITY.md](../stacks/baycom-pr/docs/archive/STABILITY.md) | Stack safeguards |

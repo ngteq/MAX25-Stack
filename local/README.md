@@ -2,7 +2,7 @@
 
 Operator copies live here. This directory is gitignored except this README.
 
-## Site-local — merged MAX25 + HyBBX (TNC only)
+## This host (AX25SRV) — TNCs only
 
 | File | Install target |
 |------|----------------|
@@ -10,55 +10,35 @@ Operator copies live here. This directory is gitignored except this README.
 | `hybbx.ini` | `/usr/local/hybbx/hybbx.ini` |
 | `tnc2c-serial.env`, `pktnc2-serial.env` | `/etc/max25/` |
 
-**UART:** ttyS4 TNC2C (K24) · ttyS5 PK-TNC2 (K25) — no PC-COM / BayCom on this layout.
+| Device | Path | max25d id |
+|--------|------|-----------|
+| TNC2C | `/dev/ttyS4` | `tnc2c` — ExSys/Oxford card [257223837752](https://www.ebay.de/itm/257223837752) |
+| PK-TNC2 | `/dev/ttyS5` | `pktnc2` — same card |
+| TNC7multi (planned) | TBD after ExSys / install | TBD |
 
-**Contract:** MAX25 owns boot-wait / `kiss_on` on serial; HyBBX `kiss_entry=none` attach-only; `[max25] check=yes` probes `:7325`.
+**Planned:** 3rd TNC (TNC7multi) + **2× ExSys PCIe** serial cards (2 ports each). **No PC-COM / BayCom SER12 on this host.**
 
-### One-time prerequisite
+`baycom-pr.ini` in this folder = **template only** for the future PC-COM Secondary host — do **not** install on AX25SRV.
 
-```bash
-sudo cp local/tnc2c-serial.env /etc/max25/tnc2c-serial.env
-sudo cp local/pktnc2-serial.env /etc/max25/pktnc2-serial.env
-sudo mkdir -p /run/max25 && sudo chown hybbx:hybbx /run/max25
-```
-
-### Deploy configs
+### Deploy (this host)
 
 ```bash
 sudo cp local/max25d.ini /etc/max25/max25d.ini
-sudo cp local/hybbx.ini /usr/local/hybbx/hybbx.ini
+sudo cp local/tnc2c-serial.env /etc/max25/tnc2c-serial.env
+sudo cp local/pktnc2-serial.env /etc/max25/pktnc2-serial.env
+sudo mkdir -p /run/max25 && sudo chown hybbx:hybbx /run/max25
+sudo -u hybbx max25d -c /etc/max25/max25d.ini
 ```
 
-### Start order (cold boot)
-
-```bash
-# 1) max25d first — TNC prep + TCP :7325 (releases /dev/tty* in hybbx-host mode)
-sudo -u hybbx max25d -c /etc/max25/max25d.ini &
-# wait for log: MAX25d ready + hybbx-host: serial released
-
-# 2) HyBBX after max25d ready (or hybbx-start waits up to 120s for :7325)
-sudo -u hybbx /usr/local/hybbx/hybbx-start &
-```
-
-**Never** start HyBBX before max25d prep on the same `/dev/ttyS*` ports.
-
-**Unix socket:** ensure `/run/max25` exists and is writable (`RuntimeDirectory=max25` in systemd) or use TCP `:7325` only.
-
-HyBBX: **2× packet_radio** (K24 + K25). max25d devices: `tnc2c`, `pktnc2`.
-
-## max25-terminal
+### Terminal
 
 ```bash
 max25-terminal -U /run/max25/modem.sock -d tnc2c
+# or -d pktnc2
 ```
 
-## TNC serial env
+### Future PC-COM host
 
-```bash
-cp ../share/max25/serial/tnc2c-serial.env.example tnc2c-serial.env
-cp ../share/max25/serial/pktnc2-serial.env.example pktnc2-serial.env
-```
-
-## See also
-
-- [docs/LINUX-HOST-SETUP.md](../docs/LINUX-HOST-SETUP.md)
+1. Install MAX25 + `local/baycom-pr.ini` → `/etc/baycom/baycom-pr.ini` (verify iobase/irq)
+2. `max25d` with `baycom-ser12 = baycom:a` only (no dual BayCom + TNC on same machine until stable)
+3. Bring-up **only** via max25d / `max25-ctl` — not raw `modprobe`

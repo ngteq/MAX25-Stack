@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import configparser
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -47,16 +48,25 @@ def resolve_backend(driver: str, backend: str) -> str:
     return "kernel-ser12"
 
 
+def _setserial_bins() -> list[str]:
+    """Debian/Kali: /usr/bin/setserial; older docs assumed /sbin."""
+    bins: list[str] = []
+    for p in ("/usr/bin/setserial", "/bin/setserial", "/sbin/setserial", "/usr/sbin/setserial"):
+        if Path(p).exists():
+            bins.append(p)
+    which = shutil.which("setserial")
+    if which and which not in bins:
+        bins.append(which)
+    return bins
+
+
 def setserial_query(dev: str) -> tuple[int | None, int | None]:
-    for bin_path in ("/sbin/setserial", "/usr/sbin/setserial"):
-        p = Path(bin_path)
-        if not p.exists():
-            continue
+    for bin_path in _setserial_bins():
         try:
             out = subprocess.check_output(
-                [str(p), "-g", dev], text=True, stderr=subprocess.DEVNULL
+                [bin_path, "-g", dev], text=True, stderr=subprocess.DEVNULL
             )
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             continue
         m = re.search(r"Port:\s*(0x[0-9a-fA-F]+)", out)
         n = re.search(r"IRQ:\s*(\d+)", out)

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "bash ../.cursor/hooks/refresh-master-ai-rules.sh session"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "bash ../.cursor/hooks/refresh-master-ai-rules.sh periodic"
+      }
+    ]
+  }
+}

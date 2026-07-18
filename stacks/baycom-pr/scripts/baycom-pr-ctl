@@ -323,10 +323,15 @@ resolve_tool() {
 }
 
 find_setserial() {
-	if command -v setserial >/dev/null; then
+	# Debian/Kali: /usr/bin/setserial; some installs use /sbin
+	if command -v setserial >/dev/null 2>&1; then
 		command -v setserial
+	elif [[ -x /usr/bin/setserial ]]; then
+		echo /usr/bin/setserial
 	elif [[ -x /sbin/setserial ]]; then
 		echo /sbin/setserial
+	elif [[ -x /usr/sbin/setserial ]]; then
+		echo /usr/sbin/setserial
 	fi
 }
 

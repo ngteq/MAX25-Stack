@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 COMMON_LPT = (0x378, 0x278, 0x3BC)
-SETSERIAL = ("/sbin/setserial", "/usr/sbin/setserial")
+SETSERIAL = ("/usr/bin/setserial", "/bin/setserial", "/sbin/setserial", "/usr/sbin/setserial")
 
 
 @dataclass

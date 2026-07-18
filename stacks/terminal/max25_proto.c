@@ -328,11 +328,20 @@ int max25_client_command(max25_client_t *client, const char *cmd,
         if (strncmp(line, "EVENT ", 6) == 0) {
             continue;
         }
+        /* GET STATUS replies: STATUS … then OK — keep STATUS in reply. */
+        if (strcmp(line, "OK") == 0) {
+            if (reply != NULL && reply_sz > 0 &&
+                strncmp(reply, "STATUS ", 7) != 0) {
+                strncpy(reply, line, reply_sz - 1);
+                reply[reply_sz - 1] = '\0';
+            }
+            return 0;
+        }
         if (reply != NULL && reply_sz > 0) {
             strncpy(reply, line, reply_sz - 1);
             reply[reply_sz - 1] = '\0';
         }
-        return strcmp(line, "OK") == 0 ? 0 : -1;
+        return -1;
     }
 }
 

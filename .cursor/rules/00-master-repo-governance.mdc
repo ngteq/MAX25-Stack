@@ -1,0 +1,62 @@
+---
+description: FIXED — MASTER primary (rules+docs); ./* secondary; no documents in ./* (operator-only).
+alwaysApply: true
+---
+
+# MASTER-REPO governance (IMMUTABLE)
+
+**Authority:** Operator only. Agents **must not** edit this file or `../.cursor/hooks/refresh-master-ai-rules.sh`.
+
+**Standard:** Fixed for every path under `/home/akb/Code/10-PROJECTS/` (`./*`). Centralized development — not overridable by agents or local rules.
+
+## Primary vs secondary (always)
+
+| Tier | Scope | Role |
+|------|-------|------|
+| **PRIMARY** | MASTER-REPO (`0-RESEARCHES`) | Rules **and** documents — sole authority |
+| **SECONDARY** | `./*` (this tree) | Code/work only — never overrides MASTER |
+
+**MASTER-REPO goes first in rules and documents — always.** Local `./*` is secondary — always.
+
+## Precedence (strict)
+
+1. **MASTER** `/home/akb/0-RESEARCHES/AGENT-INDEX.md` — law entry (legacy: `/home/akb/Code/0-RESEARCHES/`)
+2. **MASTER** `.cursor/rules/*.mdc` — AI rules referenced from AGENT-INDEX
+3. **Local** `.cursor/rules/*` (except this file) — product hints only; **never** override MASTER
+
+## No documents in `./*` (FIXED)
+
+Agents **must not create, edit, or extend documentation** anywhere under `./*`:
+
+| Forbidden | Examples |
+|-----------|----------|
+| New or changed `.md` | `docs/`, `README.md`, `AGENTS.md`, `CHANGELOG.md`, investigations |
+| Shipped doc sync | Editing frozen `docs/` in this repo |
+| Research notes | Any write-up belonging in MASTER `projects/max25-stack/` |
+
+| Allowed in `./*` | Examples |
+|------------------|----------|
+| **Code** | `stacks/`, `plugins/`, `scripts/`, `include/`, `share/`, tests, build |
+| **Code-tied config** | `.ini.example` only when a code change requires it |
+| **Inline code comments** | In source files — not standalone documents |
+
+All documentation → **MASTER-REPO only** (AGENT-INDEX §0.5). Operator may change this rule; agents may not.
+
+## MASTER pull scope (sync hook)
+
+Auto-sync pulls **rules only** from MASTER: `AGENT-INDEX.md` + `.cursor/rules/*.mdc`.
+
+For **writing** documentation: go to MASTER — never `./*`.
+
+## 60-minute resync (active work)
+
+Hook `../.cursor/hooks/refresh-master-ai-rules.sh` → `.cursor/cache/master-ai-rules.snapshot.md` every **60 minutes**.
+
+## MASTER path resolution
+
+1. `/home/akb/0-RESEARCHES/`
+2. `/home/akb/Code/0-RESEARCHES/` (legacy)
+
+## Slave repo (MAX25-Stack)
+
+Code/work only. Read frozen `docs/` for context — do not author here.

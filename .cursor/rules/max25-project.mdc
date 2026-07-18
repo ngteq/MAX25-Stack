@@ -5,7 +5,9 @@ alwaysApply: true
 
 # MainAX25-Stack (MAX25) project rules
 
-Read [AGENTS.md](../../AGENTS.md) and [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md).
+**Governance:** [00-master-repo-governance.mdc](00-master-repo-governance.mdc) — MASTER `AGENT-INDEX.md` precedes this file. Resync every 60 min via hook.
+
+Read local [AGENT-INDEX.md](../../AGENT-INDEX.md) → [AGENTS.md](../../AGENTS.md) → [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md) after MASTER rules are applied.
 
 ## Product
 
@@ -30,10 +32,9 @@ Plugin hierarchy: operating mode (`betriebsform/`) → Hardware → Device. Regi
 
 ## Docs
 
-- Operator / HyBBX INI → [docs/HYBBX.md](../../docs/HYBBX.md) + `share/hybbx/*.ini.example`
-- Architecture → [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)
-- Platforms → [docs/PLATFORMS.md](../../docs/PLATFORMS.md)
-- v1 scope / release → [docs/V1.0.0-SCOPE.md](../../docs/V1.0.0-SCOPE.md) (intentional planning doc for this repo)
+- **FIXED:** No documents in `./*` — [00-master-repo-governance.mdc](00-master-repo-governance.mdc). All docs in MASTER only.
+- **Read** frozen `docs/` when coding; never author or edit here
+- **Research:** MASTER vault `projects/max25-stack/` only
 - [docs/MERGE-REPORT.md](../../docs/MERGE-REPORT.md) — archive only, do not extend
 
 ## Git

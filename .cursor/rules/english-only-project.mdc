@@ -5,28 +5,29 @@ alwaysApply: true
 
 # Language — English project, German chat
 
+**Governance:** [00-master-repo-governance.mdc](00-master-repo-governance.mdc) — no documents in `./*`. English rule applies to **code** and user-facing strings only.
+
 ## Repository (MAX25-Stack)
 
-**All shipped project content is English.** When editing this repo, write and fix:
+**Shipped content is English** when touching **code** in this repo:
 
 | English required | Examples |
 |------------------|----------|
-| Documentation | `docs/`, `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `include/**/*.md` |
 | User-facing strings | Terminal UI, CLI help, error messages shown to operators |
-| Config templates | `share/**/*.example`, `share/**/*.ini.example` comments |
-| Plugin metadata docs | `plugins/**/README.md`, `plugin.yaml` labels/descriptions |
+| Config templates | `share/**/*.example` comments — code-tied only |
 | Scripts (user output) | `scripts/*.sh` usage text, echoed next steps |
-| Issue/PR templates | `.github/**` |
-| Cursor rules | `.cursor/rules/*.mdc` |
+| Inline code comments | New comments in English |
 
-**Exception (temporary):** inline **source code comments** in `.c`, `.h`, `.py`, `.sh` implementation files may remain German until a dedicated pass translates them. Do not add new German comments when touching those files — prefer English for new comments.
+**Not editable here:** `docs/`, `README.md`, `AGENTS.md`, and all standalone `.md` — MASTER only.
 
-**Not in repo:** private research → `/home/akb/Code/0-RESEARCHES/` only ([research-storage.mdc](research-storage.mdc)).
+**Exception (temporary):** existing German **source code comments** may remain until translated; new comments in English.
+
+**Not in repo:** deep research → MASTER `projects/max25-stack/`.
 
 ## Chat with the user
 
-Respond in **German** in conversation. The project language rule does not apply to chat replies.
+Respond in **German** in conversation.
 
-## When you find German in shipped files
+## German in code strings
 
-Translate to English in the same change. Do not recommend specific hardware platforms unless the user asked — prefer **settings/setup examples** (see [LINUX-HOST-SETUP.md](../../docs/LINUX-HOST-SETUP.md)).
+When fixing user-visible strings in **code** (not standalone docs), translate to English in the same change.

@@ -1,12 +1,25 @@
 ---
-description: Research and deep findings go to private 0-RESEARCHES only
+description: Research and all documentation — MASTER vault only; MAX25-Stack is code + publication
 alwaysApply: true
 ---
 
-# Research storage
+# Research storage & documentation boundary
 
-Deep research, investigations, and working notes: **only** `/home/akb/Code/0-RESEARCHES/` (private, not published).
+**FIXED:** [00-master-repo-governance.mdc](00-master-repo-governance.mdc) — no documents in `./*`. MASTER is primary for rules **and** documents.
 
-This repo (`MAX25-Stack`) gets **shipped docs** in `docs/` — compact, operator-facing. Do not add research dumps or planning archives here unless the user explicitly requests a shipped document.
+**MAX25-Stack:** code + publication binaries only. Existing `docs/` = read-only context for agents — never edit.
 
-After substantial analysis, write a dated note under `0-RESEARCHES/notes/` or `0-RESEARCHES/findings/`.
+Deep research → MASTER vault only (`projects/max25-stack/`, `hardware/tnc2c/`, `projects/integration/`).
+
+Workflow and REGISTER: MASTER `AGENT-INDEX.md`.
+
+**Automation (MASTER tools only):**
+
+```bash
+VAULT="${MASTER_VAULT:-/home/akb/0-RESEARCHES}"
+[[ -d "$VAULT" ]] || VAULT=/home/akb/Code/0-RESEARCHES
+"$VAULT/tools/vault-duplicate-check.sh" "keyword"
+"$VAULT/tools/vault-register-check.sh" "$VAULT/path/to/new.md"
+```
+
+Do **not** use legacy paths `notes/` or `findings/` at vault root — use `projects/max25-stack/`, `projects/hybbx/`, `projects/integration/`.

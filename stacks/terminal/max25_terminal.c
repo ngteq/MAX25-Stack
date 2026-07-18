@@ -138,9 +138,13 @@ static int send_cmd_async(max25_client_t *client, session_io_t *io,
 
 static int dispatch_daemon_line(const char *line, session_io_t *io,
                                 max25_ui_t *ui, max25_status_t *status,
-                                terminal_config_t *cfg)
+                                terminal_config_t *cfg, int *need_redraw)
 {
     max25_line_kind_t kind = max25_client_classify_line(line);
+
+    if (need_redraw != NULL) {
+        *need_redraw = 0;
+    }
 
     if (cfg->verbose) {
         fprintf(stderr, "max25-terminal: << %s\n", line);
@@ -148,16 +152,27 @@ static int dispatch_daemon_line(const char *line, session_io_t *io,
 
     if (kind == MAX25_LINE_RX) {
         max25_ui_append_rx(ui, line + 3);
+        if (need_redraw != NULL) {
+            *need_redraw = 1;
+        }
         return 0;
     }
 
     if (io->waiting_reply) {
         if (kind == MAX25_LINE_STATUS && status != NULL) {
             max25_client_parse_status(line, status);
+            /* Show STATUS in RX pane (F10→3 and other GET STATUS callers). */
+            max25_ui_append_rx(ui, line);
+            if (need_redraw != NULL) {
+                *need_redraw = 1;
+            }
             return 0;
         }
         if (kind == MAX25_LINE_OK) {
             io->waiting_reply = 0;
+            if (need_redraw != NULL) {
+                *need_redraw = 1;
+            }
             return 0;
         }
         if (kind == MAX25_LINE_ERR) {
@@ -165,6 +180,9 @@ static int dispatch_daemon_line(const char *line, session_io_t *io,
             io->last_err[sizeof(io->last_err) - 1] = '\0';
             io->waiting_reply = 0;
             max25_ui_append_rx(ui, line);
+            if (need_redraw != NULL) {
+                *need_redraw = 1;
+            }
             return -1;
         }
         return 0;
@@ -172,8 +190,14 @@ static int dispatch_daemon_line(const char *line, session_io_t *io,
 
     if (kind == MAX25_LINE_ERR) {
         max25_ui_append_rx(ui, line);
+        if (need_redraw != NULL) {
+            *need_redraw = 1;
+        }
     } else if (kind == MAX25_LINE_EVENT && cfg->verbose) {
         max25_ui_append_rx(ui, line);
+        if (need_redraw != NULL) {
+            *need_redraw = 1;
+        }
     }
     return 0;
 }
@@ -231,12 +255,30 @@ static int set_device_sync(max25_client_t *client, max25_status_t *status,
     return refresh_status(client, status);
 }
 
-static int handle_menu_action(max25_menu_action_t action, max25_client_t *client,
-                              session_io_t *io, max25_ui_t *ui,
-                              max25_status_t *status)
+static int menu_action_needs_prompt(max25_menu_action_t action)
+{
+    return action == MAX25_MENU_CALLERID || action == MAX25_MENU_CALLID ||
+           action == MAX25_MENU_SEND || action == MAX25_MENU_DEVICE;
+}
+
+/* Returns 1 to quit session, 0 otherwise. Hides menu before action. */
+static int apply_menu_pick(max25_menu_action_t action, max25_client_t *client,
+                           session_io_t *io, max25_ui_t *ui,
+                           max25_status_t *status, const char *input_line)
 {
     char buf[MAX25_LINE_MAX];
     char cmd[64];
+
+    if (action == MAX25_MENU_NONE) {
+        return 0;
+    }
+    if (action == MAX25_MENU_QUIT) {
+        return 1;
+    }
+
+    /* Leave overlay so prompts / STATUS RX / header redraw are visible. */
+    max25_ui_hide_menu(ui);
+    max25_ui_draw_screen(ui, status, input_line != NULL ? input_line : "");
 
     switch (action) {
     case MAX25_MENU_CALLERID:
@@ -262,6 +304,8 @@ static int handle_menu_action(max25_menu_action_t action, max25_client_t *client
                  status->monitor ? "off" : "on");
         status->monitor = !status->monitor;
         send_cmd_async(client, io, cmd);
+        max25_ui_append_rx(ui, status->monitor ? "MONITOR on" : "MONITOR off");
+        max25_ui_draw_screen(ui, status, input_line != NULL ? input_line : "");
         break;
     case MAX25_MENU_CONNECT:
         send_cmd_async(client, io,
@@ -272,12 +316,16 @@ static int handle_menu_action(max25_menu_action_t action, max25_client_t *client
             if (set_device_sync(client, status, buf) != 0) {
                 max25_ui_append_rx(ui, "ERR SET DEVICE failed");
             }
+            max25_ui_draw_screen(ui, status,
+                                 input_line != NULL ? input_line : "");
         }
         break;
-    case MAX25_MENU_QUIT:
-        return 1;
     default:
         break;
+    }
+
+    if (!menu_action_needs_prompt(action) && action != MAX25_MENU_MONITOR) {
+        max25_ui_draw_screen(ui, status, input_line != NULL ? input_line : "");
     }
     return 0;
 }
@@ -370,13 +418,18 @@ static int run_session(max25_client_t *client, max25_ui_t *ui,
         }
 
         if ((pfds[1].revents & POLLIN) != 0) {
+            int need_redraw = 0;
+
             if (max25_client_read_line(client, line, sizeof(line)) != 0) {
                 max25_ui_append_rx(ui, "max25d connection closed");
                 break;
             }
-            dispatch_daemon_line(line, &io, ui, status, cfg);
+            dispatch_daemon_line(line, &io, ui, status, cfg, &need_redraw);
             if (io.last_err[0] != '\0' && cfg->verbose) {
                 fprintf(stderr, "max25-terminal: %s\n", io.last_err);
+            }
+            if (need_redraw && !max25_ui_menu_visible(ui)) {
+                max25_ui_draw_screen(ui, status, input);
             }
             continue;
         }
@@ -402,10 +455,11 @@ static int run_session(max25_client_t *client, max25_ui_t *ui,
             if (max25_ui_menu_visible(ui)) {
                 if (ch == 27) {
                     max25_ui_hide_menu(ui);
+                    max25_ui_draw_screen(ui, status, input);
                     continue;
                 }
-                if (handle_menu_action(max25_ui_menu_pick(ui, ch), client, &io,
-                                       ui, status) != 0) {
+                if (apply_menu_pick(max25_ui_menu_pick(ui, ch), client, &io, ui,
+                                    status, input) != 0) {
                     running = 0;
                 }
                 continue;
@@ -450,8 +504,8 @@ static int run_session(max25_client_t *client, max25_ui_t *ui,
                     max25_ui_draw_screen(ui, status, input);
                     continue;
                 }
-                if (handle_menu_action(max25_ui_menu_pick(ui, ch), client, &io,
-                                       ui, status) != 0) {
+                if (apply_menu_pick(max25_ui_menu_pick(ui, ch), client, &io, ui,
+                                    status, input) != 0) {
                     running = 0;
                 }
                 continue;
@@ -480,8 +534,8 @@ static int run_session(max25_client_t *client, max25_ui_t *ui,
         } else {
             input[strcspn(input, "\r\n")] = '\0';
             if (max25_ui_menu_visible(ui)) {
-                if (handle_menu_action(max25_ui_menu_pick(ui, input[0]), client,
-                                       &io, ui, status) != 0) {
+                if (apply_menu_pick(max25_ui_menu_pick(ui, input[0]), client,
+                                    &io, ui, status, "") != 0) {
                     running = 0;
                 }
             } else if (input[0] != '\0') {
