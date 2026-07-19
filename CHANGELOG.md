@@ -2,6 +2,14 @@
 
 All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
 
+## [MAX25-Stack 1.8.5-fallback_untested-upcoming#3-2]
+
+Version file .
+
+| Change | Detail |
+|--------|--------|
+| Docs | Move  →  (development material home) |
+
 ## [MAX25-Stack 1.8.5-fallback_untested-upcoming#3]
 
 Version file `1.8.5-fallback_untested-upcoming#3` (after `#2-workhard-session_night`).

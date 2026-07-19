@@ -1,4 +1,4 @@
-# MAX25-Stack · 1.8.5-fallback_untested-upcoming#3
+# MAX25-Stack · 1.8.5-fallback_untested-upcoming#3-2
 
 Linux supervisor for Packet Radio hardware: TNC lifecycle, KISS, M25/1 IPC, optional CRDOP soft-modem. HyBBX consumes RF through plugins — MAX25 owns prep and attach contracts.
 
@@ -41,7 +41,7 @@ cmake --build build-bcpr --target max25_test   # or: ./scripts/tx-rx-test.sh
 
 | Goal | Doc |
 |------|-----|
-| TNC / modem bring-up | [TNC-MODEM-DEV.md](TNC-MODEM-DEV.md) |
+| TNC / modem bring-up | [docs/DEV/TNC-MODEM-DEV.md](docs/DEV/TNC-MODEM-DEV.md) |
 | Setup | [LINUX-HOST-SETUP.md](docs/LINUX-HOST-SETUP.md) |
 | Architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | All docs | [docs/README.md](docs/README.md) |

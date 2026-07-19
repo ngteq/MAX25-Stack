@@ -1,6 +1,6 @@
-# Release readiness · MAX25-Stack 1.8.5-fallback_untested-upcoming#3
+# Release readiness · MAX25-Stack 1.8.5-fallback_untested-upcoming#3-2
 
-Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcoming#3**.
+Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcoming#3-2**.
 
 ## Offline CI gate matrix
 
@@ -19,7 +19,7 @@ Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcom
 
 | Gate | Status |
 |------|--------|
-| Version `1.8.5-fallback_untested-upcoming#3` in VERSION file | Required |
+| Version `1.8.5-fallback_untested-upcoming#3-2` in VERSION file | Required |
 | Device face BayCom/based = **`max25e0`** (not `bcpr-bc0`) | Required |
 | `MAX25_BUILD_CRDOP=ON` documented | Required |
 | HyBBX boundary INI defaults | `[features] baycom=no`, `pccom=no`; bcpr via `bcpr=yes` |
@@ -39,7 +39,7 @@ Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcom
 
 | Item | Status |
 |------|--------|
-| Annotated tag `v1.8.5-fallback_untested-upcoming#3` | Operator decision |
+| Annotated tag `v1.8.5-fallback_untested-upcoming#3-2` | Operator decision |
 | Push to remote | Operator decision |
 
 ## Related
