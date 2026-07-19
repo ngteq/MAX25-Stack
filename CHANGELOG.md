@@ -2,6 +2,17 @@
 
 All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
 
+## [MAX25-Stack 1.8.5-fallback_untested-upcoming#2-workhard-session_night]
+
+Version file `1.8.5-fallback_untested-upcoming#2-workhard-session_night` (operator night-session mark after `1.8.5-fallback_untested-upcoming#1`).
+
+| Change | Detail |
+|--------|--------|
+| Release mark | **fallback_untested** · upcoming **#2** · **workhard-session_night** |
+| Carry-forward | Same consistency gate posture as `1.8.5-fallback_untested-upcoming#1` — live RF fallback path not fully re-certified under this tag |
+| Device face | BayCom/based SER12 → **`max25e0`** (internal `stacks/bcpr/`) |
+| TX/RX | Live TX gated on RX (`scripts/tx-rx-test.sh`, §0.20) |
+
 ## [MAX25-Stack 1.8.5-fallback_untested-upcoming#1]
 
 Version file `1.8.5-fallback_untested-upcoming#1` (operator override of prior `1.8.0-upcoming#1` marking).

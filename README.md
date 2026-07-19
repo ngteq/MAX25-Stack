@@ -1,4 +1,4 @@
-# MAX25-Stack · 1.8.5-fallback_untested-upcoming#1
+# MAX25-Stack · 1.8.5-fallback_untested-upcoming#2-workhard-session_night
 
 Linux supervisor for Packet Radio hardware: TNC lifecycle, KISS, M25/1 IPC, optional CRDOP soft-modem. HyBBX consumes RF through plugins — MAX25 owns prep and attach contracts.
 
