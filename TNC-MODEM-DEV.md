@@ -2,8 +2,6 @@
 
 English bring-up for **TNCs** (HDLC + KISS on host serial) and **BayCom/based** modems (bits↔AFSK + PTT; host owns HDLC). Applies to MAX25-Stack and to any stack that attaches the same hardware classes.
 
-Public mark for SER12 / PC-COM class: **BayCom/based**. Never **Konverter** / **converter**. Live secrets stay in `./local/` (gitignored); site examples use `/etc/max25/…`.
-
 ---
 
 ## 1. Roles — TNC vs modem
