@@ -14,7 +14,9 @@ Public mark: **BayCom/based**. Internal workstream: **bcpr**.
 
 **UX:** Simple steps · prefer **more config + probes** (safe) over thin checks (H11).
 
-Vault SSoT: `0-RESEARCHES/projects/max25-stack/2026-07-18-bcpr-rxtx-smoke-nofreeze.md` · harden · detect · freezes.
+Vault SSoT: `0-RESEARCHES/projects/max25-stack/2026-07-18-bcpr-rxtx-smoke-nofreeze.md` · harden · detect · freezes · TX/RX release `2026-07-19-tx-rx-release-test.md`.
+
+Unified operator entry (TNC + modem): `scripts/tx-rx-test.sh` — see [docs/TX-RX-TEST.md](../../docs/TX-RX-TEST.md).
 
 ## Use (simple)
 
@@ -32,7 +34,7 @@ sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini preflight
 sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini smoke --live --seconds 15
 
 # Optional TX (PTT warning even if radio OFF)
-sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini smoke --live --tx --seconds 15
+sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini smoke --live --tx --tx-seconds 3
 
 # Daemon
 sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini start
@@ -47,10 +49,10 @@ sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini stop
 bcpr = yes
 
 [devices]
-default = bcpr-bc0
-bcpr-bc0 = bcpr:bc0
+default = max25e0
+max25e0 = bcpr:bc0
 
-[device.bcpr-bc0]
+[device.max25e0]
 kiss_link = /tmp/bcpr/kiss-bc0
 bcpr_ini = /etc/max25/bcpr.ini
 ```

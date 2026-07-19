@@ -14,7 +14,7 @@ Search order (`paths.py`): `/etc/max25/` → `local/` → `share/max25/serial/` 
 
 | Hardware | Site config (not serial env) |
 |----------|------------------------------|
-| BayCom kernel (`baycom-ser12`) | `share/baycom/baycom-pr.pccom-ttyS0-only.ini.example` → `/etc/baycom/baycom-pr.ini` |
+| BayCom/based (`max25e0` / bcpr) | `share/baycom/baycom-pr.pccom-ttyS0-only.ini.example` → `/etc/baycom/baycom-pr.ini` |
 | CRDOP (`soft-crdop`) | `stacks/crdop/share/crdop.ini.example` |
 
 Unified workflow: [docs/PLUGINS-DEVICE-MODEL.md](../../docs/PLUGINS-DEVICE-MODEL.md).

@@ -201,7 +201,8 @@ void bcpr_hdlc_transmitter(bcpr_hdlc_t *h)
                 h->numflags = flgs;
                 break;
             }
-            if (h->pending_len >= BCPR_MAXFLEN || h->pending_len < 2) {
+            /* pending[] holds up to BCPR_MAXFLEN; reject only oversize / empty. */
+            if (h->pending_len > BCPR_MAXFLEN || h->pending_len < 2) {
                 h->have_pending = 0;
                 h->tx_state = 0;
                 h->numflags = 1;

@@ -1,4 +1,4 @@
-# Packet Radio & AX.25 · MAX25-Stack 1.5.0
+# Packet Radio & AX.25 · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Technical reference for on-air and host-side AX.25/KISS behaviour in MAX25.
 

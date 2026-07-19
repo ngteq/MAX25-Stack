@@ -1,26 +1,18 @@
 # Terminal client profiles (YAML)
 
-Per-modem **max25-terminal** profiles for devices that need settings beyond a BayCom `baycom-pr.ini` catalog reference.
+Per-modem **max25-terminal** profiles for devices that need settings beyond a BayCom/based **bcpr** or TNC env catalog.
 
 | Who reads this | Purpose |
 |----------------|---------|
 | **max25-terminal** | Connection target, default `SET DEVICE`, session IDs, UI pacing |
-| **Operator** | Pick a profile: `max25-terminal -d tnc2c -U /run/max25/modem.sock` (device id from YAML `device.id`) |
-| **max25d** | **Not** loaded from here — use `max25d.ini`, `baycom-pr.ini`, or env files |
+| **Operator** | `max25-terminal -U /run/max25/modem.sock` — device from max25d `[devices] default`, or `-d <id>` / F10→7 / `SET DEVICE` (id from YAML `device.id`) |
+| **max25d** | **Not** loaded from here — use `max25d.ini`, `bcpr.ini`, or env files |
 
-## BayCom kernel modems — client YAML as operator reference
+## BayCom/based (bcpr) — client YAML as operator reference
 
-SER12 and PAR96 catalog entries in `stacks/baycom-pr/config/modems.ini` run **directly** via `baycom-pr.ini`:
+SER12 PC-COM class hardware runs via **bcpr** (`stacks/bcpr/`), not a kernel driver. Configure `bcpr.ini` / max25d `[features] bcpr=yes` and device **`max25e0`** (`max25e0 = bcpr:bc0`). No separate client YAML is required — use max25d default or `SET DEVICE max25e0`.
 
-```ini
-[modem.a]
-catalog = albrecht-pc-com
-serial = /dev/ttyS0
-```
-
-Hardware is configured in `baycom-pr.ini`, not serial env. [`baycom-ser12.yaml`](baycom-ser12.yaml) mirrors the TNC client-profile pattern: connection defaults, `SET DEVICE` id, and pointers to `baycom-pr.ini` / `max25d.ini` — **not** loaded by `max25d`.
-
-Terminal clients attach to **max25d** (KISS PTY) after `baycom-pr-ctl start`. See [docs/BAYCOM.md](../../docs/BAYCOM.md) and [docs/PLUGINS-DEVICE-MODEL.md](../../docs/PLUGINS-DEVICE-MODEL.md).
+Terminal clients attach to **max25d** after `bcprd` / max25d bring-up. See [docs/BAYCOM.md](../../docs/BAYCOM.md) and [docs/PLUGINS-DEVICE-MODEL.md](../../docs/PLUGINS-DEVICE-MODEL.md).
 
 Registry of all catalog IDs (with and without client YAML): [`index.yaml`](index.yaml).
 
@@ -72,8 +64,8 @@ KISS-async and CRDOP profiles use `serial:` or `crdop:` instead of BayCom catalo
 | File | Modem / device |
 |------|----------------|
 | [`tnc2c.yaml`](tnc2c.yaml) | Landolt TNC2C |
-| [`baycom-ser12.yaml`](baycom-ser12.yaml) | BayCom SER12 kernel (PC-COM) — operator reference |
-| [`pktnc2.yaml`](pktnc2.yaml) | PK-TNC2 / TNC-2 (TheFirmware) |
+| (none — use `max25e0`) | BayCom/based SER12 via bcpr (PC-COM) |
+| [`pktnc2.yaml`](pktnc2.yaml) | PK-TNC2 / TNC-2 (TheFirmware)
 | [`kiss-serial-usb.yaml`](kiss-serial-usb.yaml) | KISS on USB (`modems.ini` catalog) |
 | [`kiss-serial-rs232.yaml`](kiss-serial-rs232.yaml) | KISS on RS-232 |
 | [`baycom-kiss.yaml`](baycom-kiss.yaml) | MAX25 device plugin (USB KISS) |
@@ -84,4 +76,4 @@ KISS-async and CRDOP profiles use `serial:` or `crdop:` instead of BayCom catalo
 
 - [docs/MAX25-CLIENT.md](../../docs/MAX25-CLIENT.md) — M25/1 protocol
 - [docs/MAX25-TERMINAL.md](../../docs/MAX25-TERMINAL.md) — operator UI
-- [stacks/baycom-pr/config/modems.ini](../../stacks/baycom-pr/config/modems.ini) — hardware catalog
+- [stacks/bcpr/share/bcpr.ini.example](../../stacks/bcpr/share/bcpr.ini.example) — bcpr INI example

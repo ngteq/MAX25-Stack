@@ -17,19 +17,15 @@ include(MAX25Platform)
 include(MAX25Ax25)
 
 option(MAX25_BUILD_TNCS "Build stacks/tncs tools" ON)
-option(MAX25_BUILD_BAYCOM "Build stacks/baycom-pr tools (runtime default off via [features])" ON)
 option(MAX25_BUILD_CRDOP "Build and install MAX25-SoftModem (CRDOP) — disable only if not needed" ON)
-option(MAX25_BUILD_BCPR "Build stacks/bcpr userspace BayCom-compatible SER12 plugin" ON)
+option(MAX25_BUILD_BCPR "Build stacks/bcpr userspace BayCom/based SER12 plugin" ON)
 option(MAX25_BUILD_TERMINAL "Build max25-terminal / max25-client" ON)
 option(MAX25_BUILD_DAEMON "Install max25d" ON)
 option(MAX25_BUILD_WEB "Install MAX25 web UI scaffold" ON)
+# Legacy kernel baycom-pr removed 2026-07-18 → vault archives/legacy/max25-stack-baycom-kernel-compa/
 
 if(MAX25_BUILD_TNCS)
     add_subdirectory(stacks/tncs)
-endif()
-
-if(MAX25_BUILD_BAYCOM)
-    add_subdirectory(stacks/baycom-pr/tools)
 endif()
 
 if(MAX25_BUILD_CRDOP)
@@ -115,41 +111,16 @@ install(FILES
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.host.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.full-station.ini.example"
-    "${CMAKE_SOURCE_DIR}/share/max25/max25d.dual-baycom.ini.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.netdev.ini.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.freebsd.ini.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.main.ini.example"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/max25"
 )
 
-if(MAX25_BUILD_BAYCOM)
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/share/baycom/"
-        DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/baycom"
-        FILES_MATCHING PATTERN "*.example" PATTERN "README.md")
-
-install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/baycom-pr/scripts/baycom-pr-ctl"
-        DESTINATION "${CMAKE_INSTALL_SBINDIR}")
-
-set(_BAYCOM_PY_TOOLS
-    baycom_ini_load.py
-    baycom_validate_config.py
-    baycom_preflight.py
-    baycom_probe.py
-    baycom_doctor.py
-    baycom_axports.py
-    baycom_serial_status.py
-)
-foreach(_py IN LISTS _BAYCOM_PY_TOOLS)
-    install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/baycom-pr/tools/${_py}"
-            DESTINATION "${CMAKE_INSTALL_SBINDIR}")
-endforeach()
-
-install(FILES "${CMAKE_SOURCE_DIR}/stacks/baycom-pr/config/modems.ini"
-        DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/baycom")
-
-install(FILES "${CMAKE_SOURCE_DIR}/share/baycom/baycom-pr.pccom-ttyS0-only.ini.example"
-        DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/baycom"
-        RENAME "baycom-pr.ini.example")
+# share/baycom/README.md only — kernel INI examples removed; use share/bcpr/ or stacks/bcpr/
+if(EXISTS "${CMAKE_SOURCE_DIR}/share/baycom/README.md")
+    install(FILES "${CMAKE_SOURCE_DIR}/share/baycom/README.md"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/baycom")
 endif()
 
 if(MAX25_BUILD_BCPR)
@@ -167,12 +138,6 @@ add_custom_target(max25_release_check
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     USES_TERMINAL
     COMMENT "Run offline release-check gates"
-)
-
-add_custom_target(baycom_pr_test
-    COMMAND bash "${CMAKE_SOURCE_DIR}/stacks/baycom-pr/scripts/test-all.sh"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "BayCom PR offline test-all"
 )
 
 if(TARGET crdopc)
@@ -226,6 +191,18 @@ add_custom_target(max25_daemon_smoke
     COMMENT "max25d M25/1 smoke tests"
 )
 
+# Unified TX/RX release test (L0 offline) — TNC + BayCom/based (bcpr)
+add_custom_target(max25_tx_rx_test
+    COMMAND bash "${CMAKE_SOURCE_DIR}/scripts/tx-rx-test.sh"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    USES_TERMINAL
+    COMMENT "TX/RX L0 offline (TNC + BayCom/based bcpr)"
+)
+add_test(NAME max25_tx_rx_offline
+         COMMAND bash "${CMAKE_SOURCE_DIR}/scripts/tx-rx-test.sh"
+         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+set_tests_properties(max25_tx_rx_offline PROPERTIES LABELS "txrx;offline")
+
 if(TARGET max25-terminal)
     add_custom_target(max25_terminal_test
         COMMAND bash "${CMAKE_SOURCE_DIR}/stacks/terminal/test-terminal.sh"
@@ -237,12 +214,8 @@ endif()
 
 
 add_custom_target(max25_test
-    DEPENDS max25_daemon_smoke
+    DEPENDS max25_daemon_smoke max25_tx_rx_test
 )
-
-if(MAX25_BUILD_BAYCOM)
-    add_dependencies(max25_test baycom_pr_test)
-endif()
 
 if(TARGET max25-terminal)
     add_dependencies(max25_test max25_terminal_test)

@@ -30,9 +30,9 @@ hardware:
     description: Serial/USB TNC hardware group (TNC2C, PK-TNC2, PK-232, …)
   - id: modems
     path: hardware/modems
-    stack: stacks/baycom-pr
+    stack: stacks/bcpr
     hybbx_plugin: baycom
-    description: BayCom kernel modems (SER12, PAR96, KISS serial)
+    description: BayCom/based SER12 via bcpr (userspace); USB KISS via baycom-kiss
   - id: soft-modems
     path: hardware/soft-modems
     stack: stacks/crdop
@@ -58,18 +58,6 @@ devices:
     hardware: tncs
     hybbx_profile: tnc2
     status: planned
-  - id: baycom-ser12
-    path: devices/baycom-ser12
-    hardware: modems
-    hybbx_backend: kernel
-    hybbx_mode: ser12*
-    status: active
-  - id: baycom-par96
-    path: devices/baycom-par96
-    hardware: modems
-    hybbx_backend: kernel
-    hybbx_mode: par96
-    status: scaffold
   - id: baycom-kiss
     path: devices/baycom-kiss
     hardware: modems

@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 PREFIX = "max25d"
-DEVICE_TOKENS = ("tnc2c", "pktnc2", "baycom-ser12", "baycom-kiss", "soft-crdop")
+DEVICE_TOKENS = ("tnc2c", "pktnc2", "max25e0", "max25e0:bc0", "max25e0:bc1", "baycom-kiss", "soft-crdop")
 
 
 @dataclass(frozen=True)

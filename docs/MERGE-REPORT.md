@@ -1,4 +1,4 @@
-# Merge report · MAX25-Stack 1.5.0
+# Merge report · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Archive of stack merge history — BayCom, CRDOP, TNC tools into unified MAX25-Stack.
 

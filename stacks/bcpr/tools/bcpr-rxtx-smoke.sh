@@ -9,19 +9,26 @@ ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 CTL="$SCRIPT_DIR/bcpr-ctl"
 INI="${BCPR_INI:-$ROOT/stacks/bcpr/share/bcpr.ini.example}"
 SECONDS_LIVE=15
+TX_SECONDS=3
 DO_LIVE=0
 DO_TX=0
+FORCE_TX=0
 BUILD_DIR=""
 BCPRD=""
 TEST_HDLC=""
 ERR=0
 BCPRD_PID=""
+OWNED_BCPRD=0
+REUSE_STACK=0
+RX_ACTIVITY=0
 
 usage() {
   cat <<'USAGE'
-Usage: bcpr-rxtx-smoke.sh [-c ini] [--live] [--tx] [--seconds N] [--build-dir DIR]
+Usage: bcpr-rxtx-smoke.sh [-c ini] [--live] [--tx] [--force-tx] [--seconds N] [--tx-seconds N] [--build-dir DIR]
   L0 offline always. Soft L1 if probes safe. L2/L3 need --live. L4 needs --tx.
-  Default: NO TX. Hard time caps. Always stop.
+  --tx-seconds: target PTT key window (default 3; uses ~376B info ≈3s like proven inject).
+  Default: NO TX. Hard time caps. Stop only bcprd started by this script.
+  §0.20: --tx requires RX/DCD activity in this run unless --force-tx (debug only).
 USAGE
 }
 
@@ -30,7 +37,9 @@ while [[ $# -gt 0 ]]; do
     -c) INI="$2"; shift 2 ;;
     --live) DO_LIVE=1; shift ;;
     --tx) DO_TX=1; shift ;;
+    --force-tx) FORCE_TX=1; shift ;;
     --seconds) SECONDS_LIVE="$2"; shift 2 ;;
+    --tx-seconds) TX_SECONDS="$2"; shift 2 ;;
     --build-dir) BUILD_DIR="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "ERROR: unknown arg: $1"; usage; exit 2 ;;
@@ -49,11 +58,25 @@ if [[ "$SECONDS_LIVE" -gt 60 ]]; then
   echo "WARN: capping --seconds from $SECONDS_LIVE to 60"
   SECONDS_LIVE=60
 fi
+if [[ "$TX_SECONDS" -lt 1 ]]; then
+  TX_SECONDS=1
+fi
+if [[ "$TX_SECONDS" -gt 12 ]]; then
+  echo "WARN: capping --tx-seconds from $TX_SECONDS to 12"
+  TX_SECONDS=12
+fi
 
 log() { printf '%s\n' "$*"; }
 ok() { log "PASS: $*"; }
 fail() { log "FAIL: $*"; ERR=1; }
 stage() { log ""; log "=== $* ==="; }
+
+# Attach window must cover TX key + settle (tx_delay + bursts).
+need_live=$((TX_SECONDS + 5))
+if [[ "$DO_TX" -eq 1 && "$SECONDS_LIVE" -lt "$need_live" ]]; then
+  log "NOTE: raising --seconds from $SECONDS_LIVE to $need_live for --tx-seconds $TX_SECONDS"
+  SECONDS_LIVE=$need_live
+fi
 
 pick_build_dir() {
   local cand
@@ -102,6 +125,15 @@ ensure_binaries() {
 }
 
 stop_bcprd() {
+  # Only stop bcprd we started. Never blanket-pkill — max25d may own a live stack.
+  if [[ -n "${KISS_HOLD_FD:-}" ]]; then
+    eval "exec ${KISS_HOLD_FD}<&-" 2>/dev/null || true
+    unset KISS_HOLD_FD
+  fi
+  if [[ "${OWNED_BCPRD:-0}" -ne 1 ]]; then
+    BCPRD_PID=""
+    return 0
+  fi
   if [[ -n "${BCPRD_PID:-}" ]] && kill -0 "$BCPRD_PID" 2>/dev/null; then
     kill "$BCPRD_PID" 2>/dev/null || true
     local i
@@ -114,10 +146,7 @@ stop_bcprd() {
     fi
   fi
   BCPRD_PID=""
-  if [[ -x "$CTL" ]]; then
-    BCPRD="${BCPRD:-bcprd}" "$CTL" -c "$INI" stop >/dev/null 2>&1 || true
-  fi
-  pkill -x bcprd 2>/dev/null || true
+  OWNED_BCPRD=0
 }
 
 trap 'stop_bcprd' EXIT INT TERM
@@ -174,7 +203,7 @@ fi
 
 stage "L2/L3 timed attach + RX listen (${SECONDS_LIVE}s)"
 if [[ "$DO_TX" -eq 1 ]]; then
-  log "WARN: --tx will assert PTT on the modem even if the radio is OFF"
+  log "WARN: --tx asserts PTT (~${TX_SECONDS}s key window; LED/wattmeter visible)"
 fi
 
 dry_val="$(awk -F= '
@@ -189,13 +218,6 @@ case "$dry_val" in
     ;;
 esac
 
-export BCPRD
-"$CTL" -c "$INI" preflight || { fail "preflight before attach"; exit 1; }
-
-log "starting bcprd --seconds $SECONDS_LIVE …"
-"$BCPRD" -c "$INI" --seconds "$SECONDS_LIVE" &
-BCPRD_PID=$!
-
 kiss_link="$(awk -F= '
   $0 ~ /^\[/ { cur=$0; gsub(/[[:space:]]/,"",cur) }
   cur=="[bc0]" && $1 ~ /^[[:space:]]*kiss_link[[:space:]]*$/ {
@@ -203,80 +225,258 @@ kiss_link="$(awk -F= '
   }' "$INI")"
 kiss_link="${kiss_link:-/tmp/bcpr/kiss-bc0}"
 
-waited=0
-while [[ "$waited" -lt 5 ]]; do
-  if [[ -e "$kiss_link" ]] || ! kill -0 "$BCPRD_PID" 2>/dev/null; then
-    break
-  fi
-  sleep 0.5
-  waited=$((waited + 1))
-done
+iobase="$(awk -F= '
+  $0 ~ /^\[/ { cur=$0; gsub(/[[:space:]]/,"",cur) }
+  cur=="[bc0]" && $1 ~ /^[[:space:]]*iobase[[:space:]]*$/ {
+    v=$2; gsub(/^[[:space:]]+|[[:space:]]+$/,"",v); print v; exit
+  }' "$INI")"
+iobase="${iobase:-0x3f8}"
 
-if ! kill -0 "$BCPRD_PID" 2>/dev/null; then
-  fail "bcprd exited early (attach)"
-  wait "$BCPRD_PID" || true
-  BCPRD_PID=""
-  exit 1
-fi
+export BCPRD
+"$CTL" -c "$INI" preflight || { fail "preflight before attach"; exit 1; }
 
-if [[ -e "$kiss_link" ]]; then
-  ok "kiss_link present ($kiss_link) — RX listen active"
+# Prefer live stack (max25d-owned bcprd) — proven KISS inject path.
+# Starting a second bcprd races UART MCR and can yield no visible TX.
+if pgrep -x bcprd >/dev/null 2>&1 && [[ -e "$kiss_link" ]]; then
+  REUSE_STACK=1
+  OWNED_BCPRD=0
+  log "reusing live bcprd + kiss_link ($kiss_link) — no second attach"
+  ok "kiss_link present ($kiss_link) — RX listen active (reuse)"
 else
-  log "WARN: kiss_link not yet visible — continuing timed run"
-fi
+  REUSE_STACK=0
+  log "starting bcprd --seconds $SECONDS_LIVE …"
+  "$BCPRD" -c "$INI" --seconds "$SECONDS_LIVE" &
+  BCPRD_PID=$!
+  OWNED_BCPRD=1
 
-if [[ "$DO_TX" -eq 1 ]]; then
-  stage "L4 optional TX (capped)"
-  if [[ ! -e "$kiss_link" ]]; then
-    fail "no kiss_link for TX"
-  else
-    python3 - "$kiss_link" <<'PY' || fail "TX write"
-import sys
-path = sys.argv[1]
-payload = bytes([
-    0x00,
-    0xA8, 0x8A, 0xA6, 0xA8, 0x40, 0x40, 0xE0,
-    0x84, 0x86, 0xA0, 0xA4, 0x40, 0x40, 0x61,
-    0x03, 0xF0,
-]) + b"BCPR"
-frame = b"\xC0" + payload + b"\xC0"
-with open(path, "wb", buffering=0) as f:
-    f.write(frame)
-print("TX: wrote one KISS UI frame (%d bytes)" % len(frame))
-PY
-    ok "one KISS UI frame written (capped)"
-    sleep 1
+  waited=0
+  while [[ "$waited" -lt 5 ]]; do
+    if [[ -e "$kiss_link" ]] || ! kill -0 "$BCPRD_PID" 2>/dev/null; then
+      break
+    fi
+    sleep 0.5
+    waited=$((waited + 1))
+  done
+
+  if ! kill -0 "$BCPRD_PID" 2>/dev/null; then
+    fail "bcprd exited early (attach)"
+    wait "$BCPRD_PID" || true
+    BCPRD_PID=""
+    OWNED_BCPRD=0
+    exit 1
   fi
+
+  if [[ -e "$kiss_link" ]]; then
+    ok "kiss_link present ($kiss_link) — RX listen active"
+  else
+    log "WARN: kiss_link not yet visible — continuing timed run"
+  fi
+  # Hold KISS slave open — without a peer, POLLHUP drops TX before MCR keys.
+  exec {KISS_HOLD_FD}<>"$kiss_link" || true
 fi
 
-stage "wait stop"
-deadline=$((SECONDS_LIVE + 5))
+# Also hold when reusing (max25d already holds; extra open is harmless).
+if [[ "$REUSE_STACK" -eq 1 && -e "$kiss_link" && -z "${KISS_HOLD_FD:-}" ]]; then
+  exec {KISS_HOLD_FD}<>"$kiss_link" || true
+fi
+
+state_dir="$(dirname "$kiss_link")"
+rm -f "${state_dir}/rx-activity-bc0" "${state_dir}/rx-activity-bc1" 2>/dev/null || true
+
+poll_rx_activity() {
+  local f
+  for f in "${state_dir}/dcd-bc0" "${state_dir}/dcd-bc1" \
+           "${state_dir}/rx-activity-bc0" "${state_dir}/rx-activity-bc1"; do
+    if [[ -f "$f" ]] && grep -qE 'dcd=1|rx_activity=1' "$f" 2>/dev/null; then
+      RX_ACTIVITY=1
+      return 0
+    fi
+  done
+  return 1
+}
+
+stage "L3 RX prove (${SECONDS_LIVE}s)"
+log "listening for Soft-DCD/noise (dcd-bc* / rx-activity-bc*)…"
 elapsed=0
-while kill -0 "$BCPRD_PID" 2>/dev/null; do
-  if [[ "$elapsed" -ge "$deadline" ]]; then
-    fail "bcprd still running after ${deadline}s — forcing stop"
-    stop_bcprd
+while [[ "$elapsed" -lt "$SECONDS_LIVE" ]]; do
+  poll_rx_activity || true
+  if [[ "$REUSE_STACK" -eq 0 ]] && ! kill -0 "${BCPRD_PID:-}" 2>/dev/null; then
     break
   fi
   sleep 1
   elapsed=$((elapsed + 1))
 done
-
-set +e
-wait "$BCPRD_PID" 2>/dev/null
-rc=$?
-set -e
-if ! kill -0 "${BCPRD_PID:-}" 2>/dev/null; then
-  ok "bcprd stopped (rc=$rc)"
-  BCPRD_PID=""
+if [[ "$RX_ACTIVITY" -eq 1 ]]; then
+  ok "RX activity detected (Soft-DCD/noise)"
 else
-  fail "bcprd still alive after wait"
+  log "NOTE: no DCD/rx-activity — open SQ / noise before --tx (§0.20)"
+fi
+
+# §0.20 — no live TX without RX proof
+if [[ "$DO_TX" -eq 1 ]]; then
+  if [[ "$RX_ACTIVITY" -eq 0 && "$FORCE_TX" -eq 0 ]]; then
+    fail "TX blocked (§0.20): no RX/DCD activity — open SQ/noise, then --live --tx"
+    log "override only with --force-tx (against policy)"
+    if [[ "$REUSE_STACK" -eq 1 ]]; then
+      ok "left live bcprd running (max25d/stack owned)"
+    else
+      stop_bcprd || true
+    fi
+    stage "summary"
+    exit 1
+  fi
+  if [[ "$FORCE_TX" -eq 1 && "$RX_ACTIVITY" -eq 0 ]]; then
+    log "WARN: --force-tx without RX proof (against §0.20 policy)"
+  fi
+fi
+
+if [[ "$DO_TX" -eq 1 ]]; then
+  stage "L4 TX (~${TX_SECONDS}s PTT / MCR)"
+  if [[ ! -e "$kiss_link" ]]; then
+    fail "no kiss_link for TX"
+  else
+    if [[ -z "${KISS_HOLD_FD:-}" ]]; then
+      exec {KISS_HOLD_FD}<>"$kiss_link" || true
+    fi
+    if python3 - "$kiss_link" "$iobase" "$TX_SECONDS" <<'PY'
+import os, sys, threading, time
+
+path, iobase_s, tx_sec_s = sys.argv[1], sys.argv[2], sys.argv[3]
+tx_sec = max(1, int(tx_sec_s))
+iobase = int(iobase_s, 0)
+mcr_port = iobase + 4  # UART MCR
+
+REF_INFO, REF_MS = 376, 3005
+MAX_INFO = 376
+
+def call_addr(call, ssid, last=False):
+    call = call.upper().ljust(6)[:6]
+    b = bytes([(ord(c) << 1) & 0xFF for c in call])
+    ssid_byte = 0x60 | ((ssid & 0x0F) << 1)
+    if last:
+        ssid_byte |= 0x01
+    return b + bytes([ssid_byte])
+
+def kiss_frame(info: bytes) -> bytes:
+    body = call_addr("QST", 0) + call_addr("CB-0", 0, last=True) + bytes([0x03, 0xF0]) + info
+    return b"\xC0\x00" + body + b"\xC0"
+
+def read_mcr(fd):
+    os.lseek(fd, mcr_port, os.SEEK_SET)
+    return ord(os.read(fd, 1))
+
+def mcr_keyed(v):
+    return (v & 0x02) != 0
+
+def monitor_mcr(fd, duration, sample_ms=4):
+    t0 = time.monotonic()
+    first = last = None
+    vals = set()
+    while time.monotonic() - t0 < duration:
+        v = read_mcr(fd)
+        if mcr_keyed(v):
+            vals.add(v)
+            now = time.monotonic()
+            if first is None:
+                first = now
+            last = now
+        time.sleep(sample_ms / 1000.0)
+    keyed_ms = 0.0 if first is None else (last - first) * 1000.0
+    return keyed_ms, vals
+
+remaining_ms = tx_sec * 1000
+bursts = 0
+total_keyed = 0.0
+all_vals = set()
+port_fd = os.open("/dev/port", os.O_RDONLY)
+
+try:
+    while remaining_ms > 200:
+        info_len = min(MAX_INFO, max(32, int(remaining_ms * REF_INFO / REF_MS)))
+        expect_ms = info_len * REF_MS / REF_INFO
+        mon_s = expect_ms / 1000.0 + 1.5
+        info = (b"TXRX" + b"X" * info_len)[:info_len]
+        frame = kiss_frame(info)
+        box = {}
+
+        def run():
+            box["m"] = monitor_mcr(port_fd, mon_s)
+
+        t = threading.Thread(target=run)
+        t.start()
+        time.sleep(0.12)
+        f = open(path, "r+b", buffering=0)
+        try:
+            f.write(frame)
+            t.join()
+        finally:
+            f.close()
+        km, kvals = box["m"]
+        bursts += 1
+        total_keyed += km
+        all_vals |= kvals
+        kv = ",".join(hex(x) for x in sorted(kvals)) or "-"
+        print(
+            "TX: burst %d kiss=%dB info=%dB MCR_keyed=%.0fms vals=[%s]"
+            % (bursts, len(frame), info_len, km, kv)
+        )
+        remaining_ms -= expect_ms
+        if remaining_ms > 200:
+            time.sleep(0.4)
+finally:
+    os.close(port_fd)
+
+lo = tx_sec * 1000 * 0.55
+hi = tx_sec * 1000 * 1.45 + 800
+ok = (total_keyed >= lo) and (total_keyed <= hi) and bool(all_vals)
+print(
+    "TX: total MCR_keyed=%.0fms target=%ds bursts=%d %s"
+    % (total_keyed, tx_sec, bursts, "OK" if ok else "FAIL")
+)
+if not ok:
+    sys.exit(1)
+PY
+    then
+      ok "L4 TX MCR keyed (~${TX_SECONDS}s target)"
+    else
+      fail "L4 TX — no/short MCR key (check fulldup, stack, /dev/port)"
+    fi
+  fi
+fi
+
+if [[ "$REUSE_STACK" -eq 1 ]]; then
+  stage "reuse settle"
+  ok "left live bcprd running (max25d/stack owned)"
+else
+  stage "wait stop"
+  deadline=5
+  elapsed=0
+  while kill -0 "${BCPRD_PID:-}" 2>/dev/null; do
+    if [[ "$elapsed" -ge "$deadline" ]]; then
+      fail "bcprd still running after ${deadline}s — forcing stop"
+      stop_bcprd
+      break
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  set +e
+  wait "$BCPRD_PID" 2>/dev/null
+  rc=$?
+  set -e
+  if ! kill -0 "${BCPRD_PID:-}" 2>/dev/null; then
+    ok "bcprd stopped (rc=$rc)"
+    BCPRD_PID=""
+    OWNED_BCPRD=0
+  else
+    fail "bcprd still alive after wait"
+  fi
 fi
 
 stage "summary"
 if [[ "$ERR" -eq 0 ]]; then
   if [[ "$DO_TX" -eq 1 ]]; then
-    ok "L0–L4 complete (live + TX)"
+    ok "L0–L4 complete (live + TX; RX proven)"
   else
     ok "L0–L3 complete (live RX, no TX)"
   fi

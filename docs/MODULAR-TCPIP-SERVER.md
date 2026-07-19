@@ -1,4 +1,4 @@
-# Modular TCP/IP server · MAX25-Stack 1.5.0
+# Modular TCP/IP server · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Main + Secondary TCP/IP topology service — DEV-Level 1.
 

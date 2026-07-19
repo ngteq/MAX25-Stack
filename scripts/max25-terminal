@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Alias → canonical launcher (stale stacks/terminal ELF avoided).
+exec "$(cd "$(dirname "$0")" && pwd)/run-max25-terminal.sh" "$@"

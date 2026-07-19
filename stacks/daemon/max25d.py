@@ -75,7 +75,8 @@ def _device_is_pccom(dev: DeviceBackendConfig) -> bool:
 
 
 def _device_is_bcpr(dev: DeviceBackendConfig) -> bool:
-    if dev.device_id.startswith("bcpr"):
+    # Product device id = max25e0 (+ forks); backend tag remains bcpr:
+    if dev.device_id == "max25e0" or dev.device_id.startswith("max25e0:"):
         return True
     spec = (dev.device_spec or "").strip()
     if spec.startswith("bcpr:"):
@@ -941,21 +942,53 @@ def start_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
     args = [str(ctl), "-c", str(ini), "start"]
     env = os.environ.copy()
     try:
+        # DEVNULL: bcprd is backgrounded by bcpr-ctl and would keep PIPE
+        # write-ends open — communicate() would hang until timeout.
         proc = subprocess.Popen(
             args,
             cwd=str(ROOT),
             env=env,
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
             start_new_session=True,
         )
     except OSError as exc:
         log(f"bcpr start failed ({dev_id}): {exc}")
         rt.stack_status = "error"
         return
-    rt.stack_proc = proc
+    # bcpr-ctl start returns after spawning bcprd; capture preflight failure text.
+    try:
+        _out, err = proc.communicate(timeout=20)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        _out, err = proc.communicate()
+        log(f"bcpr-ctl start timed out ({dev_id})")
+        rt.stack_status = "error"
+        return
+    for line in (err or "").splitlines():
+        line = line.strip()
+        if line:
+            log(f"bcpr-ctl: {line}")
+    if proc.returncode not in (0, None):
+        rt.stack_status = "error"
+        log(f"bcpr-ctl start rc={proc.returncode} ({dev_id})")
+        return
+    # bcpr-ctl itself exits; live daemon is bcprd (pidfile under state_dir).
+    rt.stack_proc = None
     rt.stack_status = "running"
-    log(f"bcpr started pid={proc.pid} ({dev_id}, ini={ini})")
+    kiss = (rt.cfg.kiss_link or "").strip() or "/tmp/bcpr/kiss-bc0"
+    deadline = time.time() + 5.0
+    while time.time() < deadline:
+        if os.path.exists(kiss):
+            break
+        time.sleep(0.1)
+    if not os.path.exists(kiss):
+        rt.stack_status = "error-no-kiss"
+        log(f"bcpr kiss_link missing after start ({dev_id}: {kiss})")
+        return
+    log(f"bcpr started ({dev_id}, ini={ini}, kiss={kiss})")
 
 
 def start_device_stack(state: DaemonState, dev_id: str) -> None:
@@ -1061,6 +1094,21 @@ def start_stacks(state: DaemonState) -> None:
 def stop_device_stack(state: DaemonState, dev_id: str) -> None:
     close_backend(state, dev_id)
     rt = state.devices[dev_id]
+    kind = rt.cfg.backend_type or ""
+    if kind == "bcpr-kiss":
+        ctl = resolve_bcpr_ctl()
+        explicit = rt.cfg.bcpr_ini or ""
+        resolved = resolve_bcpr_ini(explicit)
+        if ctl is not None and resolved is not None:
+            subprocess.run(
+                [str(ctl), "-c", str(resolved), "stop"],
+                cwd=str(ROOT),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        rt.stack_proc = None
+        rt.stack_status = "stopped"
+        return
     proc = rt.stack_proc
     if proc is not None and proc.poll() is None:
         try:
@@ -1076,7 +1124,6 @@ def stop_device_stack(state: DaemonState, dev_id: str) -> None:
     if ctl.is_file():
         workdir = str(ROOT if (ROOT / "plugins").is_dir() else (PREFIX or ROOT))
         stop_args = [str(ctl), "stop", "--hardware", hw, "--device", dev_id]
-        kind = rt.cfg.backend_type or ""
         if kind == "baycom-kiss":
             explicit = rt.cfg.baycom_ini or ""
             resolved = resolve_baycom_ini(dev_id, ROOT, PREFIX, explicit)

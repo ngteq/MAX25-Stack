@@ -179,9 +179,18 @@ static int dispatch_daemon_line(const char *line, session_io_t *io,
 
     if (io->waiting_reply) {
         if (kind == MAX25_LINE_STATUS && status != NULL) {
+            char summary[MAX25_LINE_MAX];
+
             max25_client_parse_status(line, status);
             /* Show STATUS in RX pane (F10→3 and other GET STATUS callers). */
-            max25_ui_append_rx(ui, line);
+            snprintf(summary, sizeof(summary),
+                     "STATUS device=%s stack=%s connected=%s callerid=%s callid=%s",
+                     status->device[0] != '\0' ? status->device : "-",
+                     status->stack[0] != '\0' ? status->stack : "-",
+                     status->connected ? "yes" : "no",
+                     status->callerid[0] != '\0' ? status->callerid : "-",
+                     status->callid[0] != '\0' ? status->callid : "-");
+            max25_ui_append_rx(ui, summary);
             if (need_redraw != NULL) {
                 *need_redraw = 1;
             }
@@ -461,6 +470,7 @@ static int run_session(max25_client_t *client, max25_ui_t *ui,
             if (ch == 999) {
                 if (max25_ui_menu_visible(ui)) {
                     max25_ui_hide_menu(ui);
+                    max25_ui_draw_screen(ui, status, input);
                 } else {
                     max25_ui_show_menu(ui, status);
                 }

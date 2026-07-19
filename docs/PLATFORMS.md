@@ -1,4 +1,4 @@
-# Platforms · MAX25-Stack 1.5.0
+# Platforms · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Supported and planned platforms for max25d and max25-terminal.
 

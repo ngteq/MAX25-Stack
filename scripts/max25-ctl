@@ -90,19 +90,17 @@ Daemon (Linux):
 Options (start/stop/status):
   --mode MODE       standalone | service | hybbx-host  (default: standalone)
   --hardware HW     tncs | modems | soft-modems
-  --device DEV      tnc2c | pktnc2 | baycom-ser12 | baycom-par96 | baycom-kiss | soft-crdop
-  --baycom-ini PATH baycom-pr.ini for kernel modems (default: single-modem example;
-                    skips dual /etc/baycom/baycom-pr.ini unless this flag is set)
-  --baycom-profile NAME  single (default) | dual — resolve shipped profile template
+  --device DEV      tnc2c | pktnc2 | max25e0 | baycom-kiss | soft-crdop
+                    (legacy aliases baycom-ser12/par96 redirect to bcpr docs)
+  --baycom-ini PATH legacy kernel baycom-pr.ini (removed — use bcpr.ini / max25e0)
+  --baycom-profile NAME  single (default) | dual — legacy only (kernel path removed)
 
 Examples:
   max25-ctl discover
   max25-ctl build
   max25-ctl start --hardware tncs --device tnc2c
-  max25-ctl start --hardware modems --device baycom-ser12
-  max25-ctl start --hardware modems --device baycom-ser12 --baycom-ini stacks/baycom-pr/config/examples/baycom-pr.dual.ini
-  max25-ctl start --hardware modems --device baycom-ser12 --baycom-ini /etc/baycom/baycom-pr.ini
-  max25-ctl start --hardware modems --device baycom-ser12 --baycom-profile dual
+  max25-ctl start --hardware modems --device max25e0
+  max25-ctl start --hardware modems --device baycom-kiss
   max25-ctl start --hardware soft-modems --device soft-crdop
   max25-ctl test
 
@@ -125,7 +123,7 @@ parse_opts() {
 }
 
 resolve_baycom_ini_path() {
-  local device="${1:-baycom-ser12}"
+  local device="${1:-max25e0}"
   local explicit="${2:-${BAYCOM_INI:-}}"
   local profile="${3:-${BAYCOM_PROFILE:-}}"
 
@@ -232,24 +230,12 @@ except ImportError:
 }
 
 start_baycom_kernel() {
-  local device="${1:-baycom-ser12}"
-  local baycom_ctl=""
-  baycom_ctl="$(resolve_baycom_ctl)" || {
-    echo "baycom-pr-ctl not found (build/install BayCom PR stack)" >&2
-    exit 1
-  }
-  local ini=""
-  ini="$(resolve_baycom_ini_path "${device}" "${BAYCOM_INI}")" || {
-    echo "baycom-pr.ini not found — copy share/baycom/baycom-pr.pccom-ttyS0-only.ini.example to /etc/baycom/baycom-pr.ini" >&2
-    exit 1
-  }
-  # v1: kernel BayCom still needs sudo (modprobe, UART). v2 mandatory: rootless operator path
-  # via systemd + one-time install — docs/V2.0.0-SCOPE.md
-  echo "BayCom PR-Stack start (root required in v1) device=${device} ini=${ini}"
-  echo "Next: max25d with [devices] baycom-ser12 = baycom:a · terminal: SET DEVICE baycom-ser12 → CONNECT → SEND"
-  echo "Guide: docs/PLUGINS-DEVICE-MODEL.md · docs/BAYCOM.md"
-  sudo "${baycom_ctl}" -c "${ini}" preflight
-  exec sudo "${baycom_ctl}" -c "${ini}" start
+  # Kernel baycom-pr removed 2026-07-18 — product path is bcpr.
+  echo "Kernel BayCom (baycom-pr / baycom_ser_fdx) removed from this tree." >&2
+  echo "Use BayCom/based via bcpr: docs/BAYCOM.md · stacks/bcpr/README.md" >&2
+  echo "  [features] bcpr=yes · max25e0 = bcpr:bc0 · bcpr-ctl / max25d auto_start" >&2
+  echo "Frozen archive: MASTER vault archives/legacy/max25-stack-baycom-kernel-compa/" >&2
+  exit 1
 }
 
 cmd_discover() {
@@ -297,19 +283,22 @@ cmd_start() {
       ;;
     modems)
       case "$DEVICE" in
-        baycom-kiss)
-          echo "baycom-kiss: USB/async KISS — no kernel baycom-pr-ctl start"
+        baycom-kiss|pccom-kiss)
+          echo "baycom-kiss: USB/async KISS — no kernel stack start"
           echo "Configure max25d [devices] baycom-kiss and [serial.baycom-kiss]; max25d opens serial directly."
           exit 0
           ;;
-        baycom-par96)
-          start_baycom_kernel "baycom-par96"
+        bcpr|max25e0|max25e0:bc0|max25e0:bc1|"")
+          echo "bcpr / max25e0: start via max25d [features] bcpr=yes (auto_start) or bcpr-ctl" >&2
+          echo "See docs/BAYCOM.md · stacks/bcpr/README.md" >&2
+          echo "Canonical: scripts/run-max25d.sh" >&2
+          exit 1
           ;;
-        baycom-ser12|baycom-a|baycom-b|"")
-          start_baycom_kernel "${DEVICE:-baycom-ser12}"
+        baycom-par96|baycom-ser12|baycom-a|baycom-b)
+          start_baycom_kernel "${DEVICE}"
           ;;
         *)
-          echo "Unknown modem device: $DEVICE (use baycom-ser12, baycom-a, baycom-b, baycom-par96, or baycom-kiss)" >&2
+          echo "Unknown modem device: $DEVICE (use max25e0 / baycom-kiss)" >&2
           exit 1
           ;;
       esac

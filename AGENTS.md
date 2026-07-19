@@ -15,7 +15,7 @@ Map for AI agents. Humans: [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTIN
 | Upstream | Path | HyBBX plugin |
 |----------|------|--------------|
 | [TNCs-Stack](https://github.com/ngteq/TNCs-Stack) | `stacks/tncs/` | `packet_radio` |
-| [BayCom_PR-Stack](https://github.com/ngteq/BayCom_PR-Stack) | `stacks/baycom-pr/` | `baycom` |
+| [BayCom/based](docs/BAYCOM.md) (ex BayCom_PR-Stack) | `stacks/bcpr/` | via MAX25 |
 | [CRDOP](https://github.com/ngteq/CRDOP) | `stacks/crdop/` | `crdop` |
 | [hyBBX](https://github.com/ngteq/hyBBX) | external | consumer |
 
@@ -98,5 +98,5 @@ Registry: `plugins/manifest.yaml`. Discovery CLI lists hardware + device only.
 ## Pitfalls
 
 - TNC2C: DTR during power-on — echo mode otherwise
-- BayCom: no userspace serial client on raw UART while kernel driver loaded
+- BayCom/based: exclusive UART lock under bcprd; do not open raw COM alongside
 - One process per serial port

@@ -1,4 +1,4 @@
-# Plugins & device model · MAX25-Stack 1.5.0
+# Plugins & device model · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Unified five-step device workflow for all RF backends.
 
@@ -25,7 +25,7 @@ Unified five-step device workflow for all RF backends.
 | Hardware | Devices | Protocol |
 |----------|---------|----------|
 | `tncs` | `tnc2c`, (deferred `pktnc2`) | KISS serial |
-| `modems` | `baycom-ser12` | kernel hdlcdrv / KISS PTY |
+| `modems` | `max25e0` / `baycom-kiss` | bcpr SER12 / USB KISS |
 | `soft-modems` | `soft-crdop` | M25 host TCP + ALSA |
 
 ## Related

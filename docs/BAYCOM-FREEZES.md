@@ -1,48 +1,46 @@
-# BayCom / PC-COM — host freeze warning (RX / TX)
+# BayCom/based — host freeze warning (RX / TX)
 
-**MAX25-Stack** · kernel path `baycom_ser_fdx` (SER12) · PC-COM and other BayCom-compatible modems
+**MAX25-Stack** · **BayCom/based** SER12 class (PC-COM / TCM3105) · product path **bcpr**
 
-> **Warning:** On some hosts (especially interactive desktops), **RX and TX** with a BayCom-compatible PC-COM modem can **hard-freeze** or soft-hang the machine. Read this before `baycom-pr-ctl start` or any PTT/calibrate test.
+> **Warning:** On some hosts (especially interactive desktops), **RX and TX** with BayCom/based PC-COM-class hardware can **hard-freeze** or soft-hang the machine — historically observed with kernel `baycom_ser_fdx`. Prefer **bcpr**; still treat SQ-open / strong RF / USB HID hubs as risk.
 
 ## Freeze classes
 
 | Class | Typical trigger | Radio needed? |
 |-------|-----------------|---------------|
-| **TX / calibrate** | `baycom_test calibrate N`, HDLC calibrate ioctl, heavy SER12 TX | **No** — observed with radio **off** |
-| **RX / RF EMI** | Peer packet TX / strong RF near the PC; USB HID dropout (`EMI?` in `dmesg`) | Over-air RF; can freeze **even if** `baycom_ser_fdx` is **unloaded** |
-| Soft hang | Driver loaded, ~100–200 IRQ/s idle bitbang; brief input/USB stall | Often radio off |
+| **TX / calibrate (legacy kernel)** | `baycom_test calibrate N`, HDLC calibrate ioctl | **No** — observed with radio **off** |
+| **RX / RF EMI** | Peer packet TX / strong RF near the PC; USB HID dropout (`EMI?` in `dmesg`) | Over-air RF; can freeze **even if** no modem driver is loaded |
+| Soft hang | High UART IRQ bitbang load; brief input/USB stall | Often radio off |
 
-The Linux `baycom_ser_fdx` driver bit-bangs the UART under interrupt load (`local_irq_enable` inside the hard IRQ path). Wrong IRQ / UART conflict can also lock the host — see [GUIDE.md §6](../stacks/baycom-pr/docs/GUIDE.md#6-after-a-freeze-or-crash) and [STABILITY.md](../stacks/baycom-pr/docs/archive/STABILITY.md).
+Kernel `baycom_ser_fdx` / `baycom-pr` was **removed** from this tree (2026-07-18). Do **not** reintroduce calibrate against `bcsf*` on interactive desktops. Frozen archive: MASTER vault `archives/legacy/max25-stack-baycom-kernel-compa/`.
 
 ## Forbidden / high risk on interactive desktops
 
 | Do not | Why |
 |--------|-----|
-| `baycom_test calibrate …` | Keys PTT + calibration pattern — **instant hard freeze** observed |
-| `sethdlc -c …` / `BAYCOM_SELFTEST_FULL=yes` PTT | Same calibrate path |
-| Raw `modprobe baycom_ser_fdx iobase=… irq=…` | Bypass preflight → wrong IRQ / 8250 conflict |
-| Hot-plug radio/mic cables while driver owns the UART | Freeze risk |
-| Leave stack up unattended next to live RF | EMI + driver load |
+| Load `baycom_ser_fdx` / run calibrate helpers | Instant hard freeze observed on interactive hosts |
+| Hot-plug radio/mic cables while any path owns the UART | Freeze risk |
+| Leave stack up unattended next to live RF | EMI class |
 
 ## Safer practice
 
 | Do | Notes |
 |----|--------|
-| `baycom-pr-ctl preflight` then `start` | Never skip preflight |
+| Use **bcpr** (`[features] bcpr=yes`) | Product path — see [BAYCOM.md](BAYCOM.md) |
+| `bcpr-ctl preflight` then start (or max25d `auto_start`) | Never skip preflight |
 | Prefer a **dedicated / minimal** host for durable PC-COM | Not a daily desktop with USB HID on a hub |
 | Unplug AF / power radio off when not testing | Reduces EMI class |
 | Move keyboard/mouse to motherboard USB ports | Avoid front/shared hubs near RF |
-| After any freeze: `baycom-pr-ctl recover` | Then doctor / preflight before start |
+| After any freeze: unload stray kernel modules; restart **max25d** only if using auto_start | Do not recycle bcprd outside max25d |
 
-## Direction
+## Product path
 
-Planned follow-on: **userspace** SER12/PC-COM solution **with or without** `baycom_ser_fdx` — still TBD. See [BAYCOM.md § Direction](BAYCOM.md#direction-userspace).
+**bcpr** userspace SER12 — [BAYCOM.md](BAYCOM.md) · [`stacks/bcpr/README.md`](../stacks/bcpr/README.md).
 
 ## Related
 
-| Doc | Role |
-|-----|------|
-| [BAYCOM.md](BAYCOM.md) | Device / start matrix · userspace direction |
-| [stacks/baycom-pr/docs/GUIDE.md](../stacks/baycom-pr/docs/GUIDE.md) | Operator bring-up + freeze recovery |
-| [stacks/baycom-pr/docs/kernel/BAYCOM-DRIVER-ANALYSIS.md](../stacks/baycom-pr/docs/kernel/BAYCOM-DRIVER-ANALYSIS.md) | Driver IRQ path |
-| [stacks/baycom-pr/docs/archive/STABILITY.md](../stacks/baycom-pr/docs/archive/STABILITY.md) | Stack safeguards |
+| Topic | Path |
+|-------|------|
+| BayCom/based bring-up | [BAYCOM.md](BAYCOM.md) |
+| bcpr RX/TX smoke | `stacks/bcpr/` (vault: `2026-07-18-bcpr-rxtx-smoke-nofreeze.md`) |
+| Unified TX/RX release test | [TX-RX-TEST.md](TX-RX-TEST.md) · `scripts/tx-rx-test.sh` |

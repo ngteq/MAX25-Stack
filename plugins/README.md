@@ -9,7 +9,7 @@ Packet Radio / AX.25 plugin registry. HyBBX connects to a **running** stack — 
 ```
 Operating mode (`betriebsform/`)
   └── Hardware (tncs, modems, soft-modems)
-        └── Device (tnc2c, baycom-ser12, soft-crdop, …)
+        └── Device (tnc2c, max25e0, baycom-kiss, soft-crdop, …)
 ```
 
 | Layer | Directory | Purpose |
@@ -40,12 +40,13 @@ Registry: `manifest.yaml`
 
 See [docs/HYBBX.md](../docs/HYBBX.md).
 
-## v1 active devices (MAX25-Stack-v1.0.0)
+## Active devices
 
 | Device | Hardware | Status |
 |--------|----------|--------|
 | `tnc2c` | `tncs` | active |
-| `baycom-ser12` | `modems` | active |
+| `max25e0` | `modems` | active — BayCom/based SER12 via **bcpr** (`stacks/bcpr/`) |
+| `baycom-kiss` | `modems` | active — USB/async KISS serial |
 | `soft-crdop` | `soft-modems` | active — MAX25-SoftModem (CRDOP) standard |
 
 ## ARDOP-plugin (optional)
@@ -54,21 +55,22 @@ See [docs/HYBBX.md](../docs/HYBBX.md).
 |--------|-------|
 | **ARDOP-plugin** | Separate third-party ARDOP host registry — [external/README.md](external/README.md) |
 
-## Deferred (v1.1+)
+## Deferred / removed
 
 | Device | Hardware | Status | Notes |
 |--------|----------|--------|-------|
 | `pktnc2` | `tncs` | planned | Awaiting hardware delivery |
-| `baycom-par96` | `modems` | scaffold | LPT 9600 — kernel `CONFIG_BAYCOM_PAR` |
-| `baycom-kiss` | `modems` | scaffold | USB/async KISS serial |
+| `baycom-par96` | `modems` | removed | Kernel LPT path retired — use bcpr where applicable |
+| `baycom-ser12` | `modems` | removed | Kernel SER12 path retired — use **`max25e0`** / bcpr |
 
-Terminal client profiles: [share/clients/](../share/clients/README.md) · BayCom hardware via `baycom-pr.ini` ([share/baycom/](../share/baycom/README.md)); client YAML is operator reference.
+Terminal client profiles: [share/clients/](../share/clients/README.md) · BayCom/based SER12: [docs/BAYCOM.md](../docs/BAYCOM.md) · `stacks/bcpr/`.
 
-## Operator quick reference (v1 active)
+## Operator quick reference (active)
 
-| Device | `max25-ctl start` | Site config | Client YAML |
-|--------|-------------------|-------------|-------------|
-| `tnc2c` | `--hardware tncs --device tnc2c` | `share/max25/serial/tnc2c-serial.env.example` | `share/clients/tnc2c.yaml` |
-| `baycom-ser12` | `--hardware modems --device baycom-ser12` | `share/baycom/baycom-pr.pccom-ttyS0-only.ini.example` | `share/clients/baycom-ser12.yaml` (reference) |
+| Device | Start / bring-up | Site config | Client YAML |
+|--------|------------------|-------------|-------------|
+| `tnc2c` | `max25-ctl start --hardware tncs --device tnc2c` | `share/max25/serial/tnc2c-serial.env.example` | `share/clients/tnc2c.yaml` |
+| `max25e0` | max25d `[features] bcpr=yes` · `max25e0 = bcpr:bc0` | `stacks/bcpr/share/bcpr.ini.example` | none (device id `max25e0`) |
+| `baycom-kiss` | max25d `[devices]` + `[serial.baycom-kiss]` | serial env / max25d.ini | `share/clients/baycom-kiss.yaml` |
 
-BayCom default: **single PC-COM** (shipped template). Dual kernel-ser12 is **global opt-in** via `--baycom-profile dual` — see [docs/BAYCOM.md](../docs/BAYCOM.md).
+BayCom/based default: **`max25e0`** via bcpr (max 2: `max25e0:bc0` / `bc1`) — see [docs/BAYCOM.md](../docs/BAYCOM.md).

@@ -16,11 +16,16 @@ bash stacks/terminal/test-terminal.sh
 
 Requires C11 compiler and ncurses (`libncurses-dev` on Linux).
 
-## Run
+## Run (canonical)
+
+Prefer install/PATH or `build*/bin/max25-terminal`. Tree binary may live at `./max25-terminal` after copy (gitignored).
 
 ```bash
-max25-terminal -H <linux-host> -p 7325 --ax25-ui
 max25-terminal -U /run/max25/modem.sock
+# with [devices] default set in max25d.ini — no -d needed
+# then: CONNECT (F10→6) → SEND …
 ```
 
-Daemon on Linux: [stacks/daemon/README.md](../daemon/README.md).
+Optional: `-d <id>` / `SET DEVICE` / F10→7 to override the default device.
+
+Daemon: [stacks/daemon/README.md](../daemon/README.md) — **not** under this directory.

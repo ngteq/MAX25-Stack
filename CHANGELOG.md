@@ -1,6 +1,18 @@
-# Changelog · MAX25-Stack 1.5.0
+# Changelog · MAX25-Stack
 
 All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
+
+## [MAX25-Stack 1.8.5-fallback_untested-upcoming#1]
+
+Version file `1.8.5-fallback_untested-upcoming#1` (operator override of prior `1.8.0-upcoming#1` marking).
+
+| Change | Detail |
+|--------|--------|
+| Release mark | **fallback_untested** — consistency gate green; live RF fallback path not fully re-certified under this tag |
+| Device face | BayCom/based SER12 → **`max25e0`** (internal `stacks/bcpr/`; never `bcpr-bc0` as product id) |
+| Kernel baycom | Product path removed; vault legacy archive only |
+| Start | `scripts/run-max25d.sh` — root only when ttyS/USB/SER12 needs it |
+| TX/RX test | `scripts/tx-rx-test.sh` — live TX gated on RX (§0.20) |
 
 ## [MAX25-Stack 1.5.0]
 
@@ -40,7 +52,7 @@ Version file `1.0.0`. Product label **MAX25-Stack-v1.0.0**.
 | Device | Standalone | HyBBX |
 |--------|------------|-------|
 | **tnc2c** | `max25-ctl start --hardware tncs --device tnc2c` | `packet_radio` |
-| **baycom-ser12** | `max25-ctl start --hardware modems --device baycom-ser12` | `baycom` |
+| **baycom-ser12** (superseded → **`max25e0`**/bcpr) | legacy kernel path removed | `baycom` via MAX25 |
 | **soft-crdop** | `max25-ctl start --hardware soft-modems` | `crdop` |
 
 ### Architecture matrix

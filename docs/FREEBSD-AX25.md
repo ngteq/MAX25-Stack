@@ -1,4 +1,4 @@
-# FreeBSD AX.25 port · MAX25-Stack 1.5.0
+# FreeBSD AX.25 port · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 FreeBSD platform plan — no native kernel AX.25; userspace KISS/M25/1 only.
 

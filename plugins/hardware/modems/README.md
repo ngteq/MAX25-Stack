@@ -1,26 +1,27 @@
 # Hardware: Modems
 
-BayCom PR-Stack — kernel SER12/PAR96 and KISS serial (`stacks/baycom-pr/`).
+BayCom/based SER12 — userspace **bcpr** (`stacks/bcpr/`). USB/async KISS — `plugins/devices/baycom-kiss/`.
+
+Kernel `baycom-pr` / `baycom_ser_fdx` removed from this tree (2026-07-18).
 
 ## HyBBX
 
-`baycom` plugin (`-DHYBBX_PLUGIN_BAYCOM=ON`). Stack must be **running** before HyBBX starts.
+Optional BayCom/based path is via MAX25 (`bcpr` → KISS). See [docs/BAYCOM.md](../../docs/BAYCOM.md) and [docs/HYBBX.md](../../docs/HYBBX.md).
 
-| Backend | HyBBX `backend` | HyBBX `mode` |
-|---------|-----------------|--------------|
-| SER12 | `kernel` | `ser12*` |
-| PAR96 | `kernel` | `par96` |
-| USB KISS | `kiss` | — |
+| Path | Role |
+|------|------|
+| `stacks/bcpr/` | SER12 userspace (PC-COM class) |
+| `baycom-kiss` | USB/async KISS TNC firmware |
 
 ## Quick start
 
 ```bash
-./scripts/build.sh
-sudo make -C stacks/baycom-pr install
-sudo baycom-pr-ctl probe && sudo baycom-pr-ctl start
+cmake -S . -B build-bcpr -DMAX25_BUILD_BCPR=ON
+cmake --build build-bcpr
+# then: docs/BAYCOM.md (bcpr-ctl / max25d [features] bcpr=yes)
 ```
 
 ## Docs
 
-- [stacks/baycom-pr/docs/PLUGIN.md](../../stacks/baycom-pr/docs/PLUGIN.md)
-- [stacks/baycom-pr/docs/GETTING-STARTED.md](../../stacks/baycom-pr/docs/GETTING-STARTED.md)
+- [docs/BAYCOM.md](../../docs/BAYCOM.md)
+- [stacks/bcpr/README.md](../../stacks/bcpr/README.md)

@@ -1,4 +1,4 @@
-# HyBBX integration · MAX25-Stack 1.5.0
+# HyBBX integration · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 MAX25 is the standalone RF/link layer — HyBBX consumes via transport plugins after MAX25 prep.
 
@@ -33,7 +33,7 @@ MAX25 is the standalone RF/link layer — HyBBX consumes via transport plugins a
 | Device | Example INI |
 |--------|-------------|
 | TNC2C | `share/hybbx/tnc2c-host.ini.example` |
-| BayCom | `share/hybbx/baycom-ser12-host.ini.example` |
+| BayCom/based | via MAX25 **bcpr** (kernel SER12 host INI removed) |
 | CRDOP | `share/hybbx/crdop-host.ini.example` |
 
 ## Related

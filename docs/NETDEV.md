@@ -1,4 +1,4 @@
-# Virtual netdev max25d0 · MAX25-Stack 1.5.0
+# Virtual netdev max25d0 · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 TUN interface plan for modular TCP/IP — DEV-Level 1/2.
 

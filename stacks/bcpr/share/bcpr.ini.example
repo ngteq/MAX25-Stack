@@ -33,6 +33,8 @@ tx_delay = 35
 tx_tail = 2
 slottime = 10
 ppersist = 40
+; Soft-DCD (ser12*) + open squelch → DCD stays busy → CSMA never keys PTT.
+; For RX with SQ open / CB noise tests: fulldup = yes  (or close SQ briefly for TX).
 fulldup = no
 
 ; [bc1] — optional second device (max 2)

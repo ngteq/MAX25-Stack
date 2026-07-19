@@ -1,4 +1,4 @@
-# max25-client / M25/1 · MAX25-Stack 1.5.0
+# max25-client / M25/1 · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 M25/1 text protocol reference for client developers.
 

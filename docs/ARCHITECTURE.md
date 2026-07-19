@@ -1,4 +1,4 @@
-# Architecture · MAX25-Stack 1.5.0
+# Architecture · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Main AX.25 Stack — standalone packet-radio with HyBBX-compatible plugin boundaries.
 
@@ -10,7 +10,7 @@ Main AX.25 Stack — standalone packet-radio with HyBBX-compatible plugin bounda
 | Daemon | `max25d` — M25/1, plugin lifecycle |
 | Operating mode | `standalone`, `service`, `hybbx-host` |
 | Hardware | `tncs`, `modems`, `soft-modems` |
-| Device | `tnc2c`, `baycom-ser12`, `soft-crdop` |
+| Device | `tnc2c`, `max25e0`, `soft-crdop` |
 | Protocol | KISS, kernel hdlcdrv, CRDOP M25 host |
 
 ## DEV-Level matrix

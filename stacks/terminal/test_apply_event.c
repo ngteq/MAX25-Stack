@@ -17,7 +17,7 @@ int main(void)
         fprintf(stderr, "FAIL: EVENT disconnected\n");
         return 1;
     }
-    if (max25_client_apply_event("EVENT device=bcpr-bc0 serial=ready", &st) != 0) {
+    if (max25_client_apply_event("EVENT device=max25e0 serial=ready", &st) != 0) {
         fprintf(stderr, "FAIL: unrelated EVENT should be ignored\n");
         return 1;
     }

@@ -19,8 +19,8 @@ Linux only. Config: `share/max25/max25d.ini.example`.
 | Device id | Backend | Notes |
 |-----------|---------|-------|
 | `tnc2c`, `pktnc2` | `KissSerialBackend` | CI-tested |
-| `baycom-ser12`, `baycom-par96` | `BayComKissBackend` | KISS PTY after `max25-ctl` / `baycom-pr-ctl -c` — [docs/BAYCOM.md](../../docs/BAYCOM.md) |
-| `baycom-kiss` | `KissRawSerialBackend` | USB/async KISS |
+| `max25e0` (`bcpr:bc0`) | bcpr / KISS PTY | BayCom/based SER12 userspace — [docs/BAYCOM.md](../../docs/BAYCOM.md) |
+| `baycom-kiss` | `KissRawSerialBackend` | USB/async KISS (not SER12 product face) |
 | `soft-crdop` | `CrdopTcpBackend` | MAX25-SoftModem (CRDOP) — standard; KISS default; sound IN/OUT + radio like hardware modem |
 
 Untested backends log a startup warning; SEND/RX return `ERR link not ready` when the stack path is unavailable.

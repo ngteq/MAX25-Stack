@@ -1,4 +1,4 @@
-# AX.25 native codec · MAX25-Stack 1.5.0
+# AX.25 native codec · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 In-tree userspace AX.25 encode/decode — no kernel AX.25 required for max25d.
 

@@ -1,6 +1,13 @@
-# MAX25-Stack · 1.5.0
+# MAX25-Stack · 1.8.5-fallback_untested-upcoming#1
 
 Linux supervisor for Packet Radio hardware: TNC lifecycle, KISS, M25/1 IPC, optional CRDOP soft-modem. HyBBX consumes RF through plugins — MAX25 owns prep and attach contracts.
+
+## Start (canonical)
+
+```bash
+./scripts/run-max25d.sh                 # escalates only when ttyS/USB/SER12 needs root
+./scripts/run-max25-terminal.sh -U /run/max25/modem.sock
+```
 
 ## Capability matrix
 
@@ -8,7 +15,7 @@ Linux supervisor for Packet Radio hardware: TNC lifecycle, KISS, M25/1 IPC, opti
 |------------|--------|-------|
 | TNC2C serial (KISS) | active | `device=tnc2c` |
 | PK-TNC / multi-TNC | active | `[devices]` map |
-| BayCom SER12 | active | `baycom-ser12` |
+| BayCom/based (SER12) | active | `max25e0` via `[features] bcpr=yes` |
 | CRDOP soft-modem (1200 bd AFSK) | active (dev/test) | `soft-crdop` |
 | max25-terminal (F10 UI) | active | M25/1 TCP or Unix |
 | HyBBX attach | active | `:7325` + INI in `share/hybbx/` |
@@ -17,9 +24,9 @@ Linux supervisor for Packet Radio hardware: TNC lifecycle, KISS, M25/1 IPC, opti
 ## Three commands
 
 ```bash
-cmake -B build && cmake --build build          # compile
-cmake --build build --target max25_test          # offline smoke
-sudo max25d -c /etc/max25/max25d.ini             # run (after INI deploy)
+cmake -B build-bcpr -DMAX25_BUILD_BCPR=ON -DMAX25_BUILD_TERMINAL=ON && cmake --build build-bcpr
+cmake --build build-bcpr --target max25_test   # or: ./scripts/tx-rx-test.sh
+./scripts/run-max25d.sh                        # root only when SER12/ttyS needs it
 ```
 
 ## HyBBX integration matrix
@@ -28,7 +35,7 @@ sudo max25d -c /etc/max25/max25d.ini             # run (after INI deploy)
 |------|-------|
 | Order | max25d up → HyBBX `[max25] check=yes` → `kiss_entry=none` |
 | Serial ownership | One process per `/dev/tty*` |
-| BayCom default | `[features] baycom=no` in INI examples (v1.5.0) |
+| BayCom default | `[features] bcpr=yes` + device `max25e0` (BayCom/based); `[features] baycom=no` for legacy USB-kiss |
 
 ## Related
 

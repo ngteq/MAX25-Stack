@@ -6,6 +6,7 @@ import configparser
 import importlib.util
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "stacks" / "daemon"))
@@ -30,7 +31,7 @@ def load_max25d():
 
 def test_bcpr_kiss_default_link() -> None:
     cfg = DeviceBackendConfig(
-        device_id="bcpr-bc0",
+        device_id="max25e0",
         backend_type="bcpr-kiss",
         bcpr_device="bc0",
     )
@@ -44,12 +45,12 @@ def test_parse_bcpr_spec() -> None:
     cp = configparser.ConfigParser()
     cp.read_string(
         """
-[device.bcpr-bc0]
+[device.max25e0]
 kiss_link = /var/run/bcpr/kiss-bc0
 bcpr_ini = /etc/max25/bcpr.ini
 """
     )
-    dev = parse_device_spec("bcpr-bc0", "bcpr:bc0", cp, {"hardware": "tncs"})
+    dev = parse_device_spec("max25e0", "bcpr:bc0", cp, {"hardware": "tncs"})
     assert dev.backend_type == "bcpr-kiss"
     assert dev.bcpr_device == "bc0"
     assert dev.kiss_link == "/var/run/bcpr/kiss-bc0"
@@ -64,15 +65,15 @@ def test_feature_gate_bcpr() -> None:
 [features]
 bcpr = no
 [devices]
-default = bcpr-bc0
-bcpr-bc0 = bcpr:bc0
+default = max25e0
+max25e0 = bcpr:bc0
 """
     )
     cfg = mod.DaemonConfig()
     cfg.feature_bcpr = False
     devices = mod.parse_devices(cp, cfg)
     # parse_devices itself may include; load_config filters by features
-    assert any(d.device_id == "bcpr-bc0" for d in devices)
+    assert any(d.device_id == "max25e0" for d in devices)
     filtered = [d for d in devices if mod._device_allowed_by_features(d, cfg)]
     assert filtered == []
 
@@ -82,10 +83,70 @@ bcpr-bc0 = bcpr:bc0
     assert filtered[0].backend_type == "bcpr-kiss"
 
 
+def test_bcpr_kiss_pty_skips_tcdrain() -> None:
+    cfg = DeviceBackendConfig(
+        device_id="max25e0",
+        backend_type="bcpr-kiss",
+        kiss_link="/tmp/bcpr/kiss-bc0",
+        bcpr_device="bc0",
+    )
+    backend = BcprKissBackend(cfg, on_rx=lambda _l: None)
+    backend._fd = 99
+    backend._kiss_active = True
+    written: list[bytes] = []
+    drained = {"n": 0}
+
+    def fake_drain(_fd: int) -> None:
+        drained["n"] += 1
+
+    with patch("os.write", side_effect=lambda _fd, data: written.append(data) or len(data)):
+        with patch("termios.tcdrain", side_effect=fake_drain):
+            ok, display = backend.transmit("CB-0", "QST", "hello", ax25_ui=True)
+    assert ok, display
+    assert written and written[0].startswith(b"\xc0")
+    assert drained["n"] == 0
+
+
+def test_bcpr_kiss_stabilize_reopens_on_inode_mismatch() -> None:
+    cfg = DeviceBackendConfig(
+        device_id="max25e0",
+        backend_type="bcpr-kiss",
+        kiss_link="/tmp/bcpr/kiss-bc0",
+        bcpr_device="bc0",
+    )
+    backend = BcprKissBackend(cfg, on_rx=lambda _l: None)
+    backend._fd = 7
+    backend._kiss_active = True
+    backend.status = "ready"
+    backend._mycall = "CB-0"
+    calls: list[str] = []
+
+    class _St:
+        def __init__(self, ino: int) -> None:
+            self.st_ino = ino
+            self.st_dev = 1
+
+    with patch("os.path.exists", return_value=True):
+        with patch("os.stat", return_value=_St(200)):
+            with patch("os.fstat", return_value=_St(100)):
+                with patch.object(backend, "close", side_effect=lambda: calls.append("close")):
+                    with patch.object(backend, "open", side_effect=lambda: calls.append("open") or True):
+                        with patch.object(
+                            backend,
+                            "attach_session",
+                            side_effect=lambda c: calls.append(f"attach:{c}") or True,
+                        ):
+                            ok = backend.stabilize_session("CB-0", force=False)
+    assert ok
+    assert calls == ["close", "open", "attach:CB-0"]
+
+
 def main() -> int:
     test_bcpr_kiss_default_link()
     test_parse_bcpr_spec()
     test_feature_gate_bcpr()
+    test_bcpr_kiss_pty_skips_tcdrain()
+    test_bcpr_kiss_stabilize_reopens_on_inode_mismatch()
     print("OK: bcpr backend tests")
     return 0
 

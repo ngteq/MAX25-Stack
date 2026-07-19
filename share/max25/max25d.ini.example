@@ -24,7 +24,7 @@ tnc2c = /dev/ttyS4
 ; pktnc2 = /dev/ttyS5
 ; --- PC-COM preferred: bcpr userspace SER12 ---
 ; bcpr = yes   ; under [features]
-; bcpr-bc0 = bcpr:bc0
+; max25e0 = bcpr:bc0
 ; baycom-ser12 = baycom:a   ; LEGACY kernel path — prefer bcpr
 ; baycom-kiss = /dev/ttyUSB0
 ; pccom-kiss = /dev/ttyUSB0
@@ -114,8 +114,8 @@ serial_bootwait_escalate_cooldown = 300
 
 ; --- bcpr userspace SER12 (BayCom/based — preferred private PC-COM) ---
 ; [features] bcpr = yes
-; bcpr-bc0 = bcpr:bc0
-; [device.bcpr-bc0]
+; max25e0 = bcpr:bc0
+; [device.max25e0]
 ; kiss_link = /tmp/bcpr/kiss-bc0
 ; bcpr_ini = /etc/max25/bcpr.ini
 ; UN1TME production: TNCs only — do not enable bcpr there.

@@ -1,4 +1,4 @@
-# Linux host setup · MAX25-Stack 1.5.0
+# Linux host setup · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Example settings for running `max25d` on a Linux host with USB TNC, BayCom, or sound-card modem.
 

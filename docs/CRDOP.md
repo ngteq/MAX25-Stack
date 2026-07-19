@@ -1,4 +1,4 @@
-# CRDOP / MAX25-SoftModem · MAX25-Stack 1.5.0
+# CRDOP / MAX25-SoftModem · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 In-house sound-card modem — acoustically AX.25-compatible AFSK.
 

@@ -22,7 +22,7 @@ max25d — Main + Secondaries (:7325 M25/1)
          │
 HyBBX (external) — packet_radio | baycom | crdop
          │
-Hardware — tnc2c | baycom-ser12 | soft-crdop
+Hardware — tnc2c | max25e0 | soft-crdop
 ```
 
 Frozen: `docs/ARCHITECTURE.md`, `docs/README.md`.
@@ -91,10 +91,10 @@ sudo cp stacks/bcpr/share/bcpr.ini.example /etc/max25/bcpr.ini
 # edit serial/iobase/irq; dry_run=no
 sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini preflight
 sudo stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini start
-# max25d: [features] bcpr=yes · bcpr-bc0 = bcpr:bc0
+# max25d: [features] bcpr=yes · max25e0 = bcpr:bc0
 ```
 
-Legacy kernel `baycom-pr-ctl` / `baycom_ser_fdx`: optional only — see [BAYCOM.md](BAYCOM.md).
+Kernel `baycom-pr` / `baycom_ser_fdx` removed — use **bcpr**; see [BAYCOM.md](BAYCOM.md).
 
 ### CRDOP (soft modem)
 
@@ -229,7 +229,7 @@ Frozen: `docs/NETDEV.md`.
 | Serial busy | One owner — stop minicom; max25d **or** HyBBX |
 | TNC silent / echo-only | Recovery ladder; DTR at boot |
 | max25d unreachable | HyBBX skips local TNC when `[max25] check=yes` |
-| BayCom/bcpr no KISS PTY | `bcpr-ctl status` (preferred) or legacy `baycom-pr-ctl status` |
+| BayCom/bcpr no KISS PTY | `bcpr-ctl status` |
 | CRDOP TCP fail | Ports 8515/8516; `crdopc` running |
 
 Release audit: [2026-07-12-max25-v1.0.0-release-audit.md](2026-07-12-max25-v1.0.0-release-audit.md).

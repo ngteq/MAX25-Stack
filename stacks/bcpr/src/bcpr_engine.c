@@ -202,12 +202,44 @@ static void tick_device(bcpr_engine_t *e, bcpr_device_t *d, rx_ctx_t *ctx)
     bcpr_hdlc_receiver(&d->hdlc, on_frame_ctx, ctx);
 }
 
+/* Publish Soft-/hard-DCD for RX-before-TX gates (state_dir/dcd-bcN). */
+static void publish_dcd_status(const bcpr_engine_t *e)
+{
+    int i;
+    char path[192];
+    FILE *f;
+
+    if (!e || e->cfg.dry_run || e->cfg.state_dir[0] == '\0') {
+        return;
+    }
+    for (i = 0; i < e->n; i++) {
+        const bcpr_device_t *d = &e->dev[i];
+        int dcd = d->hdlc.dcd ? 1 : 0;
+        snprintf(path, sizeof(path), "%s/dcd-bc%d", e->cfg.state_dir, d->index);
+        f = fopen(path, "w");
+        if (f) {
+            fprintf(f, "dcd=%d\n", dcd);
+            fclose(f);
+        }
+        if (dcd) {
+            snprintf(path, sizeof(path), "%s/rx-activity-bc%d", e->cfg.state_dir,
+                     d->index);
+            f = fopen(path, "w");
+            if (f) {
+                fputs("rx_activity=1\n", f);
+                fclose(f);
+            }
+        }
+    }
+}
+
 int bcpr_engine_run(bcpr_engine_t *e)
 {
     struct timespec next;
     rx_ctx_t ctx;
     time_t t0;
     unsigned period_ns;
+    unsigned tick = 0;
 
     if (!e || e->n <= 0) {
         return -1;
@@ -224,6 +256,10 @@ int bcpr_engine_run(bcpr_engine_t *e)
         int i;
         for (i = 0; i < e->n; i++) {
             tick_device(e, &e->dev[i], &ctx);
+        }
+        /* ~100 ms at 1200 baud (120 bit times). */
+        if ((++tick % 120u) == 0u) {
+            publish_dcd_status(e);
         }
         next.tv_nsec += (long)period_ns;
         while (next.tv_nsec >= 1000000000L) {

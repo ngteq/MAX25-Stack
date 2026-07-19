@@ -1,5 +1,5 @@
 ; MainAX25-Stack (MAX25-Stack) — service mode dual BayCom (HyBBX)
-; Prerequisite: dual baycom-pr.ini running (see stacks/baycom-pr/config/examples/baycom-pr.dual.ini)
+; Prerequisite: bcpr dual max25e0:bc0/bc1 running (see docs/BAYCOM.md · stacks/bcpr/)
 ; Merge into Secondary hybbx.ini — unique link_id per transport on Main.
 
 [networks]

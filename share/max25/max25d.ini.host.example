@@ -14,7 +14,7 @@ mode = standalone
 ; Path A (default): TNC2C on ttyS4
 hardware = tncs
 device = tnc2c
-; Path B BayCom: hardware = modems · device = baycom-ser12
+; Path B BayCom: hardware = modems · device = max25e0
 ; Path C CRDOP:  hardware = soft-modems · device = soft-crdop
 
 [network]
@@ -71,7 +71,7 @@ kiss_entry = kiss_on
 ; --- Path B: BayCom PC-COM (single modem on ttyS0) ---
 ; Comment Path A [devices] + [serial.tnc2c] above, then uncomment:
 ; [devices]
-; default = baycom-ser12
+; default = max25e0
 ; baycom-ser12 = baycom:a
 ; [device.baycom-ser12]
 ; kiss_link = /var/run/baycom-pr/kiss

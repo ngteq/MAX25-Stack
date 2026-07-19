@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}"
 cmake -B build \
   -DMAX25_BUILD_TNCS=OFF \
-  -DMAX25_BUILD_BAYCOM=OFF \
+  -DMAX25_BUILD_BCPR=ON \
   -DMAX25_BUILD_CRDOP=ON \
   -DMAX25_BUILD_DAEMON=ON \
   -DMAX25_BUILD_TERMINAL=ON \

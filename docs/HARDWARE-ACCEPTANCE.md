@@ -1,4 +1,4 @@
-# Hardware acceptance · MAX25-Stack 1.5.0
+# Hardware acceptance · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Manual RF acceptance criteria for release tagging.
 
@@ -7,7 +7,7 @@ Manual RF acceptance criteria for release tagging.
 | Device | Pass criterion |
 |--------|----------------|
 | `tnc2c` | UART boot-wait + KISS + decode at remote |
-| `baycom-ser12` | kernel module + PTT + on-air |
+| `max25e0` | bcpr SER12 + PTT + on-air |
 | `soft-crdop` | ALSA loopback or acoustic bench (optional for tag) |
 
 ## Offline test matrix
@@ -15,9 +15,12 @@ Manual RF acceptance criteria for release tagging.
 | Test | Scope |
 |------|-------|
 | `release-check.sh` | repo consistency |
+| `scripts/tx-rx-test.sh` (L0) | TX/RX host paths — TNC + BayCom/based (bcpr) |
 | `test_crdop_backend.py` | CRDOP backend |
 | `test_bell202_line_code.py` | modem line code |
-| `max25_test` target | offline smoke |
+| `max25_test` target | offline smoke (includes `max25_tx_rx_test`) |
+
+Live TX/RX (`--live` / `--tx`): see [TX-RX-TEST.md](TX-RX-TEST.md) — not CI.
 
 ## Blocker matrix
 

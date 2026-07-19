@@ -46,16 +46,12 @@ def supported_device_ids() -> frozenset[str]:
             {
                 "tnc2c",
                 "pktnc2",
-                "baycom-ser12",
-                "baycom-par96",
                 "baycom-kiss",
                 "pccom-kiss",
-                "baycom-a",
-                "baycom-b",
-                # bcpr userspace SER12 (BayCom/based) — same host class as baycom-kiss
-                "bcpr",
-                "bcpr-bc0",
-                "bcpr-bc1",
+                # BayCom/based SER12 product path (userspace bcpr → device max25e0)
+                "max25e0",
+                "max25e0:bc0",
+                "max25e0:bc1",
                 "soft-crdop",
                 "audio-dummy",
             }

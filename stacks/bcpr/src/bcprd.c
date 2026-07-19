@@ -211,7 +211,25 @@ static void kiss_feed(bcpr_engine_t *e, kiss_pty_t *kp)
         }
         if (b == 0xC0) {
             if (alen[di] >= 2) {
-                (void)bcpr_engine_queue_kiss(e, di, acc[di], alen[di]);
+                /*
+                 * Single pending slot: wait briefly for PTT/have_pending clear so
+                 * intentional back-to-back SEND/KISS still keys (max25d returns OK
+                 * either way). Cap ~3.5s (~70×50ms) to match long prove-out TX.
+                 */
+                int q;
+                int w;
+                for (w = 0; w < 70; w++) {
+                    q = bcpr_engine_queue_kiss(e, di, acc[di], alen[di]);
+                    if (q == 0) {
+                        break;
+                    }
+                    usleep(50000);
+                }
+                if (q != 0) {
+                    fprintf(stderr,
+                            "bcprd: queue_kiss drop bc%d len=%d (busy)\n", di,
+                            alen[di]);
+                }
             }
             in_frame[di] = 0;
             alen[di] = 0;
@@ -231,12 +249,14 @@ static void *kiss_thread(void *arg)
         int nf = 0;
         int map[BCPR_MAX_DEVICES];
         int i;
+        int ret;
+        int backoff = 0;
         for (i = 0; i < g_npty; i++) {
             if (g_pty[i].master_fd < 0) {
                 continue;
             }
             pf[nf].fd = g_pty[i].master_fd;
-            pf[nf].events = POLLIN;
+            pf[nf].events = POLLIN | POLLHUP | POLLERR;
             map[nf] = i;
             nf++;
         }
@@ -244,13 +264,28 @@ static void *kiss_thread(void *arg)
             usleep(50000);
             continue;
         }
-        if (poll(pf, (nfds_t)nf, 50) <= 0) {
+        ret = poll(pf, (nfds_t)nf, 50);
+        if (ret <= 0) {
             continue;
         }
         for (i = 0; i < nf; i++) {
-            if (pf[i].revents & POLLIN) {
+            short re = pf[i].revents;
+            /*
+             * POLLIN before POLLHUP: a short-lived slave (open/write/close) often
+             * reports both. Reading into a discard buffer first steals KISS bytes
+             * and yields silent TX (MCR never keys). max25d keeps the slave open;
+             * smoke/scripts that close after write hit this race.
+             */
+            if (re & POLLIN) {
                 kiss_feed(e, &g_pty[map[i]]);
             }
+            if (re & (POLLHUP | POLLERR | POLLNVAL)) {
+                /* Slave closed: backoff only — do not drain via raw read(). */
+                backoff = 1;
+            }
+        }
+        if (backoff) {
+            usleep(50000);
         }
     }
     return NULL;

@@ -1,187 +1,33 @@
-# MAX25 modem database — client profile registry
-# Maps modems.ini catalog IDs and MAX25 device plugins to terminal client configs.
-# BayCom kernel catalog entries: baycom_ini_direct — hardware via baycom-pr.ini;
-# share/clients/baycom-ser12.yaml is an operator reference (connection + pointers).
+# MAX25 client profile registry
+# Maps MAX25 device plugins to terminal client configs.
+# Kernel baycom-pr / modems.ini catalog removed 2026-07-18 — SER12 product path is bcpr.
 
 schema_version: 1
-catalog_source: stacks/baycom-pr/config/modems.ini
 plugin_registry: plugins/manifest.yaml
-
-# --- MAX25 device plugins (always have or reference client YAML) ---
 
 devices:
   - id: tnc2c
     label: Landolt TNC2C
     hardware: tncs
     client_config: share/clients/tnc2c.yaml
-    baycom_ini_direct: false
     status: active
 
   - id: pktnc2
     label: PK-TNC2 / TNC-2 (TheFirmware)
     hardware: tncs
     client_config: share/clients/pktnc2.yaml
-    baycom_ini_direct: false
     status: planned
-
-  - id: baycom-ser12
-    label: BayCom SER12 (kernel)
-    hardware: modems
-    client_config: share/clients/baycom-ser12.yaml
-    baycom_ini_direct: true
-    baycom_catalog: baycom-ser12
-    note: Hardware via baycom-pr.ini; client YAML is operator reference only
-    status: active
-
-  - id: baycom-par96
-    label: BayCom PAR96 (kernel LPT)
-    hardware: modems
-    client_config: null
-    baycom_ini_direct: true
-    baycom_catalog: baycom-par96
-    status: scaffold
 
   - id: baycom-kiss
     label: BayCom KISS serial (USB/async)
     hardware: modems
     client_config: share/clients/baycom-kiss.yaml
-    baycom_ini_direct: false
-    baycom_catalog: kiss-serial-usb
-    status: scaffold
+    status: active
 
   - id: soft-crdop
     label: CRDOP sound-card modem
     hardware: soft-modems
     client_config: share/clients/soft-crdop.yaml
-    baycom_ini_direct: false
     status: active
 
-# --- modems.ini catalog (baycom-pr hardware database) ---
-
-catalog:
-  # ser12 — baycom.ini direct (catalog= in site INI)
-  - id: baycom-ser12
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: albrecht-pc-com
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: albrecht-pc-com-4500
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: baypac-bp2
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: baypac-bp2m
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: baypac-bp1
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: fx614-ser12
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: mx614-ser12
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: pmp-ezpacket-ser12
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: am7911-ser12
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: ser12-300-hf
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: tnc2-ser12-clone
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: cb-ser12-generic
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: ser12-hdx-fallback
-    kind: ser12
-    client_config: null
-    baycom_ini_direct: true
-    note: driver baycom_ser_hdx — set in baycom-pr.ini if needed
-
-  # par96 — baycom.ini direct
-  - id: baycom-par96
-    kind: par96
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: baycom-picpar
-    kind: picpar
-    client_config: null
-    baycom_ini_direct: true
-
-  - id: baypac-bp96a
-    kind: par96
-    client_config: null
-    baycom_ini_direct: true
-
-  # kiss async — client YAML required (serial settings for max25d)
-  - id: kiss-serial-usb
-    kind: kiss
-    client_config: share/clients/kiss-serial-usb.yaml
-    baycom_ini_direct: false
-
-  - id: kiss-serial-rs232
-    kind: kiss
-    client_config: share/clients/kiss-serial-rs232.yaml
-    baycom_ini_direct: false
-
-  # not supported / no client profile
-  - id: baycom-epp
-    kind: epp
-    client_config: null
-    baycom_ini_direct: false
-    status: planned
-
-  - id: unsupported-baycom-uscc
-    client_config: null
-    status: unsupported
-
-  - id: unsupported-optopcscc
-    client_config: null
-    status: unsupported
-
-  - id: unsupported-kiss-tnc
-    client_config: null
-    status: superseded
-    note: use kiss-serial-usb or kiss-serial-rs232
-
-  - id: unsupported-ser12-usb-adapter
-    client_config: null
-    status: unsupported
-
-  - id: unsupported-lpt-ser12
-    client_config: null
-    status: unsupported
+# BayCom/based SER12: configure max25d max25e0 / max25e0:bc1 — no separate client YAML required.

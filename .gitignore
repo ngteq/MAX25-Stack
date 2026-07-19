@@ -21,3 +21,6 @@ third_party/ax25/_build-test/
 third_party/ax25/**/build/
 .ax25-analysis/
 stacks/crdop/vendor/ardopcf/
+
+# vault/operator index — never ship
+AGENT-INDEX.md

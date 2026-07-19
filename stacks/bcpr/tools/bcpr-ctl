@@ -14,8 +14,8 @@ SMOKE_SH="$SCRIPT_DIR/bcpr-rxtx-smoke.sh"
 usage() {
   cat <<USAGE
 Usage: bcpr-ctl [-c ini] {preflight|start|status|stop|smoke|version} [smoke-opts]
-  smoke [--live] [--tx] [--seconds N]  — L0 offline always; --live RX; --tx needs --live
-  Default smoke: NO TX. No calibrate. Prefer more probes (H11).
+  smoke [--live] [--tx] [--seconds N] [--tx-seconds N]
+  Default smoke: NO TX. --tx-seconds default 3 (≈376B info / visible PTT).
   Warn: SQ-open / RX-edge noise can stress hosts — see docs/BAYCOM-FREEZES.md
 USAGE
 }

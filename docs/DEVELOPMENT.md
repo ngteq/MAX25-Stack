@@ -1,4 +1,4 @@
-# Development · MAX25-Stack 1.5.0
+# Development · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Contributor build, test, and repository layout.
 
@@ -25,7 +25,7 @@ Contributor build, test, and repository layout.
 | `stacks/daemon/` | max25d |
 | `stacks/terminal/` | max25-terminal |
 | `stacks/tncs/` | TNC tools |
-| `stacks/baycom-pr/` | BayCom kernel stack |
+| `stacks/bcpr/` | BayCom/based userspace SER12 (bcpr) |
 | `stacks/crdop/` | SoftModem |
 | `plugins/` | manifest + betriebsform |
 | `share/` | INI examples |

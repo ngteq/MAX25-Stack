@@ -1,4 +1,4 @@
-# Documentation index · MAX25-Stack 1.5.0
+# Documentation index · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Compact doc map for MAX25 — start at MASTER-GUIDE for linear operator flow.
 
@@ -14,6 +14,7 @@ Compact doc map for MAX25 — start at MASTER-GUIDE for linear operator flow.
 | HyBBX integrator | [HYBBX.md](HYBBX.md) |
 | BayCom / PC-COM | [BAYCOM.md](BAYCOM.md) |
 | BayCom freeze warning (RX/TX) | [BAYCOM-FREEZES.md](BAYCOM-FREEZES.md) |
+| TX/RX release test (TNC + BayCom/based) | [TX-RX-TEST.md](TX-RX-TEST.md) |
 | Operator runbook | [MAX25-OPERATOR-RUNBOOK.md](MAX25-OPERATOR-RUNBOOK.md) |
 | Contributor | [DEVELOPMENT.md](DEVELOPMENT.md) |
 

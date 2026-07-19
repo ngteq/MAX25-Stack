@@ -44,16 +44,12 @@ def _spec_int(raw: str, default: int) -> int:
 DEVICE_REGISTRY: dict[str, dict[str, str | bool]] = {
     "tnc2c": {"hardware": "tncs", "backend": "kiss-serial", "tested": True},
     "pktnc2": {"hardware": "tncs", "backend": "kiss-serial", "tested": False},
-    "baycom-ser12": {"hardware": "modems", "backend": "baycom-kiss", "tested": True},
-    "baycom-a": {"hardware": "modems", "backend": "baycom-kiss", "tested": True},
-    "baycom-b": {"hardware": "modems", "backend": "baycom-kiss", "tested": True},
-    "baycom-par96": {"hardware": "modems", "backend": "baycom-kiss", "tested": False},
+    # Kernel baycom-ser12/par96 removed 2026-07-18 — use bcpr → device max25e0
     "baycom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
     "pccom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
-    # bcpr: userspace SER12 for PC-COM SER12 (bits↔AFSK+PTT) — not kernel baycom_ser_fdx
-    "bcpr": {"hardware": "modems", "backend": "bcpr-kiss", "tested": False},
-    "bcpr-bc0": {"hardware": "modems", "backend": "bcpr-kiss", "tested": False},
-    "bcpr-bc1": {"hardware": "modems", "backend": "bcpr-kiss", "tested": False},
+    "max25e0": {"hardware": "modems", "backend": "bcpr-kiss", "tested": True},
+    "max25e0:bc0": {"hardware": "modems", "backend": "bcpr-kiss", "tested": True},
+    "max25e0:bc1": {"hardware": "modems", "backend": "bcpr-kiss", "tested": True},
     "soft-crdop": {"hardware": "soft-modems", "backend": "crdop-tcp", "tested": True},
     "audio-dummy": {"hardware": "acoustic-bench", "backend": "audio-dummy", "tested": True},
 }
@@ -75,11 +71,11 @@ def registry_tested(device_id: str) -> bool:
 
 
 def baycom_ctl_device_id(dev_cfg: DeviceBackendConfig) -> str:
-    """Plugin id for max25-ctl / baycom-pr-ctl when starting kernel BayCom."""
+    """Legacy helper: kernel BayCom ctl device id (stack removed — prefer bcpr)."""
     entry = DEVICE_REGISTRY.get(dev_cfg.device_id, {})
     if entry.get("backend") == "baycom-kiss":
         return dev_cfg.device_id
-    return "baycom-ser12"
+    return "max25e0"
 
 
 @dataclass
@@ -350,6 +346,37 @@ class KissRawBackend(DeviceBackend):
         if self._fd is not None:
             self.status = "open"
 
+    def stabilize_session(self, mycall: str, *, force: bool = False) -> bool:
+        """Reopen KISS path after dead PTY / EIO (e.g. bcprd recycled outside max25d)."""
+        path = self._path
+        if (
+            not force
+            and self._kiss_active
+            and self.status == "ready"
+            and self._fd is not None
+            and path
+            and os.path.exists(path)
+        ):
+            if not self._is_pty:
+                return True
+            # PTY symlink may have been retargeted while our fd still points at a
+            # deleted slave — force reopen when the live path inode differs.
+            try:
+                cur = os.stat(path)
+                fd_st = os.fstat(self._fd)
+                if cur.st_ino == fd_st.st_ino and cur.st_dev == fd_st.st_dev:
+                    return True
+            except OSError:
+                pass
+        was_active = self._kiss_active or force
+        call = (mycall or self._mycall or "").upper()
+        self.close()
+        if not self.open():
+            return False
+        if was_active and call:
+            return self.attach_session(call)
+        return self._fd is not None
+
     def transmit(self, src: str, dst: str, text: str, ax25_ui: bool) -> tuple[bool, str]:
         if self._fd is None or not self._kiss_active:
             return False, "KISS not ready"
@@ -361,7 +388,9 @@ class KissRawBackend(DeviceBackend):
         with self._lock:
             try:
                 os.write(self._fd, pkt)
-                termios.tcdrain(self._fd)
+                # PTY: never tcdrain — if the master side dies, drain can hang forever.
+                if not self._is_pty:
+                    termios.tcdrain(self._fd)
             except OSError as exc:
                 self.status = "error-tx"
                 return False, f"tx failed: {exc}"

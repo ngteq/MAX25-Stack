@@ -1,8 +1,8 @@
 # BayCom/based · MAX25-Stack
 
-Public mark: **BayCom/based**. Preferred path: **bcpr** (userspace SER12). Never use kernel `baycom_ser_fdx` as the product path.
+Public mark: **BayCom/based**. Product path: **bcpr** (userspace SER12). Kernel `baycom_ser_fdx` / `baycom-pr` is **removed** from this tree (2026-07-18).
 
-## Preferred path: **bcpr**
+## Product path: **bcpr**
 
 For Albrecht PC-COM / **BayCom/based** TCM3105-class AFSK hardware, use the **bcpr** MAX25 plugin.
 
@@ -10,8 +10,8 @@ For Albrecht PC-COM / **BayCom/based** TCM3105-class AFSK hardware, use the **bc
 |------|--------|
 | Plugin | `stacks/bcpr/` · `bcprd` / `bcpr-ctl` |
 | Feature | `[features] bcpr = yes` |
-| Device | `bcpr-bc0 = bcpr:bc0` |
-| Host face | **`max25e0:bc0`** / `bc1` (max 2) |
+| Device | `max25e0 = bcpr:bc0` (backend tag; product id is **`max25e0`**) |
+| Host face | **`max25e0`** (forks `max25e0:bcN` only when multi-dev) |
 | Hardware | **BayCom/based** bits↔AFSK + PTT (UART modem-control) — not a TNC |
 | Hard law | Real IRQ · exclusive COM lock · max 2 · freeze after INI/autoprobe · no calibrate |
 
@@ -39,29 +39,32 @@ sudo cp stacks/bcpr/share/bcpr.ini.example /etc/max25/bcpr.ini
 sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini preflight
 sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini start
 
-# 4) max25d
-# [features] bcpr = yes
-# [devices] bcpr-bc0 = bcpr:bc0
-# [device.bcpr-bc0] kiss_link=… bcpr_ini=/etc/max25/bcpr.ini
+# 4) max25d (preferred: auto_start owns bcprd)
+sudo max25d -c /etc/max25/max25d.ini
+# or: max25d -c local/max25d.ini
+
+# 5) terminal (default device from INI — no -d required)
+max25-terminal -U /run/max25/modem.sock
+# CONNECT → SEND …
 ```
 
+With `auto_start`, restart **max25d only** — do not recycle `bcprd` outside max25d.
+
 Details: [`stacks/bcpr/README.md`](../stacks/bcpr/README.md).
+
+**TX/RX test:** unified entry [TX-RX-TEST.md](TX-RX-TEST.md) (`scripts/tx-rx-test.sh` · L0 offline in CI; `--live` / `--tx` for PC-COM).
 
 > **Freezes:** SQ-open / RF EMI class still applies on some desktops — see **[BAYCOM-FREEZES.md](BAYCOM-FREEZES.md)**. Do **not** calibrate.
 
 ---
 
-## Legacy (optional): kernel baycom-pr
+## Legacy kernel baycom-pr (removed)
 
-The in-tree `baycom_ser_fdx` / `baycom-pr-ctl` path remains in-tree for reference and older setups. It is **not** the product path for new PC-COM bring-up.
+`stacks/baycom-pr/`, kernel SER12/PAR96 plugins, and dual-kernel INI examples were archived out of this repository.
 
-| Feature | Default |
-|---------|---------|
-| `[features] baycom` | `no` |
-| `[features] pccom` | `no` |
-| Netdev | `bcsf*` — do not use as MAX25 host face |
+Frozen copy (MASTER vault, not shipped): `archives/legacy/max25-stack-baycom-kernel-compa/`.
 
-If you must use it: `share/baycom/` + [BAYCOM-FREEZES.md](BAYCOM-FREEZES.md). Prefer **bcpr** instead.
+Do **not** load `baycom_ser_fdx` for product bring-up.
 
 ## Related
 

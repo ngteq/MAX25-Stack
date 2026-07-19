@@ -1,4 +1,4 @@
-# WebSocket gateway · MAX25-Stack 1.5.0
+# WebSocket gateway · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
 Browser terminal path — DEV-Level 3 (planned).
 

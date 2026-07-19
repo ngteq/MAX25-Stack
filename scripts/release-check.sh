@@ -38,13 +38,24 @@ for doc in README.md CONTRIBUTING.md docs/README.md docs/ARCHITECTURE.md docs/DE
 done
 
 # --- scripts executable ---
-for script in scripts/discover-plugins.sh scripts/build-all.sh scripts/build.sh scripts/test.sh scripts/clean.sh scripts/release-check.sh scripts/max25-ctl scripts/install-max25.sh; do
+for script in scripts/discover-plugins.sh scripts/build-all.sh scripts/build.sh scripts/test.sh scripts/clean.sh scripts/release-check.sh scripts/max25-ctl scripts/install-max25.sh scripts/tx-rx-test.sh scripts/terminology-check.sh; do
   if [[ -x "$script" ]]; then
     ok "executable $script"
   else
     fail "not executable: $script"
   fi
 done
+
+# --- public terminology gate (§0.16 / §0.19) ---
+if [[ -x scripts/terminology-check.sh ]]; then
+  if scripts/terminology-check.sh; then
+    ok "terminology-check"
+  else
+    fail "terminology-check"
+  fi
+else
+  fail "scripts/terminology-check.sh missing or not executable"
+fi
 
 if [[ -x stacks/daemon/max25d ]] && [[ -f stacks/daemon/max25d.py ]]; then
   ok "executable stacks/daemon/max25d launcher + max25d.py"
@@ -82,10 +93,10 @@ else
   fail "missing share/max25/max25d.ini.host.example"
 fi
 
-if [[ -f share/baycom/baycom-pr.pccom-ttyS0-only.ini.example ]]; then
-  ok "share/baycom single-modem example"
+if [[ -f share/baycom/README.md ]] && { [[ -f stacks/bcpr/share/bcpr.ini.example ]] || [[ -f share/bcpr/bcpr.ini.example ]]; }; then
+  ok "BayCom/based bcpr example + share/baycom README"
 else
-  fail "missing share/baycom/baycom-pr.pccom-ttyS0-only.ini.example"
+  fail "missing bcpr.ini.example or share/baycom/README.md"
 fi
 
 if [[ -f share/clients/index.yaml ]] && [[ -f share/clients/tnc2c.yaml ]]; then
@@ -114,14 +125,14 @@ fi
 
 # --- plugin count ---
 YAML_COUNT="$(find plugins -name plugin.yaml | wc -l | tr -d ' ')"
-if [[ "$YAML_COUNT" -ge 12 ]]; then
+if [[ "$YAML_COUNT" -ge 10 ]]; then
   ok "plugin.yaml count: ${YAML_COUNT}"
 else
-  fail "expected >=12 plugin.yaml, got ${YAML_COUNT}"
+  fail "expected >=10 plugin.yaml, got ${YAML_COUNT}"
 fi
 
 # --- v1 active devices in manifest ---
-for dev in tnc2c baycom-ser12 soft-crdop; do
+for dev in tnc2c soft-crdop; do
   if grep -A6 "id: ${dev}" plugins/manifest.yaml | grep -q 'status: active'; then
     ok "device ${dev} status: active"
   else
@@ -136,7 +147,7 @@ else
 fi
 
 # --- planned/scaffold devices stay out of v1 active set ---
-for dev in pktnc2 baycom-par96 baycom-kiss; do
+for dev in pktnc2; do
   if grep -A6 "id: ${dev}" plugins/manifest.yaml | grep -Eq 'status: (planned|scaffold)'; then
     ok "device ${dev} correctly non-active"
   else
@@ -144,14 +155,27 @@ for dev in pktnc2 baycom-par96 baycom-kiss; do
   fi
 done
 
+if grep -A6 "id: baycom-kiss" plugins/manifest.yaml | grep -q 'status: active'; then
+  ok "device baycom-kiss status: active (USB/async KISS)"
+else
+  warn "device baycom-kiss status unexpected"
+fi
+
+# kernel baycom-ser12 / baycom-par96 removed 2026-07-18
+if grep -q 'id: baycom-ser12' plugins/manifest.yaml || grep -q 'id: baycom-par96' plugins/manifest.yaml; then
+  fail "legacy kernel baycom-ser12/par96 still in manifest (use bcpr)"
+else
+  ok "manifest free of kernel baycom-ser12/par96"
+fi
+
 # --- HyBBX INI templates (stack-local) ---
 for ini in stacks/tncs/hybbx-tnc2c.ini \
            stacks/tncs/hybbx-dual.ini \
            share/hybbx/tnc2c-host.ini.example \
-           share/hybbx/baycom-ser12-host.ini.example \
            share/hybbx/crdop-host.ini.example; do
   [[ -f "$ini" ]] && ok "ini $ini" || fail "missing $ini"
 done
+[[ -d stacks/bcpr ]] && ok "stacks/bcpr (BayCom/based product path)" || fail "missing stacks/bcpr"
 
 # --- build artifacts (CMake) ---
 BUILD_DIR="build"
@@ -168,7 +192,7 @@ else
   fail "cmake build"
 fi
 [[ -x "${BUILD_DIR}/bin/tnc2c-probe" ]] && ok "tnc2c-probe built" || fail "tnc2c-probe build"
-[[ -x "${BUILD_DIR}/bin/baycom_test" ]] && ok "baycom-pr tools built" || fail "baycom-pr build"
+[[ -x "${BUILD_DIR}/bin/bcprd" ]] && ok "bcprd built" || fail "bcprd build"
 [[ -x "${BUILD_DIR}/bin/max25-terminal" ]] && ok "max25-terminal built" || fail "max25-terminal build"
 [[ -f stacks/crdop/share/crdop.ini.example ]] && ok "CRDOP scaffold (MAX25-SoftModem)" || fail "CRDOP scaffold missing"
 [[ -f plugins/external/ardop/plugin.yaml ]] && ok "ARDOP-plugin metadata" || fail "missing plugins/external/ardop/plugin.yaml"
@@ -203,10 +227,10 @@ else
 fi
 
 # --- offline tests ---
-if bash stacks/baycom-pr/scripts/test-all.sh >/dev/null 2>&1; then
-  ok "baycom-pr test-all"
+if [[ -x "${BUILD_DIR}/bin/bcprd" ]] && "${BUILD_DIR}/bin/bcprd" -c stacks/bcpr/share/bcpr.ini.example --dry-run --once >/dev/null 2>&1; then
+  ok "bcpr dry-run once"
 else
-  fail "baycom-pr test-all"
+  fail "bcpr dry-run once"
 fi
 
 if [[ -x "${BUILD_DIR}/bin/crdopc" ]] && CRDOP_BIN="${PWD}/${BUILD_DIR}/bin/crdopc" bash stacks/crdop/scripts/test-smoke.sh >/dev/null 2>&1; then
@@ -249,6 +273,18 @@ if python3 stacks/daemon/test_auth.py >/dev/null 2>&1; then
   ok "max25d TCP auth smoke"
 else
   fail "max25d TCP auth smoke"
+fi
+
+if bash scripts/tx-rx-test.sh >/dev/null 2>&1; then
+  ok "tx-rx-test L0 (TNC + BayCom/based)"
+else
+  fail "tx-rx-test L0 (TNC + BayCom/based)"
+fi
+
+if [[ -f docs/TX-RX-TEST.md ]]; then
+  ok "doc docs/TX-RX-TEST.md"
+else
+  fail "missing docs/TX-RX-TEST.md"
 fi
 
 if python3 stacks/tncs/test_tnc_serial_recovery.py >/dev/null 2>&1; then

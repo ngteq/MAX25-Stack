@@ -2,29 +2,26 @@ id: modems
 type: hardware
 parent_stack: MainAX25-Stack (MAX25-Stack)
 label: Modems
-description: BayCom-compatible kernel modems (SER12, PAR96, KISS serial)
+description: BayCom/based SER12 via bcpr (userspace); USB/async KISS via baycom-kiss
 
-stack_path: stacks/baycom-pr
+stack_path: stacks/bcpr
 hybbx_plugin: baycom
-hybbx_doc: stacks/baycom-pr/docs/PLUGIN.md
 
 backends:
-  - kernel-ser12
-  - kernel-par96
+  - bcpr-ser12
   - kiss-serial
 
 build:
-  makefile: stacks/baycom-pr/Makefile
-  targets: [all, test, verify]
+  cmake_option: MAX25_BUILD_BCPR
+  targets: [bcprd, bcpr-ctl]
 
-ctl: stacks/baycom-pr/scripts/baycom-pr-ctl
+ctl: stacks/bcpr/tools/bcpr-ctl
 
 runtime:
-  state_dir: /var/run/baycom-pr
-  config: /etc/baycom/baycom-pr.ini
-  kiss_default: /var/run/baycom-pr/kiss
+  state_dir: /tmp/bcpr
+  config: /etc/max25/bcpr.ini
+  kiss_default: /tmp/bcpr/kiss-bc0
 
 devices:
-  - baycom-ser12
-  - baycom-par96
   - baycom-kiss
+# SER12 product devices are max25e0 / max25e0:bc1 via max25d [devices], not kernel plugins.
