@@ -3,7 +3,7 @@
 **CRDOP** = stack acronym for **MAX25-SoftModem** (device id `soft-crdop`). Product: **MAX25-SoftModem** (`stacks/crdop/`). Version: MAX25-Stack **v1.0.0**; dev track `CUR999` in `$SRC/stacks/crdop/VERSION`.
 
 **Project rule (authoritative):** [docs/CRDOP.md](../../../docs/CRDOP.md)  
-**AI agent map:** [AGENTS.md](../../../AGENTS.md) (repo root)
+**AI agent map:** [DEVELOPMENT.md](../../../docs/DEVELOPMENT.md) (repo root)
 
 ---
 

@@ -1,6 +1,6 @@
 # Contributing
 
-Standards: [AGENTS.md](AGENTS.md), [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Doc index: [docs/README.md](docs/README.md).
+Standards: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Doc index: [docs/README.md](docs/README.md).
 
 ```bash
 git clone git@github.com:ngteq/MAX25-Stack.git && cd MAX25-Stack

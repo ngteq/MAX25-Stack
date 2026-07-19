@@ -24,3 +24,7 @@ stacks/crdop/vendor/ardopcf/
 
 # vault/operator index — never ship
 AGENT-INDEX.md
+
+# agent navigation — never ship (vault §0.5 / operator)
+AGENTS.md
+AGENT.md
