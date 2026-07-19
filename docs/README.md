@@ -7,6 +7,7 @@ Compact doc map for MAX25 — start at MASTER-GUIDE for linear operator flow.
 | Role | Document |
 |------|----------|
 | Master operator guide | [MASTER-GUIDE.md](MASTER-GUIDE.md) |
+| TNC / modem bring-up | [../TNC-MODEM-DEV.md](../TNC-MODEM-DEV.md) |
 | Host setup | [LINUX-HOST-SETUP.md](LINUX-HOST-SETUP.md) |
 | Device workflow | [PLUGINS-DEVICE-MODEL.md](PLUGINS-DEVICE-MODEL.md) |
 | Terminal operator | [MAX25-TERMINAL.md](MAX25-TERMINAL.md) |

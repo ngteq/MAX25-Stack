@@ -1,6 +1,6 @@
-# Release readiness · MAX25-Stack 1.8.5-fallback_untested-upcoming#2-workhard-session_night
+# Release readiness · MAX25-Stack 1.8.5-fallback_untested-upcoming#3
 
-Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcoming#2-workhard-session_night**.
+Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcoming#3**.
 
 ## Offline CI gate matrix
 
@@ -10,6 +10,7 @@ Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcom
 | `./scripts/terminology-check.sh` | Required |
 | `./scripts/release-check.sh` | Pass target |
 | `./scripts/tx-rx-test.sh` (L0 offline) | Pass target |
+| `max25_web_smoke` (no UART) | Pass target |
 | `test_crdop_backend.py` | Pass |
 | `test_audio_dummy_backend.py` | Pass |
 | `test_bell202_line_code.py` | Pass |
@@ -18,7 +19,7 @@ Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcom
 
 | Gate | Status |
 |------|--------|
-| Version `1.8.5-fallback_untested-upcoming#2-workhard-session_night` in VERSION file | Required |
+| Version `1.8.5-fallback_untested-upcoming#3` in VERSION file | Required |
 | Device face BayCom/based = **`max25e0`** (not `bcpr-bc0`) | Required |
 | `MAX25_BUILD_CRDOP=ON` documented | Required |
 | HyBBX boundary INI defaults | `[features] baycom=no`, `pccom=no`; bcpr via `bcpr=yes` |
@@ -38,13 +39,14 @@ Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcom
 
 | Item | Status |
 |------|--------|
-| Annotated tag `v1.8.5-fallback_untested-upcoming#2-workhard-session_night` | Operator decision |
+| Annotated tag `v1.8.5-fallback_untested-upcoming#3` | Operator decision |
 | Push to remote | Operator decision |
 
 ## Related
 
 | Goal | Doc |
 |------|-----|
+| TNC / modem bring-up | [TNC-MODEM-DEV.md](TNC-MODEM-DEV.md) |
 | v1 scope | [docs/V1.0.0-SCOPE.md](docs/V1.0.0-SCOPE.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 | BayCom/based | [docs/BAYCOM.md](docs/BAYCOM.md) |

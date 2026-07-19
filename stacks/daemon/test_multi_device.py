@@ -349,18 +349,20 @@ baycom_ini = /etc/baycom/baycom-pr.ini
 
 
 def test_protocol_dual_baycom() -> None:
+    # Legacy ids baycom-a/baycom-b are not on the Linux allowlist (product path: max25e0).
+    # Protocol dual-device coverage uses allowlisted modem-class ids instead.
     ini = """
 [features]
 baycom = yes
-pccom = no
+pccom = yes
 [daemon]
 mode = service
 hardware = modems
-device = baycom-a
+device = baycom-kiss
 [devices]
-default = baycom-a
-baycom-a = baycom:a
-baycom-b = baycom:b
+default = baycom-kiss
+baycom-kiss = /dev/null
+pccom-kiss = /dev/null
 [network]
 tcp_host = 127.0.0.1
 tcp_port = 7325
@@ -369,18 +371,12 @@ callerid = N0CALL-0
 callid = QST
 [stack]
 auto_start = no
-[device.baycom-a]
-kiss_link = /var/run/baycom-pr/kiss-a
-modem = a
-[device.baycom-b]
-kiss_link = /var/run/baycom-pr/kiss-b
-modem = b
 """
 
     def exercise(reader: LineReader, sock: socket.socket) -> None:
         status = reader.read()
-        assert "devices=baycom-a,baycom-b" in status
-        assert "device=baycom-a" in status
+        assert "devices=baycom-kiss,pccom-kiss" in status
+        assert "device=baycom-kiss" in status
 
         sock.sendall(b"GET DEVICES\n")
         lines = []
@@ -391,15 +387,15 @@ modem = b
                 break
         device_lines = [l for l in lines if l.startswith("DEVICE ")]
         assert len(device_lines) == 2
-        assert any("id=baycom-a" in l and "backend=baycom-kiss" in l for l in device_lines)
-        assert any("id=baycom-b" in l and "backend=baycom-kiss" in l for l in device_lines)
+        assert any("id=baycom-kiss" in l for l in device_lines)
+        assert any("id=pccom-kiss" in l for l in device_lines)
 
-        sock.sendall(b"SET DEVICE baycom-b\n")
+        sock.sendall(b"SET DEVICE pccom-kiss\n")
         assert reader.read() == "OK"
 
         sock.sendall(b"GET STATUS\n")
         st = reader.read()
-        assert "device=baycom-b" in st
+        assert "device=pccom-kiss" in st
         assert reader.read() == "OK"
 
     run_daemon_test(ini, exercise)

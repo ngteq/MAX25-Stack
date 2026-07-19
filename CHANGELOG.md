@@ -2,6 +2,18 @@
 
 All notable changes to MainAX25-Stack (MAX25-Stack) are documented here.
 
+## [MAX25-Stack 1.8.5-fallback_untested-upcoming#3]
+
+Version file `1.8.5-fallback_untested-upcoming#3` (after `#2-workhard-session_night`).
+
+| Change | Detail |
+|--------|--------|
+| Release mark | **fallback_untested** · upcoming **#3** |
+| CI | `max25_web_smoke` offline — `--no-stack --no-serial`, ephemeral ports, no UART |
+| Docs | Ship [TNC-MODEM-DEV.md](TNC-MODEM-DEV.md) (TNC/modem bring-up) |
+| Tests | Dual-device protocol smoke uses allowlisted `baycom-kiss`/`pccom-kiss` (not legacy `baycom-a`) |
+| Carry-forward | Live RF fallback path not fully re-certified under this tag |
+
 ## [MAX25-Stack 1.8.5-fallback_untested-upcoming#2-workhard-session_night]
 
 Version file `1.8.5-fallback_untested-upcoming#2-workhard-session_night` (operator night-session mark after `1.8.5-fallback_untested-upcoming#1`).
