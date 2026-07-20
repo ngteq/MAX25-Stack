@@ -25,16 +25,16 @@ int main(void)
     }
     if (bcpr_config_load(&cfg, path) != 0) {
         /* Write a minimal temp INI. */
-        FILE *f = fopen("/tmp/bcpr-test.ini", "w");
+        FILE *f = fopen("/tmp/max25-bcpr-test.ini", "w");
         if (!f) {
             return 1;
         }
-        fputs("[bcpr]\ndry_run = yes\nstate_dir = /tmp/bcpr\n"
+        fputs("[max25-bcpr]\ndry_run = yes\nstate_dir = /tmp/max25-bcpr\n"
               "[bc0]\nserial = /dev/ttyS0\niobase = 0x3f8\nirq = 4\n"
-              "mode = ser12*\nkiss_link = /tmp/bcpr/kiss-bc0\n",
+              "mode = ser12*\nkiss_link = /tmp/max25-bcpr/kiss-bc0\n",
               f);
         fclose(f);
-        path = "/tmp/bcpr-test.ini";
+        path = "/tmp/max25-bcpr-test.ini";
         if (bcpr_config_load(&cfg, path) != 0) {
             fprintf(stderr, "FAIL: load\n");
             return 1;

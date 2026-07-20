@@ -15,7 +15,7 @@ device = tnc2c
 default = tnc2c
 tnc2c = /dev/ttyS4
 pktnc2 = /dev/ttyS5
-; baycom-ser12 = baycom:a   ; LEGACY kernel - prefer max25e0 = bcpr:bc0
+; baycom-ser12 = baycom:a   ; LEGACY kernel - prefer max25e0 = max25-bcpr:bc0
 soft-crdop = crdop:default
 
 [network]

@@ -9,7 +9,7 @@ Canonical directory map for contributors and operators.
 | `stacks/daemon/` | max25d supervisor (`max25d` / `max25d.py`) — **not** the terminal |
 | `stacks/terminal/` | operator client (`max25-terminal`) |
 | `stacks/tncs/` | TNC boot-wait, recovery |
-| `stacks/bcpr/` | BayCom/based SER12 (bcpr) · `bcprd` / `bcpr-ctl` |
+| `stacks/max25-bcpr/` | BayCom/based SER12 (max25-bcpr) · `max25-bcprd` / `max25-bcpr-ctl` |
 | `stacks/crdop/` | MAX25-SoftModem |
 | `plugins/` | hardware/device registry |
 | `share/max25/` | max25d INI examples |
@@ -23,8 +23,8 @@ Canonical directory map for contributors and operators.
 |--------|-----------|
 | max25d | `stacks/daemon/max25d` · install `/usr/local/bin/max25d` |
 | max25-terminal | **`scripts/run-max25-terminal.sh`** · `/usr/local/bin/max25-terminal` · `build*/bin/max25-terminal` |
-| bcpr-ctl | `stacks/bcpr/tools/bcpr-ctl` · install `/usr/local/sbin/bcpr-ctl` |
-| bcprd | `build*/bin/bcprd` · install `/usr/local/bin/bcprd` |
+| max25-bcpr-ctl | `stacks/max25-bcpr/tools/max25-bcpr-ctl` · install `/usr/local/sbin/max25-bcpr-ctl` |
+| max25-bcprd | `build*/bin/max25-bcprd` · install `/usr/local/bin/max25-bcprd` |
 | max25d (start) | **`scripts/run-max25d.sh`** · `stacks/daemon/max25d` |
 
 Wrong: `stacks/daemon/max25-terminal` (does not exist).  

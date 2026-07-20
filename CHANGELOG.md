@@ -30,7 +30,7 @@ Version file `1.8.5-fallback_untested-upcoming#2-workhard-session_night` (operat
 |--------|--------|
 | Release mark | **fallback_untested** · upcoming **#2** · **workhard-session_night** |
 | Carry-forward | Same consistency gate posture as `1.8.5-fallback_untested-upcoming#1` — live RF fallback path not fully re-certified under this tag |
-| Device face | BayCom/based SER12 → **`max25e0`** (internal `stacks/bcpr/`) |
+| Device face | BayCom/based SER12 → **`max25e0`** (internal `stacks/max25-bcpr/`) |
 | TX/RX | Live TX gated on RX (`scripts/tx-rx-test.sh`, §0.20) |
 
 ## [MAX25-Stack 1.8.5-fallback_untested-upcoming#1]
@@ -40,7 +40,7 @@ Version file `1.8.5-fallback_untested-upcoming#1` (operator override of prior `1
 | Change | Detail |
 |--------|--------|
 | Release mark | **fallback_untested** — consistency gate green; live RF fallback path not fully re-certified under this tag |
-| Device face | BayCom/based SER12 → **`max25e0`** (internal `stacks/bcpr/`; never `bcpr-bc0` as product id) |
+| Device face | BayCom/based SER12 → **`max25e0`** (internal `stacks/max25-bcpr/`; never `bcpr-bc0` as product id) |
 | Kernel baycom | Product path removed; vault legacy archive only |
 | Start | `scripts/run-max25d.sh` — root only when ttyS/USB/SER12 needs it |
 | TX/RX test | `scripts/tx-rx-test.sh` — live TX gated on RX (§0.20) |

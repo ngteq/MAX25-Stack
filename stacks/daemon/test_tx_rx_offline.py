@@ -109,8 +109,8 @@ def test_bcpr_tx_kiss_encode() -> None:
     """BayCom/based (bcpr) TX: BcprKissBackend encodes KISS without UART."""
     cfg = DeviceBackendConfig(
         device_id="max25e0",
-        backend_type="bcpr-kiss",
-        kiss_link="/tmp/bcpr/kiss-bc0",
+        backend_type="max25-bcpr-kiss",
+        kiss_link="/tmp/max25-bcpr/kiss-bc0",
         bcpr_device="bc0",
     )
     backend = BcprKissBackend(cfg, on_rx=lambda _l: None)

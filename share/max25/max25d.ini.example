@@ -23,8 +23,8 @@ default = tnc2c
 tnc2c = /dev/ttyS4
 ; pktnc2 = /dev/ttyS5
 ; --- PC-COM preferred: bcpr userspace SER12 ---
-; bcpr = yes   ; under [features]
-; max25e0 = bcpr:bc0
+; max25_bcpr = yes   ; under [features]
+; max25e0 = max25-bcpr:bc0
 ; baycom-ser12 = baycom:a   ; LEGACY kernel path — prefer bcpr
 ; baycom-kiss = /dev/ttyUSB0
 ; pccom-kiss = /dev/ttyUSB0
@@ -112,13 +112,16 @@ serial_bootwait_escalate_cooldown = 300
 ; modem = a
 ; baycom_ini = /etc/baycom/baycom-pr.ini
 
-; --- bcpr userspace SER12 (BayCom/based — preferred private PC-COM) ---
-; [features] bcpr = yes
-; max25e0 = bcpr:bc0
+; --- max25-bcpr userspace SER12 (BayCom/based — NOT USABLE by default) ---
+; [features] max25_max25_bcpr = yes
+; max25e0 = max25-bcpr:bc0
 ; [device.max25e0]
-; kiss_link = /tmp/bcpr/kiss-bc0
-; bcpr_ini = /etc/max25/bcpr.ini
-; UN1TME production: TNCs only — do not enable bcpr there.
+; kiss_link = /tmp/max25-bcpr/kiss-bc0
+; max25_bcpr_ini = /etc/max25/max25-bcpr.ini
+; ipv4 = 127.0.0.25/8
+; ipv6 = ::25/128
+; Forks max25e0:bcN inherit ipv4/ipv6 from max25e0 unless overridden.
+; Requires -DMAX25_BUILD_MAX25_BCPR=ON (experimental). Default: leave disabled.
 
 ; --- USB/async BayCom KISS serial ---
 ; [serial.baycom-kiss]

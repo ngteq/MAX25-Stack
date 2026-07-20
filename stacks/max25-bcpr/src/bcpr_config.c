@@ -1,5 +1,5 @@
 /*
- * Simple INI loader for bcpr (max 2 devices: [bc0] / [bc1]).
+ * Simple INI loader for max25-bcpr (max 2 devices: [bc0] / [bc1]).
  */
 #include "bcpr/bcpr_config.h"
 
@@ -12,7 +12,7 @@ void bcpr_config_defaults(bcpr_config_t *cfg)
 {
     int i;
     memset(cfg, 0, sizeof(*cfg));
-    snprintf(cfg->state_dir, sizeof(cfg->state_dir), "%s", "/var/run/bcpr");
+    snprintf(cfg->state_dir, sizeof(cfg->state_dir), "%s", "/var/run/max25-bcpr");
     cfg->dry_run = 0;
     cfg->n_dev = 0;
     for (i = 0; i < BCPR_MAX_DEVICES; i++) {
@@ -71,7 +71,7 @@ static int truthy(const char *v)
 static int apply_kv(bcpr_config_t *cfg, int section, const char *key,
                     const char *val)
 {
-    /* section: -1 = [bcpr]/global, 0 = bc0, 1 = bc1 */
+    /* section: -1 = [max25-bcpr]/[bcpr] global, 0 = bc0, 1 = bc1 */
     if (section < 0) {
         if (strcmp(key, "dry_run") == 0) {
             cfg->dry_run = truthy(val);
@@ -147,7 +147,8 @@ int bcpr_config_load(bcpr_config_t *cfg, const char *path)
             }
             *end = '\0';
             p++;
-            if (strcasecmp(p, "bcpr") == 0 || strcasecmp(p, "global") == 0) {
+            if (strcasecmp(p, "max25-bcpr") == 0 || strcasecmp(p, "bcpr") == 0 ||
+                strcasecmp(p, "global") == 0) {
                 section = -1;
             } else if (strcasecmp(p, "bc0") == 0 ||
                        strcasecmp(p, "device.bc0") == 0) {

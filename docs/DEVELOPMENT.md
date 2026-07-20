@@ -25,7 +25,7 @@ Contributor build, test, and repository layout.
 | `stacks/daemon/` | max25d |
 | `stacks/terminal/` | max25-terminal |
 | `stacks/tncs/` | TNC tools |
-| `stacks/bcpr/` | BayCom/based userspace SER12 (bcpr) |
+| `stacks/max25-bcpr/` | BayCom/based userspace SER12 (bcpr) |
 | `stacks/crdop/` | SoftModem |
 | `plugins/` | manifest + betriebsform |
 | `share/` | INI examples |

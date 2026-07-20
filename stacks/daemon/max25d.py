@@ -74,14 +74,14 @@ def _device_is_pccom(dev: DeviceBackendConfig) -> bool:
 
 
 
-def _device_is_bcpr(dev: DeviceBackendConfig) -> bool:
-    # Product device id = max25e0 (+ forks); backend tag remains bcpr:
+def _device_is_max25_bcpr(dev: DeviceBackendConfig) -> bool:
+    # Product device id = max25e0 (+ forks max25e0:bcN); backend = max25-bcpr
     if dev.device_id == "max25e0" or dev.device_id.startswith("max25e0:"):
         return True
     spec = (dev.device_spec or "").strip()
-    if spec.startswith("bcpr:"):
+    if spec.startswith("max25-bcpr:") or spec.startswith("bcpr:"):
         return True
-    return dev.backend_type == "bcpr-kiss"
+    return dev.backend_type in ("max25-bcpr-kiss", "bcpr-kiss")
 
 
 def _device_allowed_by_features(dev: DeviceBackendConfig, cfg: DaemonConfig) -> bool:
@@ -97,9 +97,9 @@ def _device_allowed_by_features(dev: DeviceBackendConfig, cfg: DaemonConfig) -> 
             area="config",
         )
         return False
-    if _device_is_bcpr(dev) and not cfg.feature_bcpr:
+    if _device_is_max25_bcpr(dev) and not cfg.feature_max25_bcpr:
         LOGGER.warn(
-            f"device {dev.device_id}: bcpr disabled — set [features] bcpr=yes",
+            f"device {dev.device_id}: max25-bcpr disabled — set [features] max25_bcpr=yes",
             area="config",
         )
         return False
@@ -135,7 +135,7 @@ class DaemonConfig:
     config_path: str = ""
     feature_baycom: bool = False
     feature_pccom: bool = False
-    feature_bcpr: bool = False
+    feature_max25_bcpr: bool = False
     report_error_transmissions: bool = True
     report_voice_transmissions: bool = True
     report_data_passes: int = 3
@@ -398,7 +398,10 @@ def load_config(path: Optional[Path]) -> DaemonConfig:
     if cp.has_section("features"):
         cfg.feature_baycom = _truthy(cp.get("features", "baycom", fallback="no"))
         cfg.feature_pccom = _truthy(cp.get("features", "pccom", fallback="no"))
-        cfg.feature_bcpr = _truthy(cp.get("features", "bcpr", fallback="no"))
+        # Product key max25_bcpr; legacy bcpr= accepted
+        cfg.feature_max25_bcpr = _truthy(
+            cp.get("features", "max25_bcpr", fallback=cp.get("features", "bcpr", fallback="no"))
+        )
     cfg.report_error_transmissions = _truthy(
         cp.get("reporting", "error_transmissions", fallback="yes")
     )
@@ -835,7 +838,7 @@ def backend_enabled(state: DaemonState, dev_id: str) -> bool:
     if rt is None:
         return False
     kind = rt.cfg.backend_type
-    return kind in ("kiss-serial", "baycom-kiss", "bcpr-kiss", "kiss-raw-serial", "crdop-tcp")
+    return kind in ("kiss-serial", "baycom-kiss", "max25-bcpr-kiss", "bcpr-kiss", "kiss-raw-serial", "crdop-tcp")
 
 
 def aggregate_stack_status(state: DaemonState) -> str:
@@ -902,47 +905,50 @@ def send_line(sock: socket.socket, line: str) -> None:
 
 
 
-def resolve_bcpr_ini(explicit: str = "") -> Path | None:
-    """Resolve bcpr.ini for userspace SER12 (max25e0)."""
+def resolve_max25_bcpr_ini(explicit: str = "") -> Path | None:
+    """Resolve max25-bcpr.ini for userspace SER12 (max25e0)."""
     from pathlib import Path as _P
     if explicit:
         p = _P(explicit)
         return p if p.is_file() else None
     for cand in (
+        ROOT / "local" / "max25-bcpr.ini",
+        _P("/etc/max25/max25-bcpr.ini"),
+        ROOT / "stacks" / "max25-bcpr" / "share" / "max25-bcpr.ini.example",
+        ROOT / "share" / "max25-bcpr" / "max25-bcpr.ini.example",
+        # legacy filenames (transitional)
         ROOT / "local" / "bcpr.ini",
-        _P("/etc/max25/bcpr.ini"),
-        ROOT / "stacks" / "bcpr" / "share" / "bcpr.ini.example",
-        ROOT / "share" / "bcpr" / "bcpr.ini.example",
+        _P("/etc/max25/max25-bcpr.ini"),
     ):
         if cand.is_file():
             return cand
     return None
 
 
-def resolve_bcpr_ctl() -> Path | None:
+def resolve_max25_bcpr_ctl() -> Path | None:
     from pathlib import Path as _P
     for cand in (
-        ROOT / "stacks" / "bcpr" / "tools" / "bcpr-ctl",
-        _P("/usr/local/sbin/bcpr-ctl"),
-        _P("/usr/sbin/bcpr-ctl"),
+        ROOT / "stacks" / "max25-bcpr" / "tools" / "max25-bcpr-ctl",
+        _P("/usr/local/sbin/max25-bcpr-ctl"),
+        _P("/usr/sbin/max25-bcpr-ctl"),
     ):
         if cand.is_file():
             return cand
     return None
 
 
-def start_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
-    """Start bcprd once via bcpr-ctl for shared bcpr_ini."""
+def start_max25_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
+    """Start max25-bcprd once via max25-bcpr-ctl for shared ini."""
     rt = state.devices[dev_id]
-    ctl = resolve_bcpr_ctl()
+    ctl = resolve_max25_bcpr_ctl()
     if ctl is None:
         rt.stack_status = "error-no-ctl"
-        log(f"bcpr-ctl not found ({dev_id})")
+        log(f"max25-bcpr-ctl not found ({dev_id})")
         return
     args = [str(ctl), "-c", str(ini), "start"]
     env = os.environ.copy()
     try:
-        # DEVNULL: bcprd is backgrounded by bcpr-ctl and would keep PIPE
+        # DEVNULL: max25-bcprd is backgrounded by ctl and would keep PIPE
         # write-ends open — communicate() would hang until timeout.
         proc = subprocess.Popen(
             args,
@@ -955,30 +961,28 @@ def start_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
             start_new_session=True,
         )
     except OSError as exc:
-        log(f"bcpr start failed ({dev_id}): {exc}")
+        log(f"max25-bcpr start failed ({dev_id}): {exc}")
         rt.stack_status = "error"
         return
-    # bcpr-ctl start returns after spawning bcprd; capture preflight failure text.
     try:
         _out, err = proc.communicate(timeout=20)
     except subprocess.TimeoutExpired:
         proc.kill()
         _out, err = proc.communicate()
-        log(f"bcpr-ctl start timed out ({dev_id})")
+        log(f"max25-bcpr-ctl start timed out ({dev_id})")
         rt.stack_status = "error"
         return
     for line in (err or "").splitlines():
         line = line.strip()
         if line:
-            log(f"bcpr-ctl: {line}")
+            log(f"max25-bcpr-ctl: {line}")
     if proc.returncode not in (0, None):
         rt.stack_status = "error"
-        log(f"bcpr-ctl start rc={proc.returncode} ({dev_id})")
+        log(f"max25-bcpr-ctl start rc={proc.returncode} ({dev_id})")
         return
-    # bcpr-ctl itself exits; live daemon is bcprd (pidfile under state_dir).
     rt.stack_proc = None
     rt.stack_status = "running"
-    kiss = (rt.cfg.kiss_link or "").strip() or "/tmp/bcpr/kiss-bc0"
+    kiss = (rt.cfg.kiss_link or "").strip() or "/tmp/max25-bcpr/kiss-bc0"
     deadline = time.time() + 5.0
     while time.time() < deadline:
         if os.path.exists(kiss):
@@ -986,9 +990,10 @@ def start_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
         time.sleep(0.1)
     if not os.path.exists(kiss):
         rt.stack_status = "error-no-kiss"
-        log(f"bcpr kiss_link missing after start ({dev_id}: {kiss})")
+        log(f"max25-bcpr kiss_link missing after start ({dev_id}: {kiss})")
         return
-    log(f"bcpr started ({dev_id}, ini={ini}, kiss={kiss})")
+    addrs = f"ipv4={rt.cfg.ipv4 or '-'} ipv6={rt.cfg.ipv6 or '-'}"
+    log(f"max25-bcpr started ({dev_id}, ini={ini}, kiss={kiss}, {addrs})")
 
 
 def start_device_stack(state: DaemonState, dev_id: str) -> None:
@@ -1045,32 +1050,32 @@ def start_device_stack(state: DaemonState, dev_id: str) -> None:
 
 
 def start_stacks(state: DaemonState) -> None:
-    """Start per-device stacks; one baycom-pr-ctl / bcpr-ctl per shared ini."""
+    """Start per-device stacks; one max25-bcpr-ctl per shared ini."""
     started_baycom_ini: dict[str, str] = {}
-    started_bcpr_ini: dict[str, str] = {}
+    started_max25_bcpr_ini: dict[str, str] = {}
     for dev_id in enabled_device_ids(state):
         rt = state.devices[dev_id]
         kind = rt.cfg.backend_type or ""
         if uses_inline_tnc_prep(state, dev_id):
             prep_inline_serial_device(state, dev_id)
             continue
-        if kind == "bcpr-kiss":
-            explicit = rt.cfg.bcpr_ini or ""
-            resolved = resolve_bcpr_ini(explicit)
+        if kind in ("max25-bcpr-kiss", "bcpr-kiss"):
+            explicit = rt.cfg.max25_bcpr_ini or rt.cfg.bcpr_ini or ""
+            resolved = resolve_max25_bcpr_ini(explicit)
             ini_key = str(resolved) if resolved else ""
-            if ini_key and ini_key in started_bcpr_ini:
-                primary = started_bcpr_ini[ini_key]
+            if ini_key and ini_key in started_max25_bcpr_ini:
+                primary = started_max25_bcpr_ini[ini_key]
                 primary_rt = state.devices[primary]
                 rt.stack_proc = primary_rt.stack_proc
                 rt.stack_status = primary_rt.stack_status
-                log(f"bcpr stack shared with {primary} ({dev_id}, ini={ini_key})")
+                log(f"max25-bcpr stack shared with {primary} ({dev_id}, ini={ini_key})")
                 continue
             if resolved:
-                start_bcpr_stack(state, dev_id, resolved)
-                started_bcpr_ini[str(resolved)] = dev_id
+                start_max25_bcpr_stack(state, dev_id, resolved)
+                started_max25_bcpr_ini[str(resolved)] = dev_id
             else:
                 rt.stack_status = "error-no-ini"
-                log(f"bcpr.ini not found ({dev_id})")
+                log(f"max25-bcpr.ini not found ({dev_id})")
             continue
         if kind == "baycom-kiss":
             explicit = rt.cfg.baycom_ini or ""
@@ -1095,10 +1100,10 @@ def stop_device_stack(state: DaemonState, dev_id: str) -> None:
     close_backend(state, dev_id)
     rt = state.devices[dev_id]
     kind = rt.cfg.backend_type or ""
-    if kind == "bcpr-kiss":
-        ctl = resolve_bcpr_ctl()
-        explicit = rt.cfg.bcpr_ini or ""
-        resolved = resolve_bcpr_ini(explicit)
+    if kind in ("max25-bcpr-kiss", "bcpr-kiss"):
+        ctl = resolve_max25_bcpr_ctl()
+        explicit = rt.cfg.max25_bcpr_ini or rt.cfg.bcpr_ini or ""
+        resolved = resolve_max25_bcpr_ini(explicit)
         if ctl is not None and resolved is not None:
             subprocess.run(
                 [str(ctl), "-c", str(resolved), "stop"],

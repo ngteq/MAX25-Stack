@@ -15,7 +15,7 @@ device = tnc2c
 [devices]
 default = tnc2c
 tnc2c = /dev/ttyS4
-; max25e0 = bcpr:bc0              ; BayCom/based via bcpr
+; max25e0 = max25-bcpr:bc0              ; BayCom/based via bcpr
 ; baycom-ser12 = baycom:default   ; LEGACY kernel — prefer max25e0
 
 [modular_tcp]

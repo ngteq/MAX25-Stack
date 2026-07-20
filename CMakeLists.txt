@@ -18,7 +18,11 @@ include(MAX25Ax25)
 
 option(MAX25_BUILD_TNCS "Build stacks/tncs tools" ON)
 option(MAX25_BUILD_CRDOP "Build and install MAX25-SoftModem (CRDOP) — disable only if not needed" ON)
-option(MAX25_BUILD_BCPR "Build stacks/bcpr userspace BayCom/based SER12 plugin" ON)
+option(MAX25_BUILD_MAX25_BCPR "Build stacks/max25-bcpr BayCom/based SER12 (experimental; default OFF — not usable)" OFF)
+# Legacy alias: -DMAX25_BUILD_BCPR still accepted
+if(DEFINED MAX25_BUILD_BCPR)
+    set(MAX25_BUILD_MAX25_BCPR "${MAX25_BUILD_BCPR}" CACHE BOOL "Build max25-bcpr (legacy MAX25_BUILD_BCPR)" FORCE)
+endif()
 option(MAX25_BUILD_TERMINAL "Build max25-terminal / max25-client" ON)
 option(MAX25_BUILD_DAEMON "Install max25d" ON)
 option(MAX25_BUILD_WEB "Install MAX25 web UI scaffold" ON)
@@ -32,8 +36,8 @@ if(MAX25_BUILD_CRDOP)
     add_subdirectory(stacks/crdop "${CMAKE_BINARY_DIR}/crdop")
 endif()
 
-if(MAX25_BUILD_BCPR)
-    add_subdirectory(stacks/bcpr "${CMAKE_BINARY_DIR}/bcpr")
+if(MAX25_BUILD_MAX25_BCPR)
+    add_subdirectory(stacks/max25-bcpr "${CMAKE_BINARY_DIR}/max25-bcpr")
 endif()
 
 if(MAX25_BUILD_TERMINAL)
@@ -117,14 +121,14 @@ install(FILES
     DESTINATION "${CMAKE_INSTALL_DATADIR}/max25"
 )
 
-# share/baycom/README.md only — kernel INI examples removed; use share/bcpr/ or stacks/bcpr/
+# share/baycom/README.md only — kernel INI examples removed; use share/max25-bcpr/
 if(EXISTS "${CMAKE_SOURCE_DIR}/share/baycom/README.md")
     install(FILES "${CMAKE_SOURCE_DIR}/share/baycom/README.md"
             DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/baycom")
 endif()
 
-if(MAX25_BUILD_BCPR)
-    install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/bcpr/tools/bcpr-ctl"
+if(MAX25_BUILD_MAX25_BCPR)
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/stacks/max25-bcpr/tools/max25-bcpr-ctl"
             DESTINATION "${CMAKE_INSTALL_SBINDIR}")
 endif()
 

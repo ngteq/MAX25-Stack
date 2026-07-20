@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# bcpr-ctl — preflight / start / status / stop / smoke for bcprd (SER12 userspace).
+# max25-bcpr-ctl — preflight / start / status / stop / smoke for max25-bcprd (SER12).
 # PC-COM / BayCom/based: TCM3105 AFSK + PTT. Host owns HDLC/KISS.
 # No calibrate. No baycom_ser_fdx product path.
 set -euo pipefail
 
-INI="${BCPR_INI:-/etc/max25/bcpr.ini}"
-BCPRD="${BCPRD:-bcprd}"
-PIDFILE="${BCPR_PIDFILE:-/tmp/bcpr/bcprd.pid}"
-STATE_DIR="/tmp/bcpr"
+INI="${MAX25_BCPR_INI:-${BCPR_INI:-/etc/max25/max25-bcpr.ini}}"
+BCPRD="${MAX25_BCPRD:-${BCPRD:-max25-bcprd}}"
+PIDFILE="${MAX25_BCPR_PIDFILE:-/tmp/max25-bcpr/max25-bcprd.pid}"
+STATE_DIR="/tmp/max25-bcpr"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SMOKE_SH="$SCRIPT_DIR/bcpr-rxtx-smoke.sh"
+SMOKE_SH="$SCRIPT_DIR/max25-bcpr-rxtx-smoke.sh"
 
 usage() {
   cat <<USAGE
-Usage: bcpr-ctl [-c ini] {preflight|start|status|stop|smoke|version} [smoke-opts]
+Usage: max25-bcpr-ctl [-c ini] {preflight|start|status|stop|smoke|version} [smoke-opts]
   smoke [--live] [--tx] [--seconds N] [--tx-seconds N]
   Default smoke: NO TX. --tx-seconds default 3 (≈376B info / visible PTT).
   Warn: SQ-open / RX-edge noise can stress hosts — see docs/BAYCOM-FREEZES.md
@@ -32,8 +32,8 @@ if [[ $# -gt 0 ]]; then
   shift
 fi
 
-resolve_bcprd() {
-  if [[ -n "${BCPRD:-}" && "$BCPRD" != "bcprd" && -x "$BCPRD" ]]; then
+resolve_max25_bcprd() {
+  if [[ -n "${BCPRD:-}" && "$BCPRD" != "max25-bcprd" && -x "$BCPRD" ]]; then
     echo "$BCPRD"; return
   fi
   if command -v "$BCPRD" >/dev/null 2>&1; then
@@ -42,12 +42,12 @@ resolve_bcprd() {
   local root cand
   root="$(cd "$SCRIPT_DIR/../../.." && pwd)"
   for cand in \
-    "${BCPR_BUILD_DIR:-}/bin/bcprd" \
-    "$root/build-bcpr/bin/bcprd" \
-    "$root/build-bcpr-${USER:-user}/bin/bcprd" \
-    "/tmp/max25-build-bcpr-${USER:-user}/bin/bcprd" \
-    "$root/build/bin/bcprd" \
-    /usr/local/bin/bcprd /usr/bin/bcprd; do
+    ${MAX25_BCPR_BUILD_DIR:-${BCPR_BUILD_DIR:-}}/bin/max25-bcprd \
+    "$root/build-max25-bcpr/bin/max25-bcprd" \
+    "$root/build-max25-bcpr-${USER:-user}/bin/max25-bcprd" \
+    "/tmp/max25-build-max25-bcpr-${USER:-user}/bin/max25-bcprd" \
+    "$root/build/bin/max25-bcprd" \
+    /usr/local/bin/max25-bcprd /usr/bin/max25-bcprd; do
     [[ -n "$cand" && -x "$cand" ]] && { echo "$cand"; return; }
   done
   return 1
@@ -127,15 +127,15 @@ cmd_preflight() {
   local err=0 dry serial irq iobase name sysirq got ss ss_port ss_irq pair
   local -a seen_irq=() seen_serial=()
   [[ -f "$INI" ]] || { echo "ERROR: missing $INI"; return 1; }
-  dry="$(ini_get bcpr dry_run)"
-  sd="$(ini_get bcpr state_dir)"
+  dry="$(ini_get max25-bcpr dry_run)"; [[ -z "$dry" ]] && dry="$(ini_get bcpr dry_run)"
+  sd="$(ini_get max25-bcpr state_dir)"; [[ -z "$sd" ]] && sd="$(ini_get max25-bcpr state_dir)"
   [[ -n "$sd" ]] && STATE_DIR="$sd"
-  echo "bcpr-ctl preflight ini=$INI"
-  echo "NOTE: preferred PC-COM path is bcpr userspace → max25e0 (not baycom_ser_fdx)"
+  echo "max25-bcpr-ctl preflight ini=$INI"
+  echo "NOTE: max25-bcpr → device max25e0 (not usable by default; not baycom_ser_fdx)"
 
   # Kernel BayCom modules must not share the path (A–O–Z isolate).
   if mod="$(baycom_modules_loaded)"; then
-    echo "  ERROR: kernel module loaded: $mod — unload before bcpr (isolate)"
+    echo "  ERROR: kernel module loaded: $mod — unload before max25-bcpr (isolate)"
     err=1
   else
     echo "  OK: no baycom_* modules loaded"
@@ -235,42 +235,46 @@ cmd_preflight() {
 
 cmd_start() {
   local bin dry
-  bin="$(resolve_bcprd)" || { echo "bcprd not found — build with MAX25_BUILD_BCPR=ON"; return 1; }
+  bin="$(resolve_max25_bcprd)" || { echo "max25-bcprd not found — build with -DMAX25_BUILD_MAX25_BCPR=ON"; return 1; }
   cmd_preflight || { echo "preflight failed"; return 1; }
-  sd="$(ini_get bcpr state_dir)"; [[ -n "$sd" ]] && STATE_DIR="$sd"
+  sd="$(ini_get max25-bcpr state_dir)"; [[ -z "$sd" ]] && sd="$(ini_get max25-bcpr state_dir)"; [[ -n "$sd" ]] && STATE_DIR="$sd"
   mkdir -p "$STATE_DIR"
-  PIDFILE="$STATE_DIR/bcprd.pid"
+  PIDFILE="$STATE_DIR/max25-bcprd.pid"
   if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
     echo "already running pid=$(cat "$PIDFILE")"; return 0
   fi
-  dry="$(ini_get bcpr dry_run)"
+  dry="$(ini_get max25-bcpr dry_run)"; [[ -z "$dry" ]] && dry="$(ini_get bcpr dry_run)"
   if is_truthy "$dry"; then
     "$bin" -c "$INI" --dry-run &
   else
     "$bin" -c "$INI" &
   fi
   echo $! >"$PIDFILE"
-  echo "started bcprd pid=$(cat "$PIDFILE") → max25e0"
+  echo "started max25-bcprd pid=$(cat "$PIDFILE") → max25e0"
 }
 
 cmd_stop() {
-  sd="$(ini_get bcpr state_dir 2>/dev/null || true)"; [[ -n "${sd:-}" ]] && STATE_DIR="$sd"
-  PIDFILE="$STATE_DIR/bcprd.pid"
+  sd="$(ini_get max25-bcpr state_dir 2>/dev/null || true)"
+  [[ -z "${sd:-}" ]] && sd="$(ini_get bcpr state_dir 2>/dev/null || true)"
+  [[ -n "${sd:-}" ]] && STATE_DIR="$sd"
+  PIDFILE="$STATE_DIR/max25-bcprd.pid"
   if [[ -f "$PIDFILE" ]]; then
     kill "$(cat "$PIDFILE")" 2>/dev/null || true
     rm -f "$PIDFILE"
   fi
-  pkill -x bcprd 2>/dev/null || true
+  pkill -x max25-bcprd 2>/dev/null || true
   echo "stopped"
 }
 
 cmd_status() {
-  sd="$(ini_get bcpr state_dir 2>/dev/null || true)"; [[ -n "${sd:-}" ]] && STATE_DIR="$sd"
-  PIDFILE="$STATE_DIR/bcprd.pid"
+  sd="$(ini_get max25-bcpr state_dir 2>/dev/null || true)"
+  [[ -z "${sd:-}" ]] && sd="$(ini_get bcpr state_dir 2>/dev/null || true)"
+  [[ -n "${sd:-}" ]] && STATE_DIR="$sd"
+  PIDFILE="$STATE_DIR/max25-bcprd.pid"
   if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-    echo "bcprd: running pid=$(cat "$PIDFILE")"
+    echo "max25-bcprd: running pid=$(cat "$PIDFILE")"
   else
-    echo "bcprd: not running"
+    echo "max25-bcprd: not running"
   fi
   for link in "$STATE_DIR"/kiss-bc*; do
     [[ -e "$link" ]] || continue
@@ -290,6 +294,6 @@ case "$CMD" in
   stop) cmd_stop ;;
   status) cmd_status ;;
   smoke) cmd_smoke "$@" ;;
-  version) echo "bcpr-ctl 0.2.0 (SER12 userspace → max25e0; smoke L0–L4)" ;;
+  version) echo "max25-bcpr-ctl 0.3.0 (SER12 → max25e0; not usable by default)" ;;
   *) usage; exit 1 ;;
 esac

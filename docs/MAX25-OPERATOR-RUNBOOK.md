@@ -2,7 +2,7 @@
 
 Day-to-day operator procedures for max25d and RF backends.
 
-Public mark for SER12/PC-COM class: **BayCom/based**. Internal workstream: **bcpr**. Never **Konverter** / **converter**.
+Public mark for SER12/PC-COM class: **BayCom/based**. Product path: **max25-bcpr** (not usable by default). Never **Konverter** / **converter**.
 
 ## Canonical paths
 
@@ -10,11 +10,11 @@ Public mark for SER12/PC-COM class: **BayCom/based**. Internal workstream: **bcp
 |-----------|----------------|
 | Daemon | **`./scripts/run-max25d.sh`** · `stacks/daemon/max25d` · `/usr/local/bin/max25d` |
 | Terminal | **`./scripts/run-max25-terminal.sh`** · `/usr/local/bin/max25-terminal` · `build*/bin/…` |
-| bcpr ctl | `stacks/bcpr/tools/bcpr-ctl` or `/usr/local/sbin/bcpr-ctl` |
+| max25-bcpr-ctl | `stacks/max25-bcpr/tools/max25-bcpr-ctl` or `/usr/local/sbin/max25-bcpr-ctl` |
 | TX/RX test | `scripts/tx-rx-test.sh` |
-| Site INI | `/etc/max25/max25d.ini` · `/etc/max25/bcpr.ini` |
+| Site INI | `/etc/max25/max25d.ini` · `/etc/max25/max25-bcpr.ini` |
 | Tree INI | `local/max25d.ini` (gitignored) |
-| KISS PTY | `/tmp/bcpr/kiss-bc0` (from bcpr.ini `kiss_link`) |
+| KISS PTY | `/tmp/max25-bcpr/kiss-bc0` (from bcpr.ini `kiss_link`) |
 | Unix sock | `/run/max25/modem.sock` |
 
 **Never** `stacks/daemon/max25-terminal` (does not exist).  
@@ -25,10 +25,10 @@ Public mark for SER12/PC-COM class: **BayCom/based**. Internal workstream: **bcp
 ```bash
 cd /home/akb/Code/10-PROJECTS/MAX25-Stack   # or your clone
 
-# 1) daemon (owns bcprd when auto_start=yes) — needs socket dir
+# 1) daemon (owns max25-bcprd when auto_start=yes) — needs socket dir
 sudo mkdir -p /run/max25
 sudo ./scripts/run-max25d.sh                 # uses local/max25d.ini or /etc/max25/max25d.ini
-# wait for: raw KISS open /tmp/bcpr/kiss-bc0
+# wait for: raw KISS open /tmp/max25-bcpr/kiss-bc0
 
 # 2) terminal (checks socket; picks binary with -d)
 ./scripts/run-max25-terminal.sh -U /run/max25/modem.sock
@@ -40,9 +40,9 @@ sudo ./scripts/run-max25d.sh                 # uses local/max25d.ini or /etc/max
 Manual bcpr (only when debugging without max25d):
 
 ```bash
-sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini preflight
-sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini start
-sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini status
+sudo ./stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini preflight
+sudo ./stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini start
+sudo ./stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini status
 ```
 
 ## Device start matrix
@@ -50,15 +50,15 @@ sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini status
 | Device | Command |
 |--------|---------|
 | TNC2C | `max25-ctl start --hardware tncs --device tnc2c` |
-| BayCom/based | max25d `[features] bcpr=yes` · device `max25e0` — see [BAYCOM.md](BAYCOM.md) |
+| BayCom/based | max25d `[features] max25_bcpr=yes` · device `max25e0` — see [BAYCOM.md](BAYCOM.md) |
 | CRDOP | `max25-ctl start --hardware soft-modems --device soft-crdop` |
 
 ## TX prove-out
 
 | Path | Command |
 |------|---------|
-| Unified | `sudo ./scripts/tx-rx-test.sh --device modem --live --tx --tx-seconds 3 -c /etc/max25/bcpr.ini` |
-| bcpr smoke | `sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini smoke --live --tx --tx-seconds 3` |
+| Unified | `sudo ./scripts/tx-rx-test.sh --device modem --live --tx --tx-seconds 3 -c /etc/max25/max25-bcpr.ini` |
+| max25-bcpr smoke | `sudo ./stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini smoke --live --tx --tx-seconds 3` |
 | Terminal | `./scripts/run-max25-terminal.sh -U /run/max25/modem.sock` → CONNECT → SEND |
 
 Details: [TX-RX-TEST.md](TX-RX-TEST.md).
@@ -67,11 +67,11 @@ Details: [TX-RX-TEST.md](TX-RX-TEST.md).
 
 | Trigger | Host MCR (~3s) | Notes |
 |---------|----------------|-------|
-| Long KISS → `/tmp/bcpr/kiss-bc0` (info ≈376B, slave held open) | Yes | Proven RF when LED/wattmeter watched |
-| `bcpr-rxtx-smoke` / `tx-rx-test` L4 `--tx --tx-seconds 3` | Yes | Requires MCR `0xe`/`0xf` for PASS |
-| max25d unix/terminal `SEND` | Yes (shorter if payload ≤256B ≈2.2s) | Keep PTY open (max25d); do not recycle bcprd outside max25d |
-| open/write/**close** KISS without hold | No / intermittent | POLLHUP race — fixed in bcprd (POLLIN before HUP) |
-| Stale max25d FD after external bcprd restart | No | Restart **max25d** only |
+| Long KISS → `/tmp/max25-bcpr/kiss-bc0` (info ≈376B, slave held open) | Yes | Proven RF when LED/wattmeter watched |
+| `max25-bcpr-rxtx-smoke` / `tx-rx-test` L4 `--tx --tx-seconds 3` | Yes | Requires MCR `0xe`/`0xf` for PASS |
+| max25d unix/terminal `SEND` | Yes (shorter if payload ≤256B ≈2.2s) | Keep PTY open (max25d); do not recycle max25-bcprd outside max25d |
+| open/write/**close** KISS without hold | No / intermittent | POLLHUP race — fixed in max25-bcprd (POLLIN before HUP) |
+| Stale max25d FD after external max25-bcprd restart | No | Restart **max25d** only |
 
 Operator RF evidence (optional, not CI): radio **TX/PTT LED** + **external** wattmeter needle.
 
@@ -85,14 +85,14 @@ Operator RF evidence (optional, not CI): radio **TX/PTT LED** + **external** wat
 | After crash | boot-wait escalate if enabled |
 | Cold boot no `cmd:` | `tnc2c-boot-wait.sh` with DTR before power-on |
 | Power cycle | rescue fallback only |
-| Stale bcpr KISS | restart **max25d** only (do not recycle bcprd outside max25d) |
+| Stale max25-bcpr KISS | restart **max25d** only (do not recycle max25-bcprd outside max25d) |
 
 ## Status matrix
 
 | Check | Command |
 |-------|---------|
 | Daemon | `max25-ctl status` / `ss -ltn \| grep 7325` |
-| bcpr | `sudo bcpr-ctl -c /etc/max25/bcpr.ini status` |
+| max25-bcpr | `sudo max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini status` |
 | Logs | max25d stdout / site log path |
 
 ## Related

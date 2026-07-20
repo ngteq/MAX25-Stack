@@ -22,7 +22,7 @@ max25-terminal --help
 ## Canonical connect (BayCom/based · bcpr)
 
 ```bash
-# max25d already up (auto_start owns bcprd)
+# max25d already up (auto_start owns max25-bcprd)
 max25-terminal -U /run/max25/modem.sock
 # header DEVICE: max25e0 when default=max25e0
 # F10 → 6  (CONNECT)   then   SEND …   or F10 → 4

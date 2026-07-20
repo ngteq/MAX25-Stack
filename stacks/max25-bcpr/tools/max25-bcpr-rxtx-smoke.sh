@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# bcpr-rxtx-smoke.sh — L0…L4 nofreeze prove-out (BayCom/based / bcpr).
+# max25-bcpr-rxtx-smoke.sh — L0…L4 nofreeze prove-out (BayCom/based / max25-bcpr).
 # Default: offline L0 only, NO TX. Live RX: --live. TX: --live --tx.
 # No calibrate. No baycom_ser_fdx product path.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-CTL="$SCRIPT_DIR/bcpr-ctl"
-INI="${BCPR_INI:-$ROOT/stacks/bcpr/share/bcpr.ini.example}"
+CTL="$SCRIPT_DIR/max25-bcpr-ctl"
+INI="${MAX25_BCPR_INI:-${BCPR_INI:-$ROOT/stacks/max25-bcpr/share/max25-bcpr.ini.example}}"
 SECONDS_LIVE=15
 TX_SECONDS=3
 DO_LIVE=0
@@ -24,10 +24,10 @@ RX_ACTIVITY=0
 
 usage() {
   cat <<'USAGE'
-Usage: bcpr-rxtx-smoke.sh [-c ini] [--live] [--tx] [--force-tx] [--seconds N] [--tx-seconds N] [--build-dir DIR]
+Usage: max25-bcpr-rxtx-smoke.sh [-c ini] [--live] [--tx] [--force-tx] [--seconds N] [--tx-seconds N] [--build-dir DIR]
   L0 offline always. Soft L1 if probes safe. L2/L3 need --live. L4 needs --tx.
   --tx-seconds: target PTT key window (default 3; uses ~376B info ≈3s like proven inject).
-  Default: NO TX. Hard time caps. Stop only bcprd started by this script.
+  Default: NO TX. Hard time caps. Stop only max25-bcprd started by this script.
   §0.20: --tx requires RX/DCD activity in this run unless --force-tx (debug only).
 USAGE
 }
@@ -89,9 +89,9 @@ pick_build_dir() {
     return
   fi
   for cand in \
-    "$ROOT/build-bcpr" \
-    "$ROOT/build-bcpr-${USER:-user}" \
-    "/tmp/max25-build-bcpr-${USER:-user}"; do
+    "$ROOT/build-max25-bcpr" \
+    "$ROOT/build-max25-bcpr-${USER:-user}" \
+    "/tmp/max25-build-max25-bcpr-${USER:-user}"; do
     if [[ -d "$cand" && -w "$cand" ]]; then
       echo "$cand"
       return
@@ -101,30 +101,30 @@ pick_build_dir() {
       return
     fi
   done
-  if [[ -d "$ROOT/build-bcpr" && ! -w "$ROOT/build-bcpr" ]]; then
-    cand="$ROOT/build-bcpr-${USER:-user}"
+  if [[ -d "$ROOT/build-max25-bcpr" && ! -w "$ROOT/build-max25-bcpr" ]]; then
+    cand="$ROOT/build-max25-bcpr-${USER:-user}"
     mkdir -p "$cand"
     echo "$cand"
     return
   fi
-  echo "$ROOT/build-bcpr-${USER:-user}"
+  echo "$ROOT/build-max25-bcpr-${USER:-user}"
 }
 
 ensure_binaries() {
   local bd="$1"
-  BCPRD="$bd/bin/bcprd"
+  BCPRD="$bd/bin/max25-bcprd"
   TEST_HDLC="$bd/bin/test_hdlc_offline"
   if [[ -x "$BCPRD" && -x "$TEST_HDLC" ]]; then
     return 0
   fi
-  log "Building bcpr into $bd (MAX25_BUILD_BCPR=ON)…"
+  log "Building max25-bcpr into $bd (MAX25_BUILD_MAX25_BCPR=ON)…"
   mkdir -p "$bd"
-  cmake -S "$ROOT" -B "$bd" -DMAX25_BUILD_BCPR=ON
-  cmake --build "$bd" --target bcprd test_hdlc_offline test_config_offline
+  cmake -S "$ROOT" -B "$bd" -DMAX25_BUILD_MAX25_BCPR=ON
+  cmake --build "$bd" --target max25-bcprd test_hdlc_offline test_config_offline
   [[ -x "$BCPRD" && -x "$TEST_HDLC" ]]
 }
 
-stop_bcprd() {
+stop_max25_bcprd() {
   # Only stop bcprd we started. Never blanket-pkill — max25d may own a live stack.
   if [[ -n "${KISS_HOLD_FD:-}" ]]; then
     eval "exec ${KISS_HOLD_FD}<&-" 2>/dev/null || true
@@ -149,7 +149,7 @@ stop_bcprd() {
   OWNED_BCPRD=0
 }
 
-trap 'stop_bcprd' EXIT INT TERM
+trap 'stop_max25_bcprd' EXIT INT TERM
 
 stage "L0 offline HDLC"
 BUILD="$(pick_build_dir)"
@@ -163,9 +163,9 @@ else
 fi
 
 if "$BCPRD" -c "$INI" --dry-run --once; then
-  ok "bcprd --dry-run --once"
+  ok "max25-bcprd --dry-run --once"
 else
-  fail "bcprd --dry-run --once"
+  fail "max25-bcprd --dry-run --once"
 fi
 
 stage "L1 enhanced preflight"
@@ -178,10 +178,10 @@ else
   pf_rc=$?
   set -e
   if [[ "$pf_rc" -eq 0 ]]; then
-    ok "bcpr-ctl preflight"
+    ok "max25-bcpr-ctl preflight"
   else
     if [[ "$DO_LIVE" -eq 1 ]]; then
-      fail "bcpr-ctl preflight (required for --live)"
+      fail "max25-bcpr-ctl preflight (required for --live)"
     else
       log "NOTE: preflight rc=$pf_rc without --live — L0 is the offline gate"
       # dry_run example: preflight skips UART and returns 0; real mismatch is soft-note only
@@ -208,7 +208,7 @@ fi
 
 dry_val="$(awk -F= '
   $0 ~ /^\[/ { cur=$0; gsub(/[[:space:]]/,"",cur) }
-  cur=="[bcpr]" && $1 ~ /^[[:space:]]*dry_run[[:space:]]*$/ {
+  cur=="[max25-bcpr]" && $1 ~ /^[[:space:]]*dry_run[[:space:]]*$/ {
     v=$2; gsub(/^[[:space:]]+|[[:space:]]+$/,"",v); print tolower(v); exit
   }' "$INI")"
 case "$dry_val" in
@@ -223,7 +223,7 @@ kiss_link="$(awk -F= '
   cur=="[bc0]" && $1 ~ /^[[:space:]]*kiss_link[[:space:]]*$/ {
     v=$2; gsub(/^[[:space:]]+|[[:space:]]+$/,"",v); print v; exit
   }' "$INI")"
-kiss_link="${kiss_link:-/tmp/bcpr/kiss-bc0}"
+kiss_link="${kiss_link:-/tmp/max25-bcpr/kiss-bc0}"
 
 iobase="$(awk -F= '
   $0 ~ /^\[/ { cur=$0; gsub(/[[:space:]]/,"",cur) }
@@ -237,14 +237,14 @@ export BCPRD
 
 # Prefer live stack (max25d-owned bcprd) — proven KISS inject path.
 # Starting a second bcprd races UART MCR and can yield no visible TX.
-if pgrep -x bcprd >/dev/null 2>&1 && [[ -e "$kiss_link" ]]; then
+if pgrep -x max25-bcprd >/dev/null 2>&1 && [[ -e "$kiss_link" ]]; then
   REUSE_STACK=1
   OWNED_BCPRD=0
-  log "reusing live bcprd + kiss_link ($kiss_link) — no second attach"
+  log "reusing live max25-bcprd + kiss_link ($kiss_link) — no second attach"
   ok "kiss_link present ($kiss_link) — RX listen active (reuse)"
 else
   REUSE_STACK=0
-  log "starting bcprd --seconds $SECONDS_LIVE …"
+  log "starting max25-bcprd --seconds $SECONDS_LIVE …"
   "$BCPRD" -c "$INI" --seconds "$SECONDS_LIVE" &
   BCPRD_PID=$!
   OWNED_BCPRD=1
@@ -259,7 +259,7 @@ else
   done
 
   if ! kill -0 "$BCPRD_PID" 2>/dev/null; then
-    fail "bcprd exited early (attach)"
+    fail "max25-bcprd exited early (attach)"
     wait "$BCPRD_PID" || true
     BCPRD_PID=""
     OWNED_BCPRD=0
@@ -318,9 +318,9 @@ if [[ "$DO_TX" -eq 1 ]]; then
     fail "TX blocked (§0.20): no RX/DCD activity — open SQ/noise, then --live --tx"
     log "override only with --force-tx (against policy)"
     if [[ "$REUSE_STACK" -eq 1 ]]; then
-      ok "left live bcprd running (max25d/stack owned)"
+      ok "left live max25-bcprd running (max25d/stack owned)"
     else
-      stop_bcprd || true
+      stop_max25_bcprd || true
     fi
     stage "summary"
     exit 1
@@ -446,15 +446,15 @@ fi
 
 if [[ "$REUSE_STACK" -eq 1 ]]; then
   stage "reuse settle"
-  ok "left live bcprd running (max25d/stack owned)"
+  ok "left live max25-bcprd running (max25d/stack owned)"
 else
   stage "wait stop"
   deadline=5
   elapsed=0
   while kill -0 "${BCPRD_PID:-}" 2>/dev/null; do
     if [[ "$elapsed" -ge "$deadline" ]]; then
-      fail "bcprd still running after ${deadline}s — forcing stop"
-      stop_bcprd
+      fail "max25-bcprd still running after ${deadline}s — forcing stop"
+      stop_max25_bcprd
       break
     fi
     sleep 1
@@ -465,11 +465,11 @@ else
   rc=$?
   set -e
   if ! kill -0 "${BCPRD_PID:-}" 2>/dev/null; then
-    ok "bcprd stopped (rc=$rc)"
+    ok "max25-bcprd stopped (rc=$rc)"
     BCPRD_PID=""
     OWNED_BCPRD=0
   else
-    fail "bcprd still alive after wait"
+    fail "max25-bcprd still alive after wait"
   fi
 fi
 

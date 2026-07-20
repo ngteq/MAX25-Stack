@@ -1,6 +1,6 @@
 # Linux host setup · MAX25-Stack 1.8.5-fallback_untested-upcoming#1
 
-Example settings for running `max25d` on a Linux host with USB TNC, BayCom, or sound-card modem.
+Example settings for running `max25d` on a Linux host with USB TNC or sound-card modem.
 
 ## Component matrix
 
@@ -9,7 +9,7 @@ Example settings for running `max25d` on a Linux host with USB TNC, BayCom, or s
 | `max25d` | yes | Python 3 |
 | `max25-terminal` | yes | Unix socket or `127.0.0.1:7325` |
 | TNC2C / USB TNC | yes | `/dev/ttyUSB*` |
-| BayCom SER12 | yes | kernel modules + headers |
+| BayCom/based (SER12) | **not usable** | `max25-bcpr` default OFF; opt-in `-DMAX25_BUILD_MAX25_BCPR=ON` |
 | CRDOP | yes | ALSA sound device |
 | HyBBX attach | yes | after MAX25 prep |
 
@@ -20,7 +20,7 @@ Example settings for running `max25d` on a Linux host with USB TNC, BayCom, or s
 | Build | `build-essential`, `cmake`, `pkg-config`, `git` |
 | Runtime | `python3`, `libncurses-dev` |
 | CRDOP | `libasound2-dev` |
-| BayCom optional | kernel headers matching running kernel |
+| BayCom/based | not required (default OFF; not usable) |
 
 ## Install matrix
 

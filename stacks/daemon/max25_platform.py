@@ -48,7 +48,7 @@ def supported_device_ids() -> frozenset[str]:
                 "pktnc2",
                 "baycom-kiss",
                 "pccom-kiss",
-                # BayCom/based SER12 product path (userspace bcpr → device max25e0)
+                # BayCom/based SER12 (max25-bcpr → device max25e0; not usable by default)
                 "max25e0",
                 "max25e0:bc0",
                 "max25e0:bc1",
@@ -57,7 +57,7 @@ def supported_device_ids() -> frozenset[str]:
             }
         )
     if is_freebsd():
-        # No SER12/UART bcpr on FreeBSD — CRDOP/OSS only
+        # No SER12/UART max25-bcpr on FreeBSD — CRDOP/OSS only
         return frozenset({"soft-crdop", "audio-dummy"})
     return frozenset({"soft-crdop"})
 

@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 pick() {
   local c
   for c in \
-    "${ROOT}/build-bcpr/bin/max25-terminal" \
+    "${ROOT}/build-max25-bcpr/bin/max25-terminal" \
     "${ROOT}/build/bin/max25-terminal" \
     /usr/local/bin/max25-terminal
   do
@@ -32,7 +32,7 @@ pick() {
 
 BIN="$(pick)" || {
   echo "run-max25-terminal: no current max25-terminal with -d/--device" >&2
-  echo "  cmake -B build-bcpr -DMAX25_BUILD_BCPR=ON && cmake --build build-bcpr" >&2
+  echo "  cmake -B build-max25-bcpr -DMAX25_BUILD_MAX25_BCPR=ON && cmake --build build-max25-bcpr" >&2
   echo "  Do not run stacks/terminal/max25-terminal leftovers." >&2
   exit 127
 }

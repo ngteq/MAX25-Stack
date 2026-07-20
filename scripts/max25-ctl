@@ -233,7 +233,7 @@ start_baycom_kernel() {
   # Kernel baycom-pr removed 2026-07-18 — product path is bcpr.
   echo "Kernel BayCom (baycom-pr / baycom_ser_fdx) removed from this tree." >&2
   echo "Use BayCom/based via bcpr: docs/BAYCOM.md · stacks/bcpr/README.md" >&2
-  echo "  [features] bcpr=yes · max25e0 = bcpr:bc0 · bcpr-ctl / max25d auto_start" >&2
+  echo "  [features] max25_bcpr=yes · max25e0 = max25-bcpr:bc0 · max25-bcpr-ctl / max25d auto_start" >&2
   echo "Frozen archive: MASTER vault archives/legacy/max25-stack-baycom-kernel-compa/" >&2
   exit 1
 }
@@ -289,7 +289,7 @@ cmd_start() {
           exit 0
           ;;
         bcpr|max25e0|max25e0:bc0|max25e0:bc1|"")
-          echo "bcpr / max25e0: start via max25d [features] bcpr=yes (auto_start) or bcpr-ctl" >&2
+          echo "max25-bcpr / max25e0: start via max25d [features] max25_bcpr=yes (auto_start) or max25-bcpr-ctl" >&2
           echo "See docs/BAYCOM.md · stacks/bcpr/README.md" >&2
           echo "Canonical: scripts/run-max25d.sh" >&2
           exit 1

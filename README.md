@@ -15,7 +15,7 @@ Linux supervisor for Packet Radio hardware: TNC lifecycle, KISS, M25/1 IPC, opti
 |------------|--------|-------|
 | TNC2C serial (KISS) | active | `device=tnc2c` |
 | PK-TNC / multi-TNC | active | `[devices]` map |
-| BayCom/based (SER12) | active | `max25e0` via `[features] bcpr=yes` |
+| BayCom/based (SER12) | **not usable** | `max25-bcpr` / `max25e0`; opt-in `-DMAX25_BUILD_MAX25_BCPR=ON` |
 | CRDOP soft-modem (1200 bd AFSK) | active (dev/test) | `soft-crdop` |
 | max25-terminal (F10 UI) | active | M25/1 TCP or Unix |
 | HyBBX attach | active | `:7325` + INI in `share/hybbx/` |
@@ -24,10 +24,12 @@ Linux supervisor for Packet Radio hardware: TNC lifecycle, KISS, M25/1 IPC, opti
 ## Three commands
 
 ```bash
-cmake -B build-bcpr -DMAX25_BUILD_BCPR=ON -DMAX25_BUILD_TERMINAL=ON && cmake --build build-bcpr
-cmake --build build-bcpr --target max25_test   # or: ./scripts/tx-rx-test.sh
-./scripts/run-max25d.sh                        # root only when SER12/ttyS needs it
+cmake -B build -DMAX25_BUILD_TERMINAL=ON && cmake --build build
+cmake --build build --target max25_test   # or: ./scripts/tx-rx-test.sh
+./scripts/run-max25d.sh                   # root only when ttyS/USB needs it
 ```
+
+BayCom/based / **max25-bcpr** is **not usable** in the default build. Device id **`max25e0`** only. Experimental opt-in: `-DMAX25_BUILD_MAX25_BCPR=ON` (see [docs/BAYCOM.md](docs/BAYCOM.md)).
 
 ## HyBBX integration matrix
 
@@ -35,7 +37,7 @@ cmake --build build-bcpr --target max25_test   # or: ./scripts/tx-rx-test.sh
 |------|-------|
 | Order | max25d up → HyBBX `[max25] check=yes` → `kiss_entry=none` |
 | Serial ownership | One process per `/dev/tty*` |
-| BayCom default | `[features] bcpr=yes` + device `max25e0` (BayCom/based); `[features] baycom=no` for legacy USB-kiss |
+| BayCom/based | **not usable** (default); do not enable for production |
 
 ## Related
 

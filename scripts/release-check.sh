@@ -93,10 +93,10 @@ else
   fail "missing share/max25/max25d.ini.host.example"
 fi
 
-if [[ -f share/baycom/README.md ]] && { [[ -f stacks/bcpr/share/bcpr.ini.example ]] || [[ -f share/bcpr/bcpr.ini.example ]]; }; then
+if [[ -f share/baycom/README.md ]] && { [[ -f stacks/max25-bcpr/share/max25-bcpr.ini.example ]] || [[ -f share/max25-bcpr/max25-bcpr.ini.example ]]; }; then
   ok "BayCom/based bcpr example + share/baycom README"
 else
-  fail "missing bcpr.ini.example or share/baycom/README.md"
+  fail "missing max25-bcpr.ini.example or share/baycom/README.md"
 fi
 
 if [[ -f share/clients/index.yaml ]] && [[ -f share/clients/tnc2c.yaml ]]; then
@@ -175,7 +175,7 @@ for ini in stacks/tncs/hybbx-tnc2c.ini \
            share/hybbx/crdop-host.ini.example; do
   [[ -f "$ini" ]] && ok "ini $ini" || fail "missing $ini"
 done
-[[ -d stacks/bcpr ]] && ok "stacks/bcpr (BayCom/based product path)" || fail "missing stacks/bcpr"
+[[ -d stacks/max25-bcpr ]] && ok "stacks/max25-bcpr (BayCom/based; not usable by default)" || fail "missing stacks/max25-bcpr"
 
 # --- build artifacts (CMake) ---
 BUILD_DIR="build"
@@ -192,7 +192,11 @@ else
   fail "cmake build"
 fi
 [[ -x "${BUILD_DIR}/bin/tnc2c-probe" ]] && ok "tnc2c-probe built" || fail "tnc2c-probe build"
-[[ -x "${BUILD_DIR}/bin/bcprd" ]] && ok "bcprd built" || fail "bcprd build"
+if [[ -x "${BUILD_DIR}/bin/max25-bcprd" ]]; then
+  ok "max25-bcprd built (opt-in)"
+else
+  ok "max25-bcprd not built (MAX25_BUILD_MAX25_BCPR default OFF)"
+fi
 [[ -x "${BUILD_DIR}/bin/max25-terminal" ]] && ok "max25-terminal built" || fail "max25-terminal build"
 [[ -f stacks/crdop/share/crdop.ini.example ]] && ok "CRDOP scaffold (MAX25-SoftModem)" || fail "CRDOP scaffold missing"
 [[ -f plugins/external/ardop/plugin.yaml ]] && ok "ARDOP-plugin metadata" || fail "missing plugins/external/ardop/plugin.yaml"
@@ -227,10 +231,14 @@ else
 fi
 
 # --- offline tests ---
-if [[ -x "${BUILD_DIR}/bin/bcprd" ]] && "${BUILD_DIR}/bin/bcprd" -c stacks/bcpr/share/bcpr.ini.example --dry-run --once >/dev/null 2>&1; then
-  ok "bcpr dry-run once"
+if [[ -x "${BUILD_DIR}/bin/max25-bcprd" ]]; then
+  if "${BUILD_DIR}/bin/max25-bcprd" -c stacks/max25-bcpr/share/max25-bcpr.ini.example --dry-run --once >/dev/null 2>&1; then
+    ok "max25-bcpr dry-run once"
+  else
+    fail "max25-bcpr dry-run once"
+  fi
 else
-  fail "bcpr dry-run once"
+  ok "max25-bcpr dry-run skipped (not built)"
 fi
 
 if [[ -x "${BUILD_DIR}/bin/crdopc" ]] && CRDOP_BIN="${PWD}/${BUILD_DIR}/bin/crdopc" bash stacks/crdop/scripts/test-smoke.sh >/dev/null 2>&1; then

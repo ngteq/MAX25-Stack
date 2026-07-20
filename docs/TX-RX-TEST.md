@@ -19,7 +19,7 @@ Entry: `scripts/tx-rx-test.sh`. Offline **L0** ships in release gates (`ctest`, 
 |-------|------|---------|-------|
 | **L0** | Offline | **always** | Host CONNECT/SEND loopback · KISS encode/decode · TNC recovery units · bcpr HDLC/dry-run smoke |
 | **L1** | Soft preflight | `--level 1` | bcpr preflight soft · TNC profile present |
-| **L2/L3** | Live RX | `--live` | Modem: timed `bcprd` attach + listen (nofreeze). TNC: unix `CONNECT` + STATUS |
+| **L2/L3** | Live RX | `--live` | Modem: timed `max25-bcprd` attach + listen (nofreeze). TNC: unix `CONNECT` + STATUS |
 | **L4** | Capped TX | `--live --tx` | Modem: ~3s KISS UI (default `--tx-seconds 3`, ≈376B info) + MCR proof. TNC: one `SEND` on live socket |
 
 Defaults: **NO TX**. Live seconds capped (default 15, max 60). No calibrate. No kernel `baycom_ser_fdx`.
@@ -31,7 +31,7 @@ L4 modem notes:
 | Payload | Default ~3s PTT (proven AX25WRK1 inject: info **376B** → ~3005 ms MCR) — not a 23-byte stub |
 | `--tx-seconds N` | Target key window (1–12); longer than ~3s uses multiple bursts (`BCPR_MAXFLEN` cap) |
 | Host proof | Script requires UART **MCR** key (`0x0e`/`0x0f`); `PASS:` without MCR = fail |
-| Live stack | Reuses running `bcprd` + `kiss_link` when present (no second attach / no blanket `pkill`) |
+| Live stack | Reuses running `max25-bcprd` + `kiss_link` when present (no second attach / no blanket `pkill`) |
 | KISS peer | Smoke keeps the KISS slave open during TX (standalone attach); closing after write → POLLHUP → no MCR |
 | RF evidence | Wattmeter needle + radio TX/PTT LED during the key window — not automated |
 
@@ -56,7 +56,7 @@ cd /path/to/MAX25-Stack
 ./scripts/tx-rx-test.sh
 
 # Or via CMake
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DMAX25_BUNDLE_AX25=OFF -DMAX25_BUILD_BCPR=ON
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DMAX25_BUNDLE_AX25=OFF -DMAX25_BUILD_MAX25_BCPR=ON
 cmake --build build -j"$(nproc)"
 cmake --build build --target max25_tx_rx_test
 # also: ctest -R max25_tx_rx_offline --output-on-failure
@@ -73,20 +73,20 @@ Requires root + live INI (`dry_run=no`, real IRQ/serial). Prefer dedicated host.
 ```bash
 # Soft L1 + short live RX (radio may be OFF)
 sudo ./scripts/tx-rx-test.sh --device modem --live --seconds 15 \
-  -c /etc/max25/bcpr.ini
+  -c /etc/max25/max25-bcpr.ini
 
 # Capped TX (~3s PTT — watch wattmeter / TX LED; MCR required for PASS)
 sudo ./scripts/tx-rx-test.sh --device modem --live --tx --tx-seconds 3 \
-  -c /etc/max25/bcpr.ini
+  -c /etc/max25/max25-bcpr.ini
 
 # Longer attach window (optional)
 sudo ./scripts/tx-rx-test.sh --device modem --live --tx --seconds 20 --tx-seconds 3 \
-  -c /etc/max25/bcpr.ini
+  -c /etc/max25/max25-bcpr.ini
 ```
 
-Equivalent bcpr-only path: `stacks/bcpr/tools/bcpr-ctl smoke [--live] [--tx] [--tx-seconds N]`.
+Equivalent max25-bcpr-only path: `stacks/max25-bcpr/tools/max25-bcpr-ctl smoke [--live] [--tx] [--tx-seconds N]`.
 
-Prefer a running max25d/bcprd stack (script reuses `kiss_link`). Fresh timed `bcprd` only when none is running.
+Prefer a running max25d/max25-bcprd stack (script reuses `kiss_link`). Fresh timed `max25-bcprd` only when none is running.
 
 max25d path (after stack up): `max25-terminal -U /run/max25/modem.sock` (with `default = max25e0`, no `-d` required) → `CONNECT` → `SEND …` — host TX keys UART MCR on SER12. Prefer PATH/`build*/bin` (stale `stacks/terminal/max25-terminal` may lack `-d`). For ~3s visible PTT use KISS inject ≥~376B info (unix `SEND` is capped by max25d `MAX_PAYLOAD=256` ≈2.2s).
 
@@ -108,7 +108,7 @@ Override socket: `MAX25_SOCK=/run/max25/modem.sock`.
 
 ```bash
 ./scripts/tx-rx-test.sh --device all          # L0 offline
-sudo ./scripts/tx-rx-test.sh --device all --live -c /etc/max25/bcpr.ini
+sudo ./scripts/tx-rx-test.sh --device all --live -c /etc/max25/max25-bcpr.ini
 ```
 
 TNC live still needs a running max25d socket; modem live needs bcpr INI.
@@ -133,5 +133,5 @@ TNC live still needs a running max25d socket; modem live needs bcpr INI.
 | [BAYCOM.md](BAYCOM.md) | BayCom/based bring-up |
 | [BAYCOM-FREEZES.md](BAYCOM-FREEZES.md) | Freeze warning |
 | [HARDWARE-ACCEPTANCE.md](HARDWARE-ACCEPTANCE.md) | Manual RF matrix |
-| [`stacks/bcpr/README.md`](../stacks/bcpr/README.md) | bcpr smoke L0–L4 |
+| [`stacks/max25-bcpr/README.md`](../stacks/max25-bcpr/README.md) | bcpr smoke L0–L4 |
 | [`stacks/tncs/docs/TNC-RECOVERY.md`](../stacks/tncs/docs/TNC-RECOVERY.md) | TNC recovery |

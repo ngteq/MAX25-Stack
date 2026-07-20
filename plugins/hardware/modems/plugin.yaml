@@ -12,15 +12,15 @@ backends:
   - kiss-serial
 
 build:
-  cmake_option: MAX25_BUILD_BCPR
-  targets: [bcprd, bcpr-ctl]
+  cmake_option: MAX25_BUILD_MAX25_BCPR
+  targets: [max25-bcprd, max25-bcpr-ctl]
 
-ctl: stacks/bcpr/tools/bcpr-ctl
+ctl: stacks/max25-bcpr/tools/max25-bcpr-ctl
 
 runtime:
   state_dir: /tmp/bcpr
-  config: /etc/max25/bcpr.ini
-  kiss_default: /tmp/bcpr/kiss-bc0
+  config: /etc/max25/max25-bcpr.ini
+  kiss_default: /tmp/max25-bcpr/kiss-bc0
 
 devices:
   - baycom-kiss

@@ -40,16 +40,20 @@ def _spec_int(raw: str, default: int) -> int:
     except (TypeError, ValueError):
         return default
 
+# max25e0 host address defaults (overridable in max25d.ini [device.max25e0])
+MAX25E0_DEFAULT_IPV4 = "127.0.0.25/8"
+MAX25E0_DEFAULT_IPV6 = "::25/128"
+
 # manifest.yaml device ids → default hardware + backend kind
 DEVICE_REGISTRY: dict[str, dict[str, str | bool]] = {
     "tnc2c": {"hardware": "tncs", "backend": "kiss-serial", "tested": True},
     "pktnc2": {"hardware": "tncs", "backend": "kiss-serial", "tested": False},
-    # Kernel baycom-ser12/par96 removed 2026-07-18 — use bcpr → device max25e0
+    # Kernel baycom-ser12/par96 removed 2026-07-18 — use max25-bcpr → device max25e0
     "baycom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
     "pccom-kiss": {"hardware": "modems", "backend": "kiss-raw-serial", "tested": False},
-    "max25e0": {"hardware": "modems", "backend": "bcpr-kiss", "tested": True},
-    "max25e0:bc0": {"hardware": "modems", "backend": "bcpr-kiss", "tested": True},
-    "max25e0:bc1": {"hardware": "modems", "backend": "bcpr-kiss", "tested": True},
+    "max25e0": {"hardware": "modems", "backend": "max25-bcpr-kiss", "tested": True},
+    "max25e0:bc0": {"hardware": "modems", "backend": "max25-bcpr-kiss", "tested": True},
+    "max25e0:bc1": {"hardware": "modems", "backend": "max25-bcpr-kiss", "tested": True},
     "soft-crdop": {"hardware": "soft-modems", "backend": "crdop-tcp", "tested": True},
     "audio-dummy": {"hardware": "acoustic-bench", "backend": "audio-dummy", "tested": True},
 }
@@ -71,7 +75,7 @@ def registry_tested(device_id: str) -> bool:
 
 
 def baycom_ctl_device_id(dev_cfg: DeviceBackendConfig) -> str:
-    """Legacy helper: kernel BayCom ctl device id (stack removed — prefer bcpr)."""
+    """Legacy helper: kernel BayCom ctl device id (stack removed — prefer max25-bcpr)."""
     entry = DEVICE_REGISTRY.get(dev_cfg.device_id, {})
     if entry.get("backend") == "baycom-kiss":
         return dev_cfg.device_id
@@ -95,9 +99,15 @@ class DeviceBackendConfig:
     kiss_link: str = ""
     baycom_modem: str = "a"
     baycom_ini: str = ""
-    # bcpr userspace SER12 — max25e0:bc0/bc1
+    # max25-bcpr userspace SER12 — max25e0 (+ forks max25e0:bcN)
+    max25_bcpr_ini: str = ""
+    max25_bcpr_device: str = ""  # bc0 | bc1
+    # Host addresses (max25e0 family only; forks inherit from max25e0)
+    ipv4: str = ""
+    ipv6: str = ""
+    # Legacy field aliases (read-only mirrors filled by parser)
     bcpr_ini: str = ""
-    bcpr_device: str = ""  # bc0 | bc1
+    bcpr_device: str = ""
     # CRDOP TCP
     crdop_host: str = "127.0.0.1"
     crdop_port: int = 8515
@@ -444,13 +454,13 @@ class BayComKissBackend(KissRawBackend):
         super().__init__(cfg, kiss, profile, on_rx, log, is_pty=True)
 
 
-class BcprKissBackend(KissRawBackend):
-    """bcpr userspace SER12 via KISS PTY (max25e0:bc0/bc1).
+class Max25BcprKissBackend(KissRawBackend):
+    """max25-bcpr userspace SER12 via KISS PTY (max25e0 / max25e0:bcN).
 
     Hardware is a TCM3105-class AFSK modem chip (bits↔AFSK + PTT) only — not a TNC.
     """
 
-    backend_type = "bcpr-kiss"
+    backend_type = "max25-bcpr-kiss"
 
     def __init__(
         self,
@@ -458,8 +468,8 @@ class BcprKissBackend(KissRawBackend):
         on_rx: RxFn,
         log: Optional[LogFn] = None,
     ) -> None:
-        tag = (cfg.bcpr_device or "bc0").strip() or "bc0"
-        kiss = cfg.kiss_link or f"/var/run/bcpr/kiss-{tag}"
+        tag = (cfg.max25_bcpr_device or cfg.bcpr_device or "bc0").strip() or "bc0"
+        kiss = cfg.kiss_link or f"/var/run/max25-bcpr/kiss-{tag}"
         profile = SerialProfile(baud=9600, line="8n1", dtr_rts=False)
         super().__init__(cfg, kiss, profile, on_rx, log, is_pty=True)
 
@@ -928,14 +938,15 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
         dev.backend_type = "baycom-kiss"
         dev.baycom_modem = spec.split(":", 1)[1].strip() or "a"
         dev.hardware = "modems"
-    elif spec.startswith("bcpr:"):
-        # Userspace SER12 path — host max25e0:bc0/bc1
-        dev.backend_type = "bcpr-kiss"
-        dev.bcpr_device = spec.split(":", 1)[1].strip() or "bc0"
+    elif spec.startswith("max25-bcpr:") or spec.startswith("bcpr:"):
+        # Userspace SER12 — product face max25-bcpr; device id remains max25e0
+        dev.backend_type = "max25-bcpr-kiss"
+        tag = spec.split(":", 1)[1].strip() or "bc0"
+        dev.max25_bcpr_device = tag
+        dev.bcpr_device = tag  # legacy alias
         dev.hardware = "modems"
         if not sec_opts.get("kiss_link"):
-            tag = dev.bcpr_device or "bc0"
-            dev.kiss_link = f"/var/run/bcpr/kiss-{tag}"
+            dev.kiss_link = f"/var/run/max25-bcpr/kiss-{tag}"
     elif spec.startswith("crdop:"):
         dev.backend_type = "crdop-tcp"
         dev.crdop_profile = spec.split(":", 1)[1].strip() or "default"
@@ -960,10 +971,18 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
         dev.baycom_modem = sec_opts["modem"]
     if sec_opts.get("baycom_ini"):
         dev.baycom_ini = sec_opts["baycom_ini"]
-    if sec_opts.get("bcpr_ini"):
-        dev.bcpr_ini = sec_opts["bcpr_ini"]
-    if sec_opts.get("bcpr_device"):
-        dev.bcpr_device = sec_opts["bcpr_device"]
+    if sec_opts.get("max25_bcpr_ini") or sec_opts.get("bcpr_ini"):
+        ini_path = sec_opts.get("max25_bcpr_ini") or sec_opts.get("bcpr_ini") or ""
+        dev.max25_bcpr_ini = ini_path
+        dev.bcpr_ini = ini_path
+    if sec_opts.get("max25_bcpr_device") or sec_opts.get("bcpr_device"):
+        tag = sec_opts.get("max25_bcpr_device") or sec_opts.get("bcpr_device") or ""
+        dev.max25_bcpr_device = tag
+        dev.bcpr_device = tag
+    if sec_opts.get("ipv4"):
+        dev.ipv4 = sec_opts["ipv4"].strip()
+    if sec_opts.get("ipv6"):
+        dev.ipv6 = sec_opts["ipv6"].strip()
     if sec_opts.get("host"):
         dev.crdop_host = sec_opts["host"]
     if sec_opts.get("port"):
@@ -994,6 +1013,16 @@ def parse_device_spec(device_id: str, spec: str, cp, cfg_defaults: dict) -> Devi
         if cp.has_option(serial_sec, "kiss_entry"):
             dev.serial_kiss_entry = cp.get(serial_sec, "kiss_entry")
 
+    # max25e0 family: hardcoded host addresses (forks inherit from root max25e0)
+    if device_id == "max25e0" or device_id.startswith("max25e0:"):
+        root_opts: dict[str, str] = {}
+        if device_id != "max25e0" and cp.has_section("device.max25e0"):
+            root_opts = {k: cp.get("device.max25e0", k) for k in cp.options("device.max25e0")}
+        if not dev.ipv4:
+            dev.ipv4 = (root_opts.get("ipv4") or "").strip() or MAX25E0_DEFAULT_IPV4
+        if not dev.ipv6:
+            dev.ipv6 = (root_opts.get("ipv6") or "").strip() or MAX25E0_DEFAULT_IPV6
+
     return dev
 
 
@@ -1010,8 +1039,8 @@ def create_backend(
         return KissSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix, on_invalid=on_invalid)
     if kind == "baycom-kiss":
         return BayComKissBackend(dev_cfg, on_rx, log)
-    if kind == "bcpr-kiss":
-        return BcprKissBackend(dev_cfg, on_rx, log)
+    if kind in ("max25-bcpr-kiss", "bcpr-kiss"):
+        return Max25BcprKissBackend(dev_cfg, on_rx, log)
     if kind == "kiss-raw-serial":
         return KissRawSerialBackend(dev_cfg, root, on_rx, log, prefix=prefix)
     if kind == "crdop-tcp":
@@ -1025,7 +1054,7 @@ def backend_needs_stack(kind: str) -> bool:
     return kind in (
         "kiss-serial",
         "baycom-kiss",
-        "bcpr-kiss",
+        "max25-bcpr-kiss", "bcpr-kiss",
         "kiss-raw-serial",
         "crdop-tcp",
         "audio-dummy",
@@ -1036,3 +1065,7 @@ def backend_serial_label(backend: Optional[DeviceBackend]) -> str:
     if backend is None:
         return "n/a"
     return backend.status
+
+
+# Legacy alias (tests / transitional)
+BcprKissBackend = Max25BcprKissBackend

@@ -32,13 +32,51 @@ def load_max25d():
 def test_bcpr_kiss_default_link() -> None:
     cfg = DeviceBackendConfig(
         device_id="max25e0",
-        backend_type="bcpr-kiss",
+        backend_type="max25-bcpr-kiss",
         bcpr_device="bc0",
     )
     backend = BcprKissBackend(cfg, on_rx=lambda _l: None)
-    assert backend._path == "/var/run/bcpr/kiss-bc0"
-    assert backend.backend_type == "bcpr-kiss"
+    assert backend._path == "/var/run/max25-bcpr/kiss-bc0"
+    assert backend.backend_type == "max25-bcpr-kiss"
     assert backend._is_pty is True
+
+
+def test_max25e0_default_addrs() -> None:
+    from device_backends import MAX25E0_DEFAULT_IPV4, MAX25E0_DEFAULT_IPV6
+    text = """
+[devices]
+max25e0 = max25-bcpr:bc0
+"""
+    cp = configparser.ConfigParser()
+    cp.read_string(text)
+    from device_backends import parse_device_spec
+    dev = parse_device_spec("max25e0", "max25-bcpr:bc0", cp, {"hardware": "modems"})
+    assert dev.ipv4 == MAX25E0_DEFAULT_IPV4
+    assert dev.ipv6 == MAX25E0_DEFAULT_IPV6
+    # override
+    text2 = """
+[devices]
+max25e0 = max25-bcpr:bc0
+[device.max25e0]
+ipv4 = 10.0.0.25/24
+ipv6 = fd00::25/128
+"""
+    cp2 = configparser.ConfigParser()
+    cp2.read_string(text2)
+    dev2 = parse_device_spec("max25e0", "max25-bcpr:bc0", cp2, {"hardware": "modems"})
+    assert dev2.ipv4 == "10.0.0.25/24"
+    assert dev2.ipv6 == "fd00::25/128"
+    # fork inherits from [device.max25e0] (INI colon keys need care — parse by id)
+    text3 = """
+[device.max25e0]
+ipv4 = 10.0.0.25/24
+ipv6 = fd00::25/128
+"""
+    cp3 = configparser.ConfigParser()
+    cp3.read_string(text3)
+    fork = parse_device_spec("max25e0:bc1", "max25-bcpr:bc1", cp3, {"hardware": "modems"})
+    assert fork.ipv4 == "10.0.0.25/24"
+    assert fork.ipv6 == "fd00::25/128"
 
 
 def test_parse_bcpr_spec() -> None:
@@ -46,15 +84,15 @@ def test_parse_bcpr_spec() -> None:
     cp.read_string(
         """
 [device.max25e0]
-kiss_link = /var/run/bcpr/kiss-bc0
-bcpr_ini = /etc/max25/bcpr.ini
+kiss_link = /var/run/max25-bcpr/kiss-bc0
+max25_bcpr_ini = /etc/max25/max25-bcpr.ini
 """
     )
-    dev = parse_device_spec("max25e0", "bcpr:bc0", cp, {"hardware": "tncs"})
-    assert dev.backend_type == "bcpr-kiss"
-    assert dev.bcpr_device == "bc0"
-    assert dev.kiss_link == "/var/run/bcpr/kiss-bc0"
-    assert dev.bcpr_ini == "/etc/max25/bcpr.ini"
+    dev = parse_device_spec("max25e0", "max25-bcpr:bc0", cp, {"hardware": "tncs"})
+    assert dev.backend_type == "max25-bcpr-kiss"
+    assert dev.max25_bcpr_device == "bc0"
+    assert dev.kiss_link == "/var/run/max25-bcpr/kiss-bc0"
+    assert dev.max25_bcpr_ini == "/etc/max25/max25-bcpr.ini"
 
 
 def test_feature_gate_bcpr() -> None:
@@ -63,31 +101,31 @@ def test_feature_gate_bcpr() -> None:
     cp.read_string(
         """
 [features]
-bcpr = no
+max25_bcpr = no
 [devices]
 default = max25e0
-max25e0 = bcpr:bc0
+max25e0 = max25-bcpr:bc0
 """
     )
     cfg = mod.DaemonConfig()
-    cfg.feature_bcpr = False
+    cfg.feature_max25_bcpr = False
     devices = mod.parse_devices(cp, cfg)
     # parse_devices itself may include; load_config filters by features
     assert any(d.device_id == "max25e0" for d in devices)
     filtered = [d for d in devices if mod._device_allowed_by_features(d, cfg)]
     assert filtered == []
 
-    cfg.feature_bcpr = True
+    cfg.feature_max25_bcpr = True
     filtered = [d for d in devices if mod._device_allowed_by_features(d, cfg)]
     assert len(filtered) == 1
-    assert filtered[0].backend_type == "bcpr-kiss"
+    assert filtered[0].backend_type == "max25-bcpr-kiss"
 
 
 def test_bcpr_kiss_pty_skips_tcdrain() -> None:
     cfg = DeviceBackendConfig(
         device_id="max25e0",
-        backend_type="bcpr-kiss",
-        kiss_link="/tmp/bcpr/kiss-bc0",
+        backend_type="max25-bcpr-kiss",
+        kiss_link="/tmp/max25-bcpr/kiss-bc0",
         bcpr_device="bc0",
     )
     backend = BcprKissBackend(cfg, on_rx=lambda _l: None)
@@ -110,8 +148,8 @@ def test_bcpr_kiss_pty_skips_tcdrain() -> None:
 def test_bcpr_kiss_stabilize_reopens_on_inode_mismatch() -> None:
     cfg = DeviceBackendConfig(
         device_id="max25e0",
-        backend_type="bcpr-kiss",
-        kiss_link="/tmp/bcpr/kiss-bc0",
+        backend_type="max25-bcpr-kiss",
+        kiss_link="/tmp/max25-bcpr/kiss-bc0",
         bcpr_device="bc0",
     )
     backend = BcprKissBackend(cfg, on_rx=lambda _l: None)
@@ -143,6 +181,7 @@ def test_bcpr_kiss_stabilize_reopens_on_inode_mismatch() -> None:
 
 def main() -> int:
     test_bcpr_kiss_default_link()
+    test_max25e0_default_addrs()
     test_parse_bcpr_spec()
     test_feature_gate_bcpr()
     test_bcpr_kiss_pty_skips_tcdrain()

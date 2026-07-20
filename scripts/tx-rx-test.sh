@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tx-rx-test.sh — unified TX/RX release test (BayCom/based bcpr + classic TNC).
 # Default: L0 offline only (CI / make test). Live/TX are operator-gated.
-# Public: BayCom/based. Internal: bcpr. Never Konverter/converter.
+# Public: BayCom/based / max25-bcpr. Never Konverter/converter.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -14,7 +14,7 @@ DO_TX=0
 FORCE_TX=0
 SECONDS_LIVE=15
 TX_SECONDS=3
-BCPR_INI="${BCPR_INI:-$ROOT/stacks/bcpr/share/bcpr.ini.example}"
+BCPR_INI="${BCPR_INI:-$ROOT/stacks/max25-bcpr/share/max25-bcpr.ini.example}"
 SOCK="${MAX25_SOCK:-/run/max25/modem.sock}"
 ERR=0
 
@@ -24,7 +24,7 @@ Usage: tx-rx-test.sh [--level N] [--device all|modem|tnc] [--live] [--tx] [--sec
 
   L0  offline TX/RX proofs (default) — CI / release-check / ctest
   L1  soft preflight (no attach / no RF)
-  L2  live attach (modem: bcprd timed; tnc: max25d sock status)
+  L2  live attach (modem: max25-bcprd timed; tnc: max25d sock status)
   L3  live RX listen (same as L2 + RX readiness)
   L4  TX (--tx required; PTT / RF risk; default ~3s MCR key)
 
@@ -120,14 +120,14 @@ run_l0() {
   fi
 
   if want_modem; then
-    if [[ -x stacks/bcpr/tools/bcpr-rxtx-smoke.sh ]]; then
-      if bash stacks/bcpr/tools/bcpr-rxtx-smoke.sh -c "$BCPR_INI"; then
-        ok "bcpr-rxtx-smoke L0 (BayCom/based)"
+    if [[ -x stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh ]]; then
+      if bash stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh -c "$BCPR_INI"; then
+        ok "max25-bcpr-rxtx-smoke L0 (BayCom/based)"
       else
-        fail "bcpr-rxtx-smoke L0"
+        fail "max25-bcpr-rxtx-smoke L0"
       fi
     else
-      fail "bcpr-rxtx-smoke.sh missing"
+      fail "max25-bcpr-rxtx-smoke.sh missing"
     fi
   fi
 }
@@ -135,22 +135,22 @@ run_l0() {
 run_l1() {
   stage "L1 soft preflight"
   if want_modem; then
-    if [[ -x stacks/bcpr/tools/bcpr-ctl ]]; then
+    if [[ -x stacks/max25-bcpr/tools/max25-bcpr-ctl ]]; then
       set +e
-      stacks/bcpr/tools/bcpr-ctl -c "$BCPR_INI" preflight
+      stacks/max25-bcpr/tools/max25-bcpr-ctl -c "$BCPR_INI" preflight
       pf_rc=$?
       set -e
       if [[ "$pf_rc" -eq 0 ]]; then
-        ok "bcpr-ctl preflight"
+        ok "max25-bcpr-ctl preflight"
       else
         if [[ "$DO_LIVE" -eq 1 ]]; then
-          fail "bcpr-ctl preflight (required for --live modem)"
+          fail "max25-bcpr-ctl preflight (required for --live modem)"
         else
           log "NOTE: bcpr preflight rc=$pf_rc — soft at L1 without --live"
         fi
       fi
     else
-      fail "bcpr-ctl missing"
+      fail "max25-bcpr-ctl missing"
     fi
   fi
   if want_tnc; then
@@ -232,7 +232,7 @@ run_live() {
       fi
       log "WARN: modem --tx asserts PTT (~${TX_SECONDS}s; watch LED/wattmeter) — only after RX (§0.20)"
     fi
-    if bash stacks/bcpr/tools/bcpr-rxtx-smoke.sh "${smoke_args[@]}"; then
+    if bash stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh "${smoke_args[@]}"; then
       ok "bcpr live smoke (BayCom/based)"
     else
       fail "bcpr live smoke"

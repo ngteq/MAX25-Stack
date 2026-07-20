@@ -6,7 +6,7 @@ Offline and manual release gates for MAX25-Stack **1.8.5-fallback_untested-upcom
 
 | Gate | Result |
 |------|--------|
-| `cmake` build + install (`MAX25_BUILD_BCPR=ON`) | Pass target |
+| `cmake` build + install (`MAX25_BUILD_MAX25_BCPR=ON`) | Pass target |
 | `./scripts/terminology-check.sh` | Required |
 | `./scripts/release-check.sh` | Pass target |
 | `./scripts/tx-rx-test.sh` (L0 offline) | Pass target |

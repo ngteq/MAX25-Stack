@@ -1,5 +1,5 @@
 /*
- * bcprd — BayCom/based SER12 userspace daemon (MAX25 plugin).
+ * max25-bcprd — BayCom/based SER12 userspace daemon (MAX25 max25-bcpr plugin).
  * Host face: max25e0:bc0 / bc1 via KISS PTY symlink.
  */
 #define _GNU_SOURCE
@@ -109,7 +109,7 @@ static int kiss_pty_open(kiss_pty_t *kp, int idx, const char *link_path,
     }
     fcntl(master, F_SETFL, O_NONBLOCK);
     kp->master_fd = master;
-    fprintf(stderr, "bcprd: max25e0:bc%d KISS → %s -> %s\n", idx, link_path,
+    fprintf(stderr, "max25-bcprd: max25e0:bc%d KISS → %s -> %s\n", idx, link_path,
             slave_name);
     return 0;
 }
@@ -227,7 +227,7 @@ static void kiss_feed(bcpr_engine_t *e, kiss_pty_t *kp)
                 }
                 if (q != 0) {
                     fprintf(stderr,
-                            "bcprd: queue_kiss drop bc%d len=%d (busy)\n", di,
+                            "max25-bcprd: queue_kiss drop bc%d len=%d (busy)\n", di,
                             alen[di]);
                 }
             }
@@ -354,7 +354,7 @@ int main(int argc, char **argv)
     signal(SIGTERM, on_sig);
 
     if (bcpr_config_load(&cfg, cfg_path) != 0) {
-        fprintf(stderr, "bcprd: cannot load %s\n", cfg_path);
+        fprintf(stderr, "max25-bcprd: cannot load %s\n", cfg_path);
         return 1;
     }
     if (dry) {
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
             g_npty++;
         }
     } else {
-        fprintf(stderr, "bcprd: dry-run (no KISS PTY, no UART I/O)\n");
+        fprintf(stderr, "max25-bcprd: dry-run (no KISS PTY, no UART I/O)\n");
     }
 
     if (bcpr_engine_open(&g_engine, &cfg) != 0) {
@@ -409,6 +409,6 @@ int main(int argc, char **argv)
     for (i = 0; i < g_npty; i++) {
         kiss_pty_close(&g_pty[i]);
     }
-    fprintf(stderr, "bcprd: stopped\n");
+    fprintf(stderr, "max25-bcprd: stopped\n");
     return 0;
 }

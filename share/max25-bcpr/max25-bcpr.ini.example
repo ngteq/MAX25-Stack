@@ -1,0 +1,32 @@
+; max25-bcpr — BayCom/based PC-COM SER12 (userspace, MAX25)
+; Public mark: BayCom/based. Never Konverter/converter.
+; Product status: not usable (default build OFF). Experimental opt-in only.
+; Hardware: TCM3105-class AFSK modem chip (bits↔tones + PTT). Not a TNC/digi/BBX.
+; Host (max25-bcprd / max25d) owns HDLC, KISS, bit clock → device max25e0 (:bcN forks).
+; Internal C API may still use bcpr_* symbols — product face is max25-bcpr only.
+;
+; Quick start (offline, after -DMAX25_BUILD_MAX25_BCPR=ON):
+;   max25-bcprd -c stacks/max25-bcpr/share/max25-bcpr.ini.example --dry-run --once
+; Live: copy to /etc/max25/max25-bcpr.ini or ./local/max25-bcpr.ini; set dry_run=no.
+
+[max25-bcpr]
+dry_run = yes
+state_dir = /tmp/max25-bcpr
+
+[bc0]
+enabled = yes
+serial = /dev/ttyS0
+; iobase / irq — set to real values for live use
+mode = ser12*
+kiss_link = /tmp/max25-bcpr/kiss-bc0
+baud = 1200
+tx_delay = 35
+tx_tail = 2
+slottime = 10
+ppersist = 40
+fulldup = no
+
+; [bc1]
+; enabled = no
+; serial = /dev/ttyS1
+; kiss_link = /tmp/max25-bcpr/kiss-bc1

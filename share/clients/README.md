@@ -10,9 +10,9 @@ Per-modem **max25-terminal** profiles for devices that need settings beyond a Ba
 
 ## BayCom/based (bcpr) — client YAML as operator reference
 
-SER12 PC-COM class hardware runs via **bcpr** (`stacks/bcpr/`), not a kernel driver. Configure `bcpr.ini` / max25d `[features] bcpr=yes` and device **`max25e0`** (`max25e0 = bcpr:bc0`). No separate client YAML is required — use max25d default or `SET DEVICE max25e0`.
+SER12 PC-COM class hardware runs via **bcpr** (`stacks/max25-bcpr/`), not a kernel driver. Configure `bcpr.ini` / max25d `[features] max25_bcpr=yes` and device **`max25e0`** (`max25e0 = max25-bcpr:bc0`). No separate client YAML is required — use max25d default or `SET DEVICE max25e0`.
 
-Terminal clients attach to **max25d** after `bcprd` / max25d bring-up. See [docs/BAYCOM.md](../../docs/BAYCOM.md) and [docs/PLUGINS-DEVICE-MODEL.md](../../docs/PLUGINS-DEVICE-MODEL.md).
+Terminal clients attach to **max25d** after `max25-bcprd` / max25d bring-up. See [docs/BAYCOM.md](../../docs/BAYCOM.md) and [docs/PLUGINS-DEVICE-MODEL.md](../../docs/PLUGINS-DEVICE-MODEL.md).
 
 Registry of all catalog IDs (with and without client YAML): [`index.yaml`](index.yaml).
 
@@ -64,7 +64,7 @@ KISS-async and CRDOP profiles use `serial:` or `crdop:` instead of BayCom catalo
 | File | Modem / device |
 |------|----------------|
 | [`tnc2c.yaml`](tnc2c.yaml) | Landolt TNC2C |
-| (none — use `max25e0`) | BayCom/based SER12 via bcpr (PC-COM) |
+| (none — use `max25e0`) | BayCom/based SER12 via max25-bcpr (PC-COM) |
 | [`pktnc2.yaml`](pktnc2.yaml) | PK-TNC2 / TNC-2 (TheFirmware)
 | [`kiss-serial-usb.yaml`](kiss-serial-usb.yaml) | KISS on USB (`modems.ini` catalog) |
 | [`kiss-serial-rs232.yaml`](kiss-serial-rs232.yaml) | KISS on RS-232 |
@@ -76,4 +76,4 @@ KISS-async and CRDOP profiles use `serial:` or `crdop:` instead of BayCom catalo
 
 - [docs/MAX25-CLIENT.md](../../docs/MAX25-CLIENT.md) — M25/1 protocol
 - [docs/MAX25-TERMINAL.md](../../docs/MAX25-TERMINAL.md) — operator UI
-- [stacks/bcpr/share/bcpr.ini.example](../../stacks/bcpr/share/bcpr.ini.example) — bcpr INI example
+- [stacks/max25-bcpr/share/max25-bcpr.ini.example](../../stacks/max25-bcpr/share/max25-bcpr.ini.example) — bcpr INI example

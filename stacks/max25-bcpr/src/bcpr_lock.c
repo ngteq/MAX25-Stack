@@ -92,7 +92,7 @@ int bcpr_lock_verify_irq(const char *serial, unsigned expect_irq,
 static int make_lock_path(const bcpr_dev_config_t *dev, char *out, size_t sz)
 {
     char name[64];
-    const char *dir = "/var/run/bcpr";
+    const char *dir = "/var/run/max25-bcpr";
     tty_basename(dev->serial, name, sizeof(name));
     if (name[0] == '\0') {
         return -1;
@@ -139,7 +139,7 @@ int bcpr_lock_acquire(bcpr_port_lock_t *lk, const bcpr_dev_config_t *dev,
     if (make_lock_path(dev, lockpath, sizeof(lockpath)) != 0) {
         return -1;
     }
-    (void)mkdir("/var/run/bcpr", 0755);
+    (void)mkdir("/var/run/max25-bcpr", 0755);
     lk->lock_fd = open(lockpath, O_RDWR | O_CREAT | O_CLOEXEC, 0644);
     if (lk->lock_fd < 0) {
         perror("bcpr lock open");

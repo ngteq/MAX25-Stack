@@ -19,7 +19,7 @@ Linux only. Config: `share/max25/max25d.ini.example`.
 | Device id | Backend | Notes |
 |-----------|---------|-------|
 | `tnc2c`, `pktnc2` | `KissSerialBackend` | CI-tested |
-| `max25e0` (`bcpr:bc0`) | bcpr / KISS PTY | BayCom/based SER12 userspace — [docs/BAYCOM.md](../../docs/BAYCOM.md) |
+| `max25e0` (`max25-bcpr:bc0`) | bcpr / KISS PTY | BayCom/based SER12 userspace — [docs/BAYCOM.md](../../docs/BAYCOM.md) |
 | `baycom-kiss` | `KissRawSerialBackend` | USB/async KISS (not SER12 product face) |
 | `soft-crdop` | `CrdopTcpBackend` | MAX25-SoftModem (CRDOP) — standard; KISS default; sound IN/OUT + radio like hardware modem |
 
