@@ -2,13 +2,13 @@ id: modems
 type: hardware
 parent_stack: MainAX25-Stack (MAX25-Stack)
 label: Modems
-description: BayCom/based SER12 via bcpr (userspace); USB/async KISS via baycom-kiss
+description: BayCom/based SER12 via max25-bcpr (userspace; not usable by default); USB/async KISS via baycom-kiss
 
-stack_path: stacks/bcpr
+stack_path: stacks/max25-bcpr
 hybbx_plugin: baycom
 
 backends:
-  - bcpr-ser12
+  - max25-bcpr-ser12
   - kiss-serial
 
 build:
@@ -18,7 +18,7 @@ build:
 ctl: stacks/max25-bcpr/tools/max25-bcpr-ctl
 
 runtime:
-  state_dir: /tmp/bcpr
+  state_dir: /tmp/max25-bcpr
   config: /etc/max25/max25-bcpr.ini
   kiss_default: /tmp/max25-bcpr/kiss-bc0
 

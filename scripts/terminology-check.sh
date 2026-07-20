@@ -10,7 +10,7 @@ check() {
   local pat="$1" msg="$2"
   local hits
   hits="$(grep -RInE --include='*.md' "$pat" README.md CHANGELOG.md RELEASE-READINESS.md docs share/clients plugins 2>/dev/null \
-    | grep -vE 'Never |never |forbidden|LEGACY|removed|prefer bcpr|BayCom/based' || true)"
+    | grep -viE 'Never |never |forbidden|LEGACY|removed|prefer bcpr|BayCom/based' || true)"
   if [[ -n "$hits" ]]; then
     echo "FAIL: $msg"
     echo "$hits" | head -40

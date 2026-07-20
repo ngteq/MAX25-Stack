@@ -30,9 +30,9 @@ hardware:
     description: Serial/USB TNC hardware group (TNC2C, PK-TNC2, PK-232, …)
   - id: modems
     path: hardware/modems
-    stack: stacks/bcpr
+    stack: stacks/max25-bcpr
     hybbx_plugin: baycom
-    description: BayCom/based SER12 via bcpr (userspace); USB KISS via baycom-kiss
+    description: BayCom/based SER12 via max25-bcpr (userspace; not usable by default); USB KISS via baycom-kiss
   - id: soft-modems
     path: hardware/soft-modems
     stack: stacks/crdop

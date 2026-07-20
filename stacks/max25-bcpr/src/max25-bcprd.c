@@ -325,9 +325,9 @@ int main(int argc, char **argv)
             seconds = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--version") == 0 ||
                    strcmp(argv[i], "-V") == 0) {
-            FILE *vf = fopen("/usr/local/share/bcpr/VERSION", "r");
+            FILE *vf = fopen("/usr/local/share/max25/max25-bcpr/VERSION", "r");
             if (!vf) {
-                vf = fopen("stacks/bcpr/VERSION", "r");
+                vf = fopen("stacks/max25-bcpr/VERSION", "r");
             }
             if (vf) {
                 if (fgets(ver, sizeof(ver), vf)) {

@@ -117,6 +117,22 @@ ensure_binaries() {
   if [[ -x "$BCPRD" && -x "$TEST_HDLC" ]]; then
     return 0
   fi
+  # Also accept binaries from a default cmake build tree (opt-in ON only).
+  local alt
+  for alt in \
+    "$ROOT/build/bin" \
+    "$ROOT/build-default/bin" \
+    "${BCPR_BUILD_DIR:-}/bin"; do
+    if [[ -x "$alt/max25-bcprd" && -x "$alt/test_hdlc_offline" ]]; then
+      BCPRD="$alt/max25-bcprd"
+      TEST_HDLC="$alt/test_hdlc_offline"
+      return 0
+    fi
+  done
+  if [[ "${MAX25_BCPR_NO_AUTOBUILD:-0}" == "1" ]]; then
+    log "SKIP: max25-bcprd not in build tree (MAX25_BCPR_NO_AUTOBUILD=1)"
+    return 1
+  fi
   log "Building max25-bcpr into $bd (MAX25_BUILD_MAX25_BCPR=ON)…"
   mkdir -p "$bd"
   cmake -S "$ROOT" -B "$bd" -DMAX25_BUILD_MAX25_BCPR=ON

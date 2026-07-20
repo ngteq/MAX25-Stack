@@ -9,7 +9,7 @@
 
 int main(void)
 {
-    const char *path = "share/bcpr.ini.example";
+    const char *path = "share/max25-bcpr.ini.example";
     bcpr_config_t cfg;
     char cwd[512];
 
@@ -18,10 +18,10 @@ int main(void)
     }
     /* Prefer path relative to build or source. */
     if (access(path, R_OK) != 0) {
-        path = "../share/bcpr.ini.example";
+        path = "../share/max25-bcpr.ini.example";
     }
     if (access(path, R_OK) != 0) {
-        path = "../../stacks/bcpr/share/bcpr.ini.example";
+        path = "../../stacks/max25-bcpr/share/max25-bcpr.ini.example";
     }
     if (bcpr_config_load(&cfg, path) != 0) {
         /* Write a minimal temp INI. */

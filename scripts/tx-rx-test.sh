@@ -120,11 +120,37 @@ run_l0() {
   fi
 
   if want_modem; then
-    if [[ -x stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh ]]; then
-      if bash stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh -c "$BCPR_INI"; then
-        ok "max25-bcpr-rxtx-smoke L0 (BayCom/based)"
+    # Default tree keeps MAX25_BUILD_MAX25_BCPR=OFF (not usable). Do not
+    # auto-rebuild max25-bcpr for L0 in CI / release-check — only smoke when
+    # binaries already exist (opt-in build) or MAX25_BCPR_ALLOW_BUILD=1.
+    bcprd=""
+    for cand in \
+      "${BCPR_BUILD_DIR:-}/bin/max25-bcprd" \
+      "${BUILD_DIR:-}/bin/max25-bcprd" \
+      build/bin/max25-bcprd \
+      build-default/bin/max25-bcprd \
+      "build-max25-bcpr/bin/max25-bcprd" \
+      "/tmp/max25-build-max25-bcpr-${USER:-user}/bin/max25-bcprd"; do
+      if [[ -n "$cand" && -x "$cand" ]]; then
+        bcprd="$cand"
+        break
+      fi
+    done
+    if [[ -z "$bcprd" && "${MAX25_BCPR_ALLOW_BUILD:-0}" != "1" ]]; then
+      ok "max25-bcpr L0 skipped (not built; MAX25_BUILD_MAX25_BCPR default OFF)"
+    elif [[ -x stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh ]]; then
+      if [[ -n "$bcprd" ]]; then
+        if MAX25_BCPR_NO_AUTOBUILD=1 bash stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh -c "$BCPR_INI"; then
+          ok "max25-bcpr-rxtx-smoke L0 (BayCom/based)"
+        else
+          fail "max25-bcpr-rxtx-smoke L0"
+        fi
       else
-        fail "max25-bcpr-rxtx-smoke L0"
+        if bash stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh -c "$BCPR_INI"; then
+          ok "max25-bcpr-rxtx-smoke L0 (BayCom/based)"
+        else
+          fail "max25-bcpr-rxtx-smoke L0"
+        fi
       fi
     else
       fail "max25-bcpr-rxtx-smoke.sh missing"
