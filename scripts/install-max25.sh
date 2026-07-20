@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# MainAX25-Stack — build and install on Linux.
+# MainAX25-Stack — build and install on Linux (daemon, bcpr, terminal, tests).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PREFIX="${PREFIX:-/usr/local}"
 INSTALL_DEPS=0
 BUILD_ONLY=0
+BUILD_DIR="${BUILD_DIR:-build}"
 
 usage() {
   cat <<EOF
@@ -14,22 +15,18 @@ MainAX25-Stack install — Linux
 Usage: $0 [options]
 
 Options:
-  --deps        Install apt build dependencies (Debian / Ubuntu)
-  --build-only  Build only, do not install to PREFIX
-  --prefix DIR  Install prefix (default: /usr/local)
-  -h, --help    This help
-
-Examples:
-  $0 --deps                 # apt + build + sudo install
-  $0 --build-only           # Build in-tree only
-  PREFIX=/opt/max25 $0      # Install to /opt/max25
+  --deps         Install apt build dependencies
+  --build-only   Build only, do not install
+  --prefix DIR   Install prefix (default: /usr/local)
+  --build-dir D  CMake build dir (default: build)
+  -h, --help     This help
 
 After install:
-  sudo cp share/max25/max25d.ini.host.example /etc/max25/max25d.ini
-  sudo max25d -c /etc/max25/max25d.ini
-  max25-terminal -U /run/max25/modem.sock
+  run-max25d
+  max25-tx-rx-test --device modem --live
+  run-max25-terminal -U /run/max25/modem.sock
 
-See docs/LINUX-HOST-SETUP.md
+See docs/LINUX-HOST-SETUP.md · docs/DEV/TNC-MODEM-DEV.md
 EOF
 }
 
@@ -38,40 +35,36 @@ while [[ $# -gt 0 ]]; do
     --deps) INSTALL_DEPS=1; shift ;;
     --build-only) BUILD_ONLY=1; shift ;;
     --prefix) PREFIX="$2"; shift 2 ;;
+    --build-dir) BUILD_DIR="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
   esac
 done
 
 if [[ "$(uname -s)" != "Linux" ]]; then
-  echo "install-max25.sh: Linux only (max25d)" >&2
+  echo "install-max25.sh: Linux only" >&2
   exit 1
 fi
 
-arch="$(uname -m)"
-echo "== MAX25 install: $(uname -s) ${arch} =="
+echo "== MAX25 install: $(uname -s) $(uname -m) → ${PREFIX} =="
 
 if [[ "$INSTALL_DEPS" -eq 1 ]]; then
   if command -v apt-get >/dev/null 2>&1; then
-    echo "-- apt dependencies"
     sudo apt-get update
     pkgs=(build-essential make cmake pkg-config git python3 libncurses-dev libasound2-dev)
-    if apt-cache show "linux-headers-$(uname -r)" >/dev/null 2>&1; then
-      pkgs+=("linux-headers-$(uname -r)")
-    fi
-    sudo apt-get install -y "${pkgs[@]}" || {
-      echo "WARN: some optional headers failed; BayCom kernel build may need manual headers" >&2
-      sudo apt-get install -y build-essential make cmake pkg-config git python3 libncurses-dev libasound2-dev
-    }
-  else
-    echo "WARN: apt-get not found; install build deps manually (see docs/LINUX-HOST-SETUP.md)" >&2
+    sudo apt-get install -y "${pkgs[@]}" || true
   fi
 fi
 
 cd "$ROOT"
-echo "-- build (CMake)"
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j"$(nproc 2>/dev/null || echo 2)"
+echo "-- cmake (BCPR+TERMINAL+DAEMON ON)"
+cmake -B "${BUILD_DIR}" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DMAX25_BUILD_BCPR=ON \
+  -DMAX25_BUILD_TERMINAL=ON \
+  -DMAX25_BUILD_DAEMON=ON \
+  -DMAX25_BUNDLE_AX25=OFF
+cmake --build "${BUILD_DIR}" -j"$(nproc 2>/dev/null || echo 2)"
 
 if [[ "$BUILD_ONLY" -eq 1 ]]; then
   echo "== build done (no install) =="
@@ -80,9 +73,9 @@ fi
 
 echo "-- install to ${PREFIX}"
 if [[ "$(id -u)" -eq 0 ]]; then
-  cmake --install build --prefix "$PREFIX"
+  cmake --install "${BUILD_DIR}" --prefix "$PREFIX"
 else
-  sudo cmake --install build --prefix "$PREFIX"
+  sudo cmake --install "${BUILD_DIR}" --prefix "$PREFIX"
 fi
 
 echo ""

@@ -237,17 +237,19 @@ cmd_start() {
   local bin dry
   bin="$(resolve_max25_bcprd)" || { echo "max25-bcprd not found — build with -DMAX25_BUILD_MAX25_BCPR=ON"; return 1; }
   cmd_preflight || { echo "preflight failed"; return 1; }
-  sd="$(ini_get max25-bcpr state_dir)"; [[ -z "$sd" ]] && sd="$(ini_get max25-bcpr state_dir)"; [[ -n "$sd" ]] && STATE_DIR="$sd"
+  sd="$(ini_get max25-bcpr state_dir)"; [[ -z "$sd" ]] && sd="$(ini_get bcpr state_dir)"; [[ -n "$sd" ]] && STATE_DIR="$sd"
   mkdir -p "$STATE_DIR"
   PIDFILE="$STATE_DIR/max25-bcprd.pid"
   if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
     echo "already running pid=$(cat "$PIDFILE")"; return 0
   fi
   dry="$(ini_get max25-bcpr dry_run)"; [[ -z "$dry" ]] && dry="$(ini_get bcpr dry_run)"
+  # Detach stdio so a parent with PIPEd stderr (legacy max25d) cannot hang
+  # communicate() until timeout — that left stack=error and MCR_keyed=0 on SEND.
   if is_truthy "$dry"; then
-    "$bin" -c "$INI" --dry-run &
+    "$bin" -c "$INI" --dry-run </dev/null >/dev/null 2>&1 &
   else
-    "$bin" -c "$INI" &
+    "$bin" -c "$INI" </dev/null >/dev/null 2>&1 &
   fi
   echo $! >"$PIDFILE"
   echo "started max25-bcprd pid=$(cat "$PIDFILE") → max25e0"

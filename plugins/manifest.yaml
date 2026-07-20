@@ -63,6 +63,12 @@ devices:
     hardware: modems
     hybbx_backend: kiss
     status: active
+  - id: bayc-plugin
+    path: devices/bayc-plugin
+    hardware: modems
+    hybbx_backend: max25d
+    status: stub
+    note: Thin hook only — experimental orch/soft-TNC not shipped here; no baycom_* NIC
   - id: soft-crdop
     path: devices/soft-crdop
     hardware: soft-modems

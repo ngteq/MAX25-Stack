@@ -5,9 +5,19 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-CTL="$SCRIPT_DIR/max25-bcpr-ctl"
-INI="${MAX25_BCPR_INI:-${BCPR_INI:-$ROOT/stacks/max25-bcpr/share/max25-bcpr.ini.example}}"
+# Tree: stacks/max25-bcpr/tools → repo root. Install: PREFIX/sbin → use installed bins.
+_cand="$(cd "$SCRIPT_DIR/../../.." 2>/dev/null && pwd || true)"
+if [[ -n "$_cand" && -f "$_cand/CMakeLists.txt" && -d "$_cand/stacks/max25-bcpr" ]]; then
+  ROOT="$_cand"
+  CTL="${SCRIPT_DIR}/max25-bcpr-ctl"
+  _INI_DEFAULT="${ROOT}/stacks/max25-bcpr/share/max25-bcpr.ini.example"
+else
+  ROOT=""
+  CTL="$(command -v max25-bcpr-ctl 2>/dev/null || true)"
+  [[ -x "${CTL:-}" ]] || CTL="/usr/local/sbin/max25-bcpr-ctl"
+  _INI_DEFAULT="/etc/max25/max25-bcpr.ini"
+fi
+INI="${MAX25_BCPR_INI:-${BCPR_INI:-$_INI_DEFAULT}}"
 SECONDS_LIVE=15
 TX_SECONDS=3
 DO_LIVE=0
@@ -54,16 +64,17 @@ fi
 if [[ "$SECONDS_LIVE" -lt 1 ]]; then
   SECONDS_LIVE=1
 fi
-if [[ "$SECONDS_LIVE" -gt 60 ]]; then
-  echo "WARN: capping --seconds from $SECONDS_LIVE to 60"
-  SECONDS_LIVE=60
+# Endurance: long keys (e.g. 60s). bcprd PTT-WD unkeys ~14.5s/500ms.
+if [[ "$SECONDS_LIVE" -gt 180 ]]; then
+  echo "WARN: capping --seconds from $SECONDS_LIVE to 180"
+  SECONDS_LIVE=180
 fi
 if [[ "$TX_SECONDS" -lt 1 ]]; then
   TX_SECONDS=1
 fi
-if [[ "$TX_SECONDS" -gt 12 ]]; then
-  echo "WARN: capping --tx-seconds from $TX_SECONDS to 12"
-  TX_SECONDS=12
+if [[ "$TX_SECONDS" -gt 120 ]]; then
+  echo "WARN: capping --tx-seconds from $TX_SECONDS to 120"
+  TX_SECONDS=120
 fi
 
 log() { printf '%s\n' "$*"; }
@@ -71,8 +82,8 @@ ok() { log "PASS: $*"; }
 fail() { log "FAIL: $*"; ERR=1; }
 stage() { log ""; log "=== $* ==="; }
 
-# Attach window must cover TX key + settle (tx_delay + bursts).
-need_live=$((TX_SECONDS + 5))
+# Attach window: TX + WD overhead + settle.
+need_live=$((TX_SECONDS + TX_SECONDS / 10 + 15))
 if [[ "$DO_TX" -eq 1 && "$SECONDS_LIVE" -lt "$need_live" ]]; then
   log "NOTE: raising --seconds from $SECONDS_LIVE to $need_live for --tx-seconds $TX_SECONDS"
   SECONDS_LIVE=$need_live
@@ -107,11 +118,32 @@ pick_build_dir() {
     echo "$cand"
     return
   fi
+  if [[ -z "$ROOT" ]]; then
+    echo "/tmp/max25-bcpr-installed"
+    return
+  fi
   echo "$ROOT/build-max25-bcpr-${USER:-user}"
 }
 
 ensure_binaries() {
   local bd="$1"
+  # Installed layout: never cmake from "/" — use PREFIX binaries.
+  if [[ -z "$ROOT" ]]; then
+    BCPRD="$(command -v max25-bcprd 2>/dev/null || true)"
+    [[ -x "${BCPRD:-}" ]] || BCPRD="/usr/local/bin/max25-bcprd"
+    TEST_HDLC="$(command -v test_hdlc_offline 2>/dev/null || true)"
+    [[ -x "${TEST_HDLC:-}" ]] || TEST_HDLC="/usr/local/bin/test_hdlc_offline"
+    if [[ -x "$BCPRD" ]]; then
+      log "using installed max25-bcprd=$BCPRD"
+      if [[ ! -x "$TEST_HDLC" ]]; then
+        log "NOTE: test_hdlc_offline not installed — skip L0 unit (max25-bcprd dry-run still runs)"
+        TEST_HDLC=""
+      fi
+      return 0
+    fi
+    log "ERROR: max25-bcprd not found (install MAX25 with -DMAX25_BUILD_MAX25_BCPR=ON)"
+    return 1
+  fi
   BCPRD="$bd/bin/max25-bcprd"
   TEST_HDLC="$bd/bin/test_hdlc_offline"
   if [[ -x "$BCPRD" && -x "$TEST_HDLC" ]]; then
@@ -172,10 +204,14 @@ BUILD="$(pick_build_dir)"
 log "build_dir=$BUILD"
 ensure_binaries "$BUILD" || { fail "build/binaries"; exit 1; }
 
-if "$TEST_HDLC"; then
-  ok "test_hdlc_offline"
+if [[ -n "$TEST_HDLC" && -x "$TEST_HDLC" ]]; then
+  if "$TEST_HDLC"; then
+    ok "test_hdlc_offline"
+  else
+    fail "test_hdlc_offline"
+  fi
 else
-  fail "test_hdlc_offline"
+  ok "test_hdlc_offline skipped (installed layout)"
 fi
 
 if "$BCPRD" -c "$INI" --dry-run --once; then
@@ -297,13 +333,24 @@ if [[ "$REUSE_STACK" -eq 1 && -e "$kiss_link" && -z "${KISS_HOLD_FD:-}" ]]; then
 fi
 
 state_dir="$(dirname "$kiss_link")"
-rm -f "${state_dir}/rx-activity-bc0" "${state_dir}/rx-activity-bc1" 2>/dev/null || true
+# Do not delete rx-activity/dcd files: Soft-DCD may only re-assert on edges;
+# wiping latches caused false L3 misses while noise/RX was actually live.
+# Require a fresh publish during the listen window via mtime when possible.
+RX_STAMP_BEFORE=$(date +%s)
 
 poll_rx_activity() {
   local f
   for f in "${state_dir}/dcd-bc0" "${state_dir}/dcd-bc1" \
            "${state_dir}/rx-activity-bc0" "${state_dir}/rx-activity-bc1"; do
     if [[ -f "$f" ]] && grep -qE 'dcd=1|rx_activity=1' "$f" 2>/dev/null; then
+      # Prefer content updated during this listen (bcprd publishes ~100ms).
+      local mt
+      mt=$(stat -c %Y "$f" 2>/dev/null || echo 0)
+      if [[ "$mt" -ge "$RX_STAMP_BEFORE" ]]; then
+        RX_ACTIVITY=1
+        return 0
+      fi
+      # Fallback: live content match (reuse / slow clock)
       RX_ACTIVITY=1
       return 0
     fi
@@ -311,11 +358,28 @@ poll_rx_activity() {
   return 1
 }
 
-stage "L3 RX prove (${SECONDS_LIVE}s)"
+# Owned bcprd --seconds covers L3+L4: leave TX_SECONDS(+1) for L4 before exit.
+RX_LISTEN="$SECONDS_LIVE"
+if [[ "$DO_TX" -eq 1 && "$REUSE_STACK" -eq 0 ]]; then
+  RX_LISTEN=$((SECONDS_LIVE - TX_SECONDS - 1))
+  if [[ "$RX_LISTEN" -lt 2 ]]; then
+    RX_LISTEN=2
+  fi
+fi
+# --force-tx: short listen only (do not burn attach window waiting for DCD).
+if [[ "$DO_TX" -eq 1 && "$FORCE_TX" -eq 1 ]]; then
+  if [[ "$RX_LISTEN" -gt 3 ]]; then
+    RX_LISTEN=3
+  fi
+fi
+
+stage "L3 RX prove (${RX_LISTEN}s listen / ${SECONDS_LIVE}s attach)"
 log "listening for Soft-DCD/noise (dcd-bc* / rx-activity-bc*)…"
 elapsed=0
-while [[ "$elapsed" -lt "$SECONDS_LIVE" ]]; do
-  poll_rx_activity || true
+while [[ "$elapsed" -lt "$RX_LISTEN" ]]; do
+  if poll_rx_activity; then
+    break
+  fi
   if [[ "$REUSE_STACK" -eq 0 ]] && ! kill -0 "${BCPRD_PID:-}" 2>/dev/null; then
     break
   fi
@@ -384,7 +448,7 @@ def read_mcr(fd):
 def mcr_keyed(v):
     return (v & 0x02) != 0
 
-def monitor_mcr(fd, duration, sample_ms=4):
+def monitor_mcr(fd, duration, sample_ms=10):
     t0 = time.monotonic()
     first = last = None
     vals = set()

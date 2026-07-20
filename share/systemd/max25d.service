@@ -1,0 +1,32 @@
+# max25d — example systemd unit (adjust paths to site install)
+# Install: sudo cp share/systemd/max25d.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now max25d.service
+#
+# Site INI — operator overrides via drop-in or EnvironmentFile under ./local/
+# (never commit secrets).
+
+[Unit]
+Description=MAX25-Stack max25d control plane
+Documentation=https://github.com/ngteq/MAX25-Stack
+After=network-online.target multi-user.target
+Wants=network-online.target
+ConditionPathExists=/usr/local/bin/run-max25d
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/usr/local
+Environment=MAX25_INI=/etc/max25/max25d.ini
+EnvironmentFile=-/etc/max25/max25d.env
+ExecStart=/usr/local/bin/run-max25d -c ${MAX25_INI}
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+KillMode=control-group
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=max25d
+
+[Install]
+WantedBy=multi-user.target

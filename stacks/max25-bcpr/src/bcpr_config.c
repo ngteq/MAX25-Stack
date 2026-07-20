@@ -15,6 +15,11 @@ void bcpr_config_defaults(bcpr_config_t *cfg)
     snprintf(cfg->state_dir, sizeof(cfg->state_dir), "%s", "/var/run/max25-bcpr");
     cfg->dry_run = 0;
     cfg->n_dev = 0;
+    /* FlexNet SER12.doc: 14.5 s keyed / 500 ms unkey. */
+    cfg->ptt_wd = 1;
+    cfg->ptt_wd_key_ms = 14500;
+    cfg->ptt_wd_pause_ms = 500;
+    cfg->txd_bias = BCPR_TXD_PULSE;
     for (i = 0; i < BCPR_MAX_DEVICES; i++) {
         bcpr_dev_config_t *d = &cfg->dev[i];
         d->enabled = 0;
@@ -25,6 +30,10 @@ void bcpr_config_defaults(bcpr_config_t *cfg)
         d->slottime = 10;
         d->ppersist = 40;
         d->fulldup = 0;
+        d->ptt_wd = 1;
+        d->ptt_wd_key_ms = 14500;
+        d->ptt_wd_pause_ms = 500;
+        d->txd_bias = BCPR_TXD_PULSE;
     }
 }
 
@@ -68,11 +77,45 @@ static int truthy(const char *v)
             strcasecmp(v, "on") == 0 || strcmp(v, "1") == 0);
 }
 
+static int parse_txd_bias(const char *v, int *out)
+{
+    if (strcasecmp(v, "pulse") == 0 || strcasecmp(v, "sailer") == 0) {
+        *out = BCPR_TXD_PULSE;
+        return 0;
+    }
+    if (strcasecmp(v, "steady") == 0 || strcasecmp(v, "tfpcx") == 0 ||
+        strcasecmp(v, "break") == 0) {
+        *out = BCPR_TXD_STEADY;
+        return 0;
+    }
+    return -1;
+}
+
+static int apply_wd_txd(int *ptt_wd, int *key_ms, int *pause_ms, int *txd_bias,
+                        const char *key, const char *val)
+{
+    if (strcmp(key, "ptt_wd") == 0 || strcmp(key, "ptt_watchdog") == 0) {
+        *ptt_wd = truthy(val) ? 1 : 0;
+        return 0;
+    }
+    if (strcmp(key, "ptt_wd_key_ms") == 0) {
+        return parse_i(val, key_ms);
+    }
+    if (strcmp(key, "ptt_wd_pause_ms") == 0) {
+        return parse_i(val, pause_ms);
+    }
+    if (strcmp(key, "txd_bias") == 0) {
+        return parse_txd_bias(val, txd_bias);
+    }
+    return 1; /* not handled */
+}
+
 static int apply_kv(bcpr_config_t *cfg, int section, const char *key,
                     const char *val)
 {
     /* section: -1 = [max25-bcpr]/[bcpr] global, 0 = bc0, 1 = bc1 */
     if (section < 0) {
+        int rc;
         if (strcmp(key, "dry_run") == 0) {
             cfg->dry_run = truthy(val);
             return 0;
@@ -81,6 +124,19 @@ static int apply_kv(bcpr_config_t *cfg, int section, const char *key,
             snprintf(cfg->state_dir, sizeof(cfg->state_dir), "%s", val);
             return 0;
         }
+        rc = apply_wd_txd(&cfg->ptt_wd, &cfg->ptt_wd_key_ms,
+                          &cfg->ptt_wd_pause_ms, &cfg->txd_bias, key, val);
+        if (rc <= 0) {
+            /* Propagate global WD/TXD defaults onto both devices. */
+            int i;
+            for (i = 0; i < BCPR_MAX_DEVICES; i++) {
+                cfg->dev[i].ptt_wd = cfg->ptt_wd;
+                cfg->dev[i].ptt_wd_key_ms = cfg->ptt_wd_key_ms;
+                cfg->dev[i].ptt_wd_pause_ms = cfg->ptt_wd_pause_ms;
+                cfg->dev[i].txd_bias = cfg->txd_bias;
+            }
+            return rc;
+        }
         return 0;
     }
     if (section >= BCPR_MAX_DEVICES) {
@@ -88,6 +144,7 @@ static int apply_kv(bcpr_config_t *cfg, int section, const char *key,
     }
     {
         bcpr_dev_config_t *d = &cfg->dev[section];
+        int rc;
         if (strcmp(key, "enabled") == 0) {
             d->enabled = truthy(val);
         } else if (strcmp(key, "serial") == 0 || strcmp(key, "tty") == 0) {
@@ -113,6 +170,12 @@ static int apply_kv(bcpr_config_t *cfg, int section, const char *key,
             return parse_i(val, &d->ppersist);
         } else if (strcmp(key, "fulldup") == 0) {
             d->fulldup = truthy(val);
+        } else {
+            rc = apply_wd_txd(&d->ptt_wd, &d->ptt_wd_key_ms, &d->ptt_wd_pause_ms,
+                             &d->txd_bias, key, val);
+            if (rc < 0) {
+                return -1;
+            }
         }
     }
     return 0;
@@ -181,6 +244,16 @@ int bcpr_config_load(bcpr_config_t *cfg, const char *path)
             if (!cfg->dev[i].kiss_link[0]) {
                 snprintf(cfg->dev[i].kiss_link, sizeof(cfg->dev[i].kiss_link),
                          "%s/kiss-bc%d", cfg->state_dir, i);
+            }
+            /* Clamp WD timings. */
+            if (cfg->dev[i].ptt_wd_key_ms < 1000) {
+                cfg->dev[i].ptt_wd_key_ms = 1000;
+            }
+            if (cfg->dev[i].ptt_wd_pause_ms < 50) {
+                cfg->dev[i].ptt_wd_pause_ms = 50;
+            }
+            if (cfg->dev[i].txd_bias != BCPR_TXD_STEADY) {
+                cfg->dev[i].txd_bias = BCPR_TXD_PULSE;
             }
             cfg->n_dev++;
         } else {

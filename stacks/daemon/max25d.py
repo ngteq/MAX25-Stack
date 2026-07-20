@@ -904,6 +904,52 @@ def send_line(sock: socket.socket, line: str) -> None:
     sock.sendall((line + "\n").encode("utf-8"))
 
 
+def unix_path_is_live(path: str, *, timeout: float = 0.3) -> bool:
+    """True if path exists and accepts a Unix connect (live max25d listener)."""
+    if not path or not os.path.exists(path):
+        return False
+    probe = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        probe.settimeout(timeout)
+        probe.connect(path)
+        return True
+    except OSError:
+        return False
+    finally:
+        try:
+            probe.close()
+        except OSError:
+            pass
+
+
+def unix_path_id(path: str) -> tuple[int, int] | None:
+    """Filesystem identity of a Unix socket path (dev, ino), or None."""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return (st.st_dev, st.st_ino)
+
+
+def unlink_unix_if_ours(path: str, bind_id: tuple[int, int] | None) -> None:
+    """Unlink path only when it still names the inode we bound.
+
+    AF_UNIX: fstat(listen_fd) is sockfs — must not compare to path st_ino.
+    A second max25d that unlinks+rebinds must not lose its path when the
+    first instance exits (orphaned listen FD + ENOENT for clients).
+    """
+    if not path or bind_id is None:
+        return
+    cur = unix_path_id(path)
+    if cur is None or cur != bind_id:
+        return
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        pass
+
 
 def resolve_max25_bcpr_ini(explicit: str = "") -> Path | None:
     """Resolve max25-bcpr.ini for userspace SER12 (max25e0)."""
@@ -947,6 +993,9 @@ def start_max25_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
         return
     args = [str(ctl), "-c", str(ini), "start"]
     env = os.environ.copy()
+    # DEVNULL only: PIPE on stdout/stderr + backgrounded max25-bcprd ⇒ communicate()
+    # hangs → timeout → stack=error → no KISS open → MCR_keyed=0 on SEND.
+    # max25-bcpr-ctl already redirects max25-bcprd stdio; preflight text is non-critical here.
     try:
         # DEVNULL: max25-bcprd is backgrounded by ctl and would keep PIPE
         # write-ends open — communicate() would hang until timeout.
@@ -956,8 +1005,7 @@ def start_max25_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
             env=env,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            text=True,
+            stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
     except OSError as exc:
@@ -965,21 +1013,22 @@ def start_max25_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
         rt.stack_status = "error"
         return
     try:
-        _out, err = proc.communicate(timeout=20)
+        proc.communicate(timeout=30)
     except subprocess.TimeoutExpired:
         proc.kill()
-        _out, err = proc.communicate()
-        log(f"max25-bcpr-ctl start timed out ({dev_id})")
-        rt.stack_status = "error"
-        return
-    for line in (err or "").splitlines():
-        line = line.strip()
-        if line:
-            log(f"max25-bcpr-ctl: {line}")
-    if proc.returncode not in (0, None):
-        rt.stack_status = "error"
-        log(f"max25-bcpr-ctl start rc={proc.returncode} ({dev_id})")
-        return
+        try:
+            proc.communicate(timeout=2)
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+        # May still have spawned max25-bcprd — fall through to kiss probe.
+        log(f"max25-bcpr-ctl start timed out ({dev_id}) — probing live kiss/pid")
+    if proc.returncode not in (0, None, -9, -15):
+        # -9/-15: we killed a hung ctl; still probe kiss below.
+        if proc.returncode > 0:
+            rt.stack_status = "error"
+            log(f"max25-bcpr-ctl start rc={proc.returncode} ({dev_id})")
+            return
+    # max25-bcpr-ctl itself exits; live daemon is max25-bcprd (pidfile under state_dir).
     rt.stack_proc = None
     rt.stack_status = "running"
     kiss = (rt.cfg.kiss_link or "").strip() or "/tmp/max25-bcpr/kiss-bc0"
@@ -994,6 +1043,21 @@ def start_max25_bcpr_stack(state: DaemonState, dev_id: str, ini: Path) -> None:
         return
     addrs = f"ipv4={rt.cfg.ipv4 or '-'} ipv6={rt.cfg.ipv6 or '-'}"
     log(f"max25-bcpr started ({dev_id}, ini={ini}, kiss={kiss}, {addrs})")
+    # Must open+hold KISS PTY here. max25-bcpr sets stack_proc=None, so the TNC
+    # boot-wait path never calls open_backend; without a slave holder, TX
+    # via max25d/terminal is dead and smoke open/write/close can miss MCR.
+    rt.stack_status = "ready"
+    if backend_enabled(state, dev_id):
+        if open_backend(state, dev_id):
+            if attach_backend_session(state, dev_id):
+                # UI/datagram TX uses CONNECT as session arm — arm at start so
+                # max25-terminal SEND keys MCR without a separate CONNECT race.
+                state.connected = True
+                log(f"max25-bcpr KISS open ({dev_id}: {kiss})")
+            else:
+                log(f"max25-bcpr KISS open but attach failed ({dev_id})")
+        else:
+            log(f"max25-bcpr KISS open failed ({dev_id}) status={rt.link_status}")
 
 
 def start_device_stack(state: DaemonState, dev_id: str) -> None:
@@ -1069,6 +1133,12 @@ def start_stacks(state: DaemonState) -> None:
                 rt.stack_proc = primary_rt.stack_proc
                 rt.stack_status = primary_rt.stack_status
                 log(f"max25-bcpr stack shared with {primary} ({dev_id}, ini={ini_key})")
+                # Shared max25-bcprd — still open this device's kiss_link if distinct.
+                if rt.stack_status in ("ready", "running") and backend_enabled(
+                    state, dev_id
+                ):
+                    if open_backend(state, dev_id):
+                        attach_backend_session(state, dev_id)
                 continue
             if resolved:
                 start_max25_bcpr_stack(state, dev_id, resolved)
@@ -1197,11 +1267,15 @@ def retry_pending_backends(state: DaemonState) -> None:
         rt = state.devices[dev_id]
         if hybbx_host_hybbx_owns_serial(state, dev_id):
             continue
-        if rt.stack_status not in ("ready", "stopped"):
+        # bcpr uses "running" until kiss open flips to "ready"; accept both.
+        if rt.stack_status not in ("ready", "stopped", "running"):
             continue
         if not backend_needs_open(rt.backend):
             continue
-        open_backend(state, dev_id)
+        if open_backend(state, dev_id):
+            attach_backend_session(state, dev_id)
+            if rt.stack_status == "running":
+                rt.stack_status = "ready"
 
 
 def poll_reporting_passes(state: DaemonState) -> None:
@@ -1446,9 +1520,15 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
         if state.monitor_only:
             send_line(sock, "ERR monitor-only")
             return
+        # UI frames: auto-arm session if stack/KISS is up. Terminal Enter/F10→SEND
+        # must key PTT/MCR without requiring a prior CONNECT (L4 writes kiss
+        # directly and already keys; unix SEND must match).
         if not state.connected:
-            send_line(sock, "ERR not connected")
-            return
+            if not attach_all_sessions(state):
+                send_line(sock, "ERR not connected")
+                return
+            state.connected = True
+            send_line(sock, "EVENT connected")
         dev_id = resolve_selected_device(state)
         if dev_id is None:
             send_line(sock, "ERR no device configured")
@@ -1457,6 +1537,11 @@ def handle_command(state: DaemonState, sock: socket.socket, line: str) -> None:
         framed = format_tx(state, payload)
         rt = state.devices[dev_id]
         if backend_enabled(state, dev_id):
+            if rt.backend is None or rt.backend.status != "ready":
+                # Re-attach after DISCONNECT left kiss inactive but stack ready.
+                if not attach_backend_session(state, dev_id):
+                    send_line(sock, "ERR link not ready")
+                    return
             if rt.backend is None or rt.backend.status != "ready":
                 send_line(sock, "ERR link not ready")
                 return
@@ -1562,7 +1647,10 @@ def client_thread(state: DaemonState, sock: socket.socket, from_tcp: bool) -> No
             pass
 
 
-def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> None:
+def serve(
+    state: DaemonState,
+    listeners: list[tuple[socket.socket, bool, tuple[int, int] | None]],
+) -> None:
     running = True
 
     def on_signal(_signum, _frame):
@@ -1594,9 +1682,9 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
         poll_stacks(state)
         poll_reporting_passes(state)
         poll_serial_stability(state)
-        socks = [lsock for lsock, _ in listeners]
+        socks = [lsock for lsock, _tcp, _bid in listeners]
         rlist, _, _ = select.select(socks, [], [], 1.0)
-        for lsock, from_tcp in listeners:
+        for lsock, from_tcp, _bid in listeners:
             if lsock not in rlist:
                 continue
             try:
@@ -1613,24 +1701,23 @@ def serve(state: DaemonState, listeners: list[tuple[socket.socket, bool]]) -> No
             ).start()
 
     stop_stacks(state)
-    for lsock, _ in listeners:
+    for lsock, from_tcp, bind_id in listeners:
+        if not from_tcp and state.cfg.unix_socket:
+            unlink_unix_if_ours(state.cfg.unix_socket, bind_id)
         lsock.close()
-    if state.cfg.unix_socket:
-        try:
-            os.unlink(state.cfg.unix_socket)
-        except FileNotFoundError:
-            pass
 
 
-def make_listeners(cfg: DaemonConfig) -> list[tuple[socket.socket, bool]]:
-    listeners: list[tuple[socket.socket, bool]] = []
+def make_listeners(
+    cfg: DaemonConfig,
+) -> list[tuple[socket.socket, bool, tuple[int, int] | None]]:
+    listeners: list[tuple[socket.socket, bool, tuple[int, int] | None]] = []
 
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     tcp.bind((cfg.tcp_host, cfg.tcp_port))
     tcp.listen(32)
     tcp.setblocking(False)
-    listeners.append((tcp, True))
+    listeners.append((tcp, True, None))
 
     if cfg.unix_socket:
         sock_path = Path(cfg.unix_socket)
@@ -1647,26 +1734,34 @@ def make_listeners(cfg: DaemonConfig) -> list[tuple[socket.socket, bool]]:
                 log("unix socket disabled (no writable path)")
                 cfg.unix_socket = ""
                 return listeners
-        try:
-            os.unlink(cfg.unix_socket)
-        except FileNotFoundError:
-            pass
-        except OSError:
-            pass
-        unix = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        try:
-            unix.bind(cfg.unix_socket)
-        except OSError as exc:
-            log(f"unix socket {cfg.unix_socket} skipped ({exc})")
-            unix.close()
+        # Never unlink a live peer path — that orphans the other max25d FD
+        # (ss still shows the name; clients get ENOENT).
+        if unix_path_is_live(cfg.unix_socket):
+            log(
+                f"unix socket {cfg.unix_socket} already live — not stealing "
+                "(refuse second max25d unix bind)"
+            )
         else:
             try:
-                os.chmod(cfg.unix_socket, 0o660)
+                os.unlink(cfg.unix_socket)
+            except FileNotFoundError:
+                pass
             except OSError:
                 pass
-            unix.listen(32)
-            unix.setblocking(False)
-            listeners.append((unix, False))
+            unix = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                unix.bind(cfg.unix_socket)
+            except OSError as exc:
+                log(f"unix socket {cfg.unix_socket} skipped ({exc})")
+                unix.close()
+            else:
+                try:
+                    os.chmod(cfg.unix_socket, 0o660)
+                except OSError:
+                    pass
+                unix.listen(32)
+                unix.setblocking(False)
+                listeners.append((unix, False, unix_path_id(cfg.unix_socket)))
 
     return listeners
 

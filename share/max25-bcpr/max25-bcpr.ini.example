@@ -12,6 +12,12 @@
 [max25-bcpr]
 dry_run = yes
 state_dir = /tmp/max25-bcpr
+; FlexNet SER12 PTT watchdog (cal / long key): unkey ~500 ms every ~14.5 s
+; ptt_wd = yes
+; ptt_wd_key_ms = 14500
+; ptt_wd_pause_ms = 500
+; TXD pump: pulse = Sailer THR 0x00 (default); steady = UART break (TFPCX-class)
+; txd_bias = pulse
 
 [bc0]
 enabled = yes

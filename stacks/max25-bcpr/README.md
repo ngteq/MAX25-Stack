@@ -26,6 +26,19 @@ cmake --build build-max25-bcpr --target max25-bcprd test_hdlc_offline
 stacks/max25-bcpr/tools/max25-bcpr-ctl -c stacks/max25-bcpr/share/max25-bcpr.ini.example smoke
 ```
 
+```bash
+# Daemon (opt-in build)
+sudo stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini start
+sudo stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini status
+sudo stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini stop
+
+# Ultimate interactive diag / force-TX ladder (operator)
+sudo -n stacks/max25-bcpr/tools/max25-bcpr-ultimate-diag.sh --menu
+```
+
+Dauerlauf / experimental orch helpers are **not** shipped in this freigegeben tree.
+
+
 ## max25d (when enabled)
 
 ```ini

@@ -10,7 +10,7 @@ Operator copies live here. This directory is **gitignored** except this README.
 |------|----------------|
 | `max25d.ini` | `/etc/max25/max25d.ini` |
 | Serial env (per device) | `/etc/max25/` |
-| `bcpr.ini` (BayCom/based / bcpr) | `/etc/max25/bcpr.ini` (or symlink here) |
+| `bcpr.ini` (BayCom/based / bcpr) | `/etc/max25/max25-bcpr.ini` (or symlink here) |
 
 Fill secrets from `local/passwords.env` (generate with the vault `local-generate-secrets.sh` tool). Do not leave placeholders in live files.
 
@@ -45,8 +45,8 @@ max25-terminal -U /run/max25/modem.sock
 # CONNECT → SEND …
 
 # Manual bcpr only when debugging:
-sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini preflight
-sudo ./stacks/bcpr/tools/bcpr-ctl -c /etc/max25/bcpr.ini start
+sudo ./stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini preflight
+sudo ./stacks/max25-bcpr/tools/max25-bcpr-ctl -c /etc/max25/max25-bcpr.ini start
 ```
 
 `tcp_password` comes from `passwords.env` → `MAX25_TCP_PASSWORD`.

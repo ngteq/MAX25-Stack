@@ -45,11 +45,13 @@ add_test(NAME max25_bcpr_config_offline
 set_tests_properties(max25_bcpr_config_offline PROPERTIES LABELS "max25-bcpr")
 
 install(TARGETS max25-bcprd RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(TARGETS test_hdlc_offline test_config_offline RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 install(TARGETS max25_bcpr_lib ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 install(DIRECTORY "${MAX25_BCPR_ROOT}/include/bcpr"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 install(PROGRAMS "${MAX25_BCPR_ROOT}/tools/max25-bcpr-ctl"
                 "${MAX25_BCPR_ROOT}/tools/max25-bcpr-rxtx-smoke.sh"
+                "${MAX25_BCPR_ROOT}/tools/max25-bcpr-ultimate-diag.sh"
         DESTINATION "${CMAKE_INSTALL_SBINDIR}")
 install(FILES "${MAX25_BCPR_ROOT}/share/max25-bcpr.ini.example"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/max25/max25-bcpr")

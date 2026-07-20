@@ -29,6 +29,7 @@ static bcpr_engine_t g_engine;
 
 typedef struct {
     int master_fd;
+    int slave_fd; /* keep open — no peer ⇒ permanent POLLHUP / silent TX */
     char link_path[128];
     int idx;
 } kiss_pty_t;
@@ -81,6 +82,7 @@ static int kiss_pty_open(kiss_pty_t *kp, int idx, const char *link_path,
     memset(kp, 0, sizeof(*kp));
     kp->idx = idx;
     kp->master_fd = -1;
+    kp->slave_fd = -1;
     snprintf(kp->link_path, sizeof(kp->link_path), "%s", link_path);
 
     slash = strrchr(link_path, '/');
@@ -97,18 +99,19 @@ static int kiss_pty_open(kiss_pty_t *kp, int idx, const char *link_path,
     }
 
     if (openpty(&master, &slave, slave_name, NULL, NULL) != 0) {
-        perror("bcprd openpty");
+        perror("max25-bcprd openpty");
         return -1;
     }
-    close(slave);
     unlink(link_path);
     if (symlink(slave_name, link_path) != 0) {
-        perror("bcprd symlink kiss_link");
+        perror("max25-bcprd symlink kiss_link");
+        close(slave);
         close(master);
         return -1;
     }
     fcntl(master, F_SETFL, O_NONBLOCK);
     kp->master_fd = master;
+    kp->slave_fd = slave; /* hold peer so master is not stuck in POLLHUP */
     fprintf(stderr, "max25-bcprd: max25e0:bc%d KISS → %s -> %s\n", idx, link_path,
             slave_name);
     return 0;
@@ -118,6 +121,10 @@ static void kiss_pty_close(kiss_pty_t *kp)
 {
     if (!kp) {
         return;
+    }
+    if (kp->slave_fd >= 0) {
+        close(kp->slave_fd);
+        kp->slave_fd = -1;
     }
     if (kp->master_fd >= 0) {
         close(kp->master_fd);
@@ -294,9 +301,16 @@ static void *kiss_thread(void *arg)
 static void usage(const char *argv0)
 {
     fprintf(stderr,
-            "Usage: %s -c <bcpr.ini> [--dry-run] [--once] [--seconds N] [--version]\n"
+            "Usage: %s -c <bcpr.ini> [--dry-run] [--once] [--seconds N]\n"
+            "          [--cal high|low|alt] [--txd-bias pulse|steady]\n"
+            "          [--ptt-wd|--no-ptt-wd] [--ptt-wd-key-ms N]\n"
+            "          [--ptt-wd-pause-ms N] [--version]\n"
             "  Host face: max25e0:bc0 / bc1 (KISS PTY via kiss_link)\n"
-            "  No kernel baycom_ser_fdx; no calibrate.\n",
+            "  --cal: continuous SER12 tone+PTT (DOS cal.exe style); no KISS\n"
+            "  --txd-bias: pulse=Sailer THR 0x00 (default); steady=UART break\n"
+            "              (TFPCX-class TXD experiment; MCR stays Sailer)\n"
+            "  PTT WD: FlexNet SER12 mirror — unkey ~500 ms every ~14.5 s\n"
+            "  No kernel baycom_ser_fdx.\n",
             argv0);
 }
 
@@ -305,6 +319,11 @@ int main(int argc, char **argv)
     const char *cfg_path = NULL;
     int dry = 0;
     int seconds = 0;
+    int cal_mode = BCPR_CAL_OFF;
+    int cli_txd_bias = -1; /* -1 = INI default */
+    int cli_ptt_wd = -1;
+    int cli_ptt_wd_key_ms = -1;
+    int cli_ptt_wd_pause_ms = -1;
     int i;
     bcpr_config_t cfg;
     pthread_t thr;
@@ -323,6 +342,39 @@ int main(int argc, char **argv)
             }
         } else if (strcmp(argv[i], "--seconds") == 0 && i + 1 < argc) {
             seconds = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--cal") == 0 && i + 1 < argc) {
+            const char *m = argv[++i];
+            if (strcmp(m, "high") == 0 || strcmp(m, "1") == 0) {
+                cal_mode = BCPR_CAL_HIGH;
+            } else if (strcmp(m, "low") == 0 || strcmp(m, "2") == 0) {
+                cal_mode = BCPR_CAL_LOW;
+            } else if (strcmp(m, "alt") == 0 || strcmp(m, "3") == 0) {
+                cal_mode = BCPR_CAL_ALT;
+            } else {
+                fprintf(stderr, "max25-bcprd: --cal needs high|low|alt\n");
+                return 2;
+            }
+        } else if (strcmp(argv[i], "--txd-bias") == 0 && i + 1 < argc) {
+            const char *m = argv[++i];
+            if (strcasecmp(m, "pulse") == 0 || strcasecmp(m, "sailer") == 0) {
+                cli_txd_bias = BCPR_TXD_PULSE;
+            } else if (strcasecmp(m, "steady") == 0 ||
+                       strcasecmp(m, "tfpcx") == 0 ||
+                       strcasecmp(m, "break") == 0) {
+                cli_txd_bias = BCPR_TXD_STEADY;
+            } else {
+                fprintf(stderr, "max25-bcprd: --txd-bias needs pulse|steady\n");
+                return 2;
+            }
+        } else if (strcmp(argv[i], "--ptt-wd") == 0) {
+            cli_ptt_wd = 1;
+        } else if (strcmp(argv[i], "--no-ptt-wd") == 0) {
+            cli_ptt_wd = 0;
+        } else if (strcmp(argv[i], "--ptt-wd-key-ms") == 0 && i + 1 < argc) {
+            cli_ptt_wd_key_ms = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--ptt-wd-pause-ms") == 0 &&
+                   i + 1 < argc) {
+            cli_ptt_wd_pause_ms = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--version") == 0 ||
                    strcmp(argv[i], "-V") == 0) {
             FILE *vf = fopen("/usr/local/share/max25/max25-bcpr/VERSION", "r");
@@ -349,6 +401,10 @@ int main(int argc, char **argv)
         usage(argv[0]);
         return 2;
     }
+    if (cal_mode != BCPR_CAL_OFF && seconds <= 0) {
+        /* Safety: cal always time-bounded unless operator sets longer. */
+        seconds = 5;
+    }
 
     signal(SIGINT, on_sig);
     signal(SIGTERM, on_sig);
@@ -360,12 +416,51 @@ int main(int argc, char **argv)
     if (dry) {
         cfg.dry_run = 1;
     }
+    /* CLI overrides INI for WD / TXD bias (all enabled devices). */
+    for (i = 0; i < BCPR_MAX_DEVICES; i++) {
+        if (cli_txd_bias >= 0) {
+            cfg.dev[i].txd_bias = cli_txd_bias;
+        }
+        if (cli_ptt_wd >= 0) {
+            cfg.dev[i].ptt_wd = cli_ptt_wd;
+        }
+        if (cli_ptt_wd_key_ms > 0) {
+            cfg.dev[i].ptt_wd_key_ms = cli_ptt_wd_key_ms;
+        }
+        if (cli_ptt_wd_pause_ms > 0) {
+            cfg.dev[i].ptt_wd_pause_ms = cli_ptt_wd_pause_ms;
+        }
+    }
+
+    /* S6: path + version at start (catch /usr/local vs tree skew). */
+    {
+        char self[512];
+        ssize_t n = readlink("/proc/self/exe", self, sizeof(self) - 1);
+        FILE *vf = fopen("/usr/local/share/bcpr/VERSION", "r");
+        if (!vf) {
+            vf = fopen("stacks/max25-bcpr/VERSION", "r");
+        }
+        ver[0] = '\0';
+        if (vf) {
+            if (fgets(ver, sizeof(ver), vf)) {
+                ver[strcspn(ver, "\r\n")] = '\0';
+            }
+            fclose(vf);
+        }
+        if (n > 0) {
+            self[n] = '\0';
+            fprintf(stderr, "max25-bcprd: path=%s version=%s\n", self,
+                    ver[0] ? ver : "0.1.0");
+        } else {
+            fprintf(stderr, "max25-bcprd: version=%s\n", ver[0] ? ver : "0.1.0");
+        }
+    }
 
     (void)ensure_dir(cfg.state_dir);
 
-    /* Dry-run / offline CI: skip KISS PTY (openpty may be unavailable). */
+    /* Dry-run / cal / offline CI: skip KISS PTY (openpty may be unavailable). */
     g_npty = 0;
-    if (!cfg.dry_run) {
+    if (!cfg.dry_run && cal_mode == BCPR_CAL_OFF) {
         for (i = 0; i < BCPR_MAX_DEVICES; i++) {
             if (!cfg.dev[i].enabled) {
                 continue;
@@ -380,8 +475,15 @@ int main(int argc, char **argv)
             }
             g_npty++;
         }
-    } else {
+    } else if (cfg.dry_run) {
         fprintf(stderr, "max25-bcprd: dry-run (no KISS PTY, no UART I/O)\n");
+    }
+    if (cal_mode != BCPR_CAL_OFF) {
+        static const char *cal_names[] = {"off", "high", "low", "alt"};
+        fprintf(stderr,
+                "bcprd: CAL mode=%s seconds=%d (no KISS; SER12 tone+PTT)%s\n",
+                cal_names[cal_mode], seconds,
+                cfg.dry_run ? " [dry-run]" : "");
     }
 
     if (bcpr_engine_open(&g_engine, &cfg) != 0) {
@@ -391,11 +493,20 @@ int main(int argc, char **argv)
         return 1;
     }
     g_engine.run_seconds = seconds;
+    if (cal_mode != BCPR_CAL_OFF) {
+        bcpr_engine_set_cal(&g_engine, cal_mode);
+    }
     bcpr_engine_set_rx(&g_engine, on_rx, NULL);
 
     if (g_npty > 0 &&
         pthread_create(&thr, NULL, kiss_thread, &g_engine) == 0) {
         thr_ok = 1;
+    }
+
+    if (cal_mode != BCPR_CAL_OFF && !cfg.dry_run) {
+        fprintf(stderr,
+                "bcprd: *** WATCH NOW *** cal PTT+tone for %d s — then unkey\n",
+                seconds);
     }
 
     (void)bcpr_engine_run(&g_engine);

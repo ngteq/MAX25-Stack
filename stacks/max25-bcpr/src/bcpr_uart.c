@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/io.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 static int g_dry;
@@ -147,4 +148,53 @@ void bcpr_uart_thr00(unsigned iobase)
         return;
     }
     bcpr_uart_outb(0x00, iobase + 0);
+}
+
+void bcpr_uart_set_break(unsigned iobase, int on)
+{
+    unsigned char lcr;
+    if (g_dry) {
+        return;
+    }
+    /*
+     * 8250 LCR bit6 (Set Break): force TXD to continuous SPACE (RS-232 +V).
+     * Honest limit: THR writes alone cannot hold DC-steady TXD — each byte is
+     * framed (start/data/stop). Break is the practical TFPCX-class approximation
+     * (docs: static ≈ +12 V modem supply). Does not change MCR/PTT.
+     */
+    lcr = bcpr_uart_inb(iobase + 3);
+    if (on) {
+        bcpr_uart_outb((unsigned char)(lcr | 0x40), iobase + 3);
+    } else {
+        bcpr_uart_outb((unsigned char)(lcr & (unsigned char)~0x40), iobase + 3);
+    }
+}
+
+int bcpr_uart_wait_thre(unsigned iobase, unsigned timeout_us)
+{
+    struct timespec t0, now;
+    unsigned char lsr;
+
+    if (g_dry) {
+        return 1;
+    }
+    if (clock_gettime(CLOCK_MONOTONIC, &t0) != 0) {
+        return 0;
+    }
+    for (;;) {
+        lsr = bcpr_uart_inb(iobase + 5);
+        if (lsr & 0x20) { /* THRE */
+            return 1;
+        }
+        if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+            return 0;
+        }
+        {
+            long elapsed = (long)(now.tv_sec - t0.tv_sec) * 1000000L +
+                           (now.tv_nsec - t0.tv_nsec) / 1000L;
+            if (elapsed >= (long)timeout_us) {
+                return 0;
+            }
+        }
+    }
 }

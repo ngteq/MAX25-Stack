@@ -408,8 +408,18 @@ static int run_session(max25_client_t *client, max25_ui_t *ui,
     max25_ui_reset_rx(ui);
     max25_ui_draw_screen(ui, status, input);
 
+    /* Arm TX session before accepting Enter/F10 SEND (daemon also auto-arms
+     * on SEND; sync CONNECT here so header connected=yes before first key). */
     if (!status->connected) {
-        send_cmd_async(client, &io, "CONNECT");
+        char creply[MAX25_LINE_MAX];
+
+        if (max25_client_command(client, "CONNECT", creply, sizeof(creply)) == 0) {
+            status->connected = 1;
+            max25_ui_append_rx(ui, "EVENT connected");
+        } else {
+            max25_ui_append_rx(ui, creply[0] ? creply : "ERR CONNECT failed");
+        }
+        max25_ui_draw_screen(ui, status, input);
     }
 
     if (!use_ncurses && isatty(STDIN_FILENO)) {

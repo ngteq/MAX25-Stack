@@ -111,6 +111,17 @@ install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25-ctl"
 install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/max25d-session.sh"
         DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME max25d-session)
 
+# Operator launchers + unified TX/RX test (usable from PREFIX after install)
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/run-max25d.sh"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME run-max25d)
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/run-max25-terminal.sh"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME run-max25-terminal)
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/tx-rx-test.sh"
+        DESTINATION "${CMAKE_INSTALL_SBINDIR}" RENAME max25-tx-rx-test)
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/terminology-check.sh"
+        DESTINATION "${CMAKE_INSTALL_SBINDIR}" RENAME max25-terminology-check)
+
+
 install(FILES
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.example"
     "${CMAKE_SOURCE_DIR}/share/max25/max25d.ini.host.example"

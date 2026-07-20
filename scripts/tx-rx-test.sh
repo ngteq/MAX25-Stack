@@ -1,11 +1,22 @@
 #!/usr/bin/env bash
-# tx-rx-test.sh — unified TX/RX release test (BayCom/based bcpr + classic TNC).
+# tx-rx-test.sh — unified TX/RX release test (BayCom/based max25-bcpr + classic TNC).
 # Default: L0 offline only (CI / make test). Live/TX are operator-gated.
 # Public: BayCom/based / max25-bcpr. Never Konverter/converter.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Tree: scripts/ → repo root. Install: PREFIX/bin or PREFIX/sbin → no stacks/.
+if [[ -d "${SCRIPT_DIR}/../stacks/max25-bcpr" ]]; then
+  ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+  cd "$ROOT"
+  _BCPR_CTL_DEFAULT="${ROOT}/stacks/max25-bcpr/tools/max25-bcpr-ctl"
+  _BCPR_INI_DEFAULT="${ROOT}/stacks/max25-bcpr/share/max25-bcpr.ini.example"
+else
+  ROOT=""
+  cd "${PWD:-/}"
+  _BCPR_CTL_DEFAULT="$(command -v max25-bcpr-ctl 2>/dev/null || true)"
+  _BCPR_INI_DEFAULT="/etc/max25/max25-bcpr.ini"
+fi
 
 LEVEL=0
 DEVICE=all   # all | modem | tnc
@@ -14,9 +25,27 @@ DO_TX=0
 FORCE_TX=0
 SECONDS_LIVE=15
 TX_SECONDS=3
-BCPR_INI="${BCPR_INI:-$ROOT/stacks/max25-bcpr/share/max25-bcpr.ini.example}"
+BCPR_INI="${BCPR_INI:-$_BCPR_INI_DEFAULT}"
 SOCK="${MAX25_SOCK:-/run/max25/modem.sock}"
 ERR=0
+BCPR_CTL="${BCPR_CTL:-$_BCPR_CTL_DEFAULT}"
+if [[ -z "$BCPR_CTL" ]] || [[ ! -x "$BCPR_CTL" ]]; then
+  if command -v max25-bcpr-ctl >/dev/null 2>&1; then
+    BCPR_CTL="$(command -v max25-bcpr-ctl)"
+  elif [[ -n "$ROOT" && -x "$ROOT/stacks/max25-bcpr/tools/max25-bcpr-ctl" ]]; then
+    BCPR_CTL="$ROOT/stacks/max25-bcpr/tools/max25-bcpr-ctl"
+  fi
+fi
+BCPR_SMOKE="${BCPR_SMOKE:-}"
+if [[ -z "$BCPR_SMOKE" ]]; then
+  if [[ -n "$ROOT" && -x "$ROOT/stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh" ]]; then
+    BCPR_SMOKE="$ROOT/stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh"
+  elif command -v max25-bcpr-rxtx-smoke.sh >/dev/null 2>&1; then
+    BCPR_SMOKE="$(command -v max25-bcpr-rxtx-smoke.sh)"
+  elif [[ -x /usr/local/sbin/max25-bcpr-rxtx-smoke.sh ]]; then
+    BCPR_SMOKE=/usr/local/sbin/max25-bcpr-rxtx-smoke.sh
+  fi
+fi
 
 usage() {
   cat <<'USAGE'
@@ -161,9 +190,9 @@ run_l0() {
 run_l1() {
   stage "L1 soft preflight"
   if want_modem; then
-    if [[ -x stacks/max25-bcpr/tools/max25-bcpr-ctl ]]; then
+    if [[ -n "${BCPR_CTL:-}" && -x "$BCPR_CTL" ]]; then
       set +e
-      stacks/max25-bcpr/tools/max25-bcpr-ctl -c "$BCPR_INI" preflight
+      "$BCPR_CTL" -c "$BCPR_INI" preflight
       pf_rc=$?
       set -e
       if [[ "$pf_rc" -eq 0 ]]; then
@@ -176,7 +205,7 @@ run_l1() {
         fi
       fi
     else
-      fail "max25-bcpr-ctl missing"
+      fail "max25-bcpr-ctl missing (install max25-bcpr or set BCPR_CTL)"
     fi
   fi
   if want_tnc; then
@@ -258,7 +287,10 @@ run_live() {
       fi
       log "WARN: modem --tx asserts PTT (~${TX_SECONDS}s; watch LED/wattmeter) — only after RX (§0.20)"
     fi
-    if bash stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh "${smoke_args[@]}"; then
+    _smoke="${BCPR_SMOKE:-stacks/max25-bcpr/tools/max25-bcpr-rxtx-smoke.sh}"
+    if [[ ! -x "$_smoke" ]]; then
+      fail "max25-bcpr-rxtx-smoke.sh missing (install max25-bcpr or set BCPR_SMOKE)"
+    elif bash "$_smoke" "${smoke_args[@]}"; then
       ok "bcpr live smoke (BayCom/based)"
     else
       fail "bcpr live smoke"
